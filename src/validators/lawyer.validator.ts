@@ -1,37 +1,49 @@
+import { Types } from "mongoose";
 import { z } from "zod";
 import { SKILL_LEVELS } from "../models/lawyer.model";
+import { MongoIdSchema } from "./case.validator";
+import { MESSAGES } from "../constants/messages";
+import { env } from "../config/env";
 
+const LANGUAGE = env.LANGUAGE;
+
+const RequiredString = z.string().trim().min(1);
+
+const OptionalString = z.string().trim().optional();
+
+const OptionalNullableString = z.string().trim().optional().nullable();
 
 export const UpdateProfileSchema = z.object({
-  name: z.string().min(1).transform(v => v.trim()).optional(),
-  lastname: z.string().min(1).transform(v => v.trim()).optional(),
-  website: z.url().transform(v => v.trim()).optional(),
-  bio: z.string().transform(v => v.trim()).optional(),
-  yearsOfExperience: z.number().int().min(0).optional(),
+  name: RequiredString.optional(),
+
+  lastname: RequiredString.optional(),
+
+  website: z.string().trim().url().optional(),
+
+  bio: OptionalString,
+
+  yearsOfExperience: z.number().int().min(0).max(80).optional(),
+
   address: z
     .object({
-      province: z.string().min(1).transform(v => v.trim()),
-      city: z.string().min(1).transform(v => v.trim()),
-      fullAddress: z.string().min(1).transform(v => v.trim()),
+      province: RequiredString,
+
+      city: RequiredString,
+
+      fullAddress: RequiredString.max(200),
     })
     .optional(),
 });
 
-export const AddStudySchema = z.object({
-  graduationYear: z.number().int().min(1300).max(1500),
-  degree: z.string().min(1).transform(v => v.trim()),
-  college: z.string().min(1).transform(v => v.trim()),
-  field: z.string().min(1).transform(v => v.trim()),
-});
-
 export const LanguageBodySchema = z.object({
-  language: z.string().min(1).transform(v => v.trim()),
+  language: RequiredString,
 });
 
 export const SkillLevelsSchema = z.enum(SKILL_LEVELS);
 
 export const AddSkillSchema = z.object({
-  name: z.string().min(1).transform(v => v.trim()),
+  name: RequiredString,
+
   level: SkillLevelsSchema,
 });
 
@@ -40,25 +52,30 @@ export const UpdateSkillLevelSchema = z.object({
 });
 
 export const ParamIdSchema = z.object({
-  id: z.string().min(1),
+  id: MongoIdSchema,
 });
 
 export const ParamNameSchema = z.object({
-  name: z.string().min(1).transform(v => v.trim()),
+  name: RequiredString,
 });
 
-export const ParamStudyIdSchema = z.object({
-  studyId: z.string().min(1),
-});
+export const AddWorkExperienceSchema = z
+  .object({
+    title: RequiredString,
 
-export const AddWorkExperienceSchema = z.object({
-  title: z.string().min(1).transform(v => v.trim()),
-  organization: z.string().min(1).transform(v => v.trim()),
-  startYear: z.number().int().min(1300).max(1500),
-  endYear: z.number().int().min(1300).max(1500),
-  description: z.string().transform(v => v.trim()).optional().nullable(),
-});
+    organization: RequiredString,
+
+    startYear: z.number().int().min(1300).max(1500),
+
+    endYear: z.number().int().min(1300).max(1500),
+
+    description: OptionalNullableString,
+  })
+  .refine((data) => data.endYear >= data.startYear, {
+    message: MESSAGES["endYearBeforeStart"][LANGUAGE],
+    path: ["endYear"],
+  });
 
 export const ParamWorkExperienceIdSchema = z.object({
-  id: z.string().min(1),
+  id: MongoIdSchema,
 });

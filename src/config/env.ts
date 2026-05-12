@@ -10,13 +10,13 @@ const envSchema = z.object({
   MONGO_URI: z.string().min(1),
   JWT_ACC_SECRET: z.string().min(10),
   JWT_REF_SECRET: z.string().min(10),
-  NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+  NODE_ENV: z
+    .enum(["development", "production", "test"])
+    .default("development"),
   ORIGIN: z.url(),
   CREDENTIAL: z.coerce.boolean().default(true),
-  LANGUAGE: z.enum(["en", "fa"]).default("en")
+  LANGUAGE: z.enum(["en", "fa"]).default("en"),
 });
-
-
 
 class Env {
   public readonly PORT: number;
@@ -29,7 +29,6 @@ class Env {
   public readonly LANGUAGE: Language;
 
   constructor(processEnv = process.env) {
-
     const parsed = envSchema.safeParse(processEnv);
 
     if (!parsed.success) {
@@ -49,4 +48,4 @@ class Env {
   }
 }
 
-export const env = new Env()
+export const env = new Env();

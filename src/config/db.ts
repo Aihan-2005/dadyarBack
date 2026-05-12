@@ -8,7 +8,7 @@ export class Database {
     try {
       await mongoose.connect(this.url);
     } catch (e) {
-      console.error(e)
+      console.error(e);
     }
   }
 
@@ -16,7 +16,7 @@ export class Database {
     try {
       await mongoose.disconnect();
     } catch (e) {
-      console.error(e)
+      console.error(e);
     }
   }
 }
