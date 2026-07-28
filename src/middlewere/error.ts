@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { HttpExceptoin } from "../exceptions/httpException";
+import { HttpException } from "../exceptions/httpException";
 import { ZodError } from "zod";
 import { MESSAGES } from "../constants/messages";
 import { env } from "../config/env";
@@ -7,12 +7,12 @@ import { env } from "../config/env";
 const LANGUAGE = env.LANGUAGE;
 
 const errorHandler = (
-  error: HttpExceptoin | ZodError,
+  error: HttpException | ZodError,
   _req: Request,
   res: Response,
   _next: NextFunction,
 ) => {
-  if (error instanceof HttpExceptoin) {
+  if (error instanceof HttpException) {
     console.error(
       `error with status:${error.status || 500} with message:${error.message}`,
     );

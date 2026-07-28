@@ -171,7 +171,7 @@ export const CaseSchema = new Schema(
 
     court: {
       type: CourtSchema,
-      required: true,
+      //required: true,
     },
 
     clients: {

@@ -131,5 +131,4 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
       )
       .exec();
   }
-  // TODO: add updating the workExperience
 }

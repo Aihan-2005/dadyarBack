@@ -117,4 +117,60 @@ export const MESSAGES = {
     en: "End Year Can't Be Before Start Year",
     fa: "سال انتها نمیتواند ثبل از شروع باشد",
   },
+  caseExsist: {
+    en: "Case Number Already Exists",
+    fa: "پرونده از قبل موجود بود",
+  },
+  caseNotFound: {
+    en: "Case Was Not Found",
+    fa: "پرونده یافت نشد",
+  },
+  noCaseFieldFound: {
+    en: "At least one case field is required",
+    fa: "حداقل یک فیلد برای پرونده باید داده بشود",
+  },
+  noCourtFieldFound: {
+    en: "At least one court field is required",
+    fa: "حداقل یک فیلد برای دادگاه باید داده بشود",
+  },
+  noClientFieldFound: {
+    en: "At least one client field is required",
+    fa: "حداقل یک فیلد برای کابر باید داده بشود",
+  },
+  noOpposingFieldFound: {
+    en: "At least one opposing party field is required",
+    fa: "حداقل یک فیلد برای طرف مخالف باید داده بشود",
+  },
+  noOpposingLawyerFiledFound: {
+    en: "At least one opposing lawyer field is required",
+    fa: "حداقل یک فیلد برای وکیل مخالف باید داده بشود",
+  },
+  noAssistantFieldFound: {
+    en: "At least one assistant lawyer field is required",
+    fa: "حداقل یک فیلد برای وکیل مساعد باید داده بشود",
+  },
+  noRelatedPersonFieldFound: {
+    en: "At least one related person field is required",
+    fa: "حداقل یک فیلد برای شخص مرتبط باید داده بشود",
+  },
+  clientNotFound: {
+    en: "Client was not found",
+    fa: "کاربر یافت نشد",
+  },
+  opposingNotFound: {
+    en: "opposing party was found",
+    fa: "هیچ فردی از گروه مخالف پیدا نشد",
+  },
+  assistantNotFound: {
+    en: "Assistant lawyer not found",
+    fa: "وکیل مساعد یافت نشد",
+  },
+  opposingLawyernotFound: {
+    en: "Opposing lawyer not found",
+    fa: "وکیل مخالف پیدا نشد",
+  },
+  relatedPersonNotFound: {
+    en: "Related person not found",
+    fa: "فرد مرتبط یافت نشد",
+  },
 };

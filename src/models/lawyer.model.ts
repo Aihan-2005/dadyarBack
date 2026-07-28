@@ -62,19 +62,16 @@ const AddressSchema = new Schema(
   {
     province: {
       type: String,
-      required: true,
       trim: true,
     },
 
     city: {
       type: String,
-      required: true,
       trim: true,
     },
 
     fullAddress: {
       type: String,
-      required: true,
       trim: true,
       maxLength: 200,
     },
@@ -132,6 +129,7 @@ export const LawyerSchema = new Schema(
       min: 0,
       max: 80,
     },
+
     website: {
       type: String,
       trim: true,

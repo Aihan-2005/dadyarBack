@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { LawyerService } from "../services/lawyer.service";
-import { HttpExceptoin } from "../exceptions/httpException";
+import { HttpException } from "../exceptions/httpException";
 import { MESSAGES } from "../constants/messages";
 import { env } from "../config/env";
 
@@ -24,11 +24,11 @@ class LawyerController {
     try {
       const lawyerId = req.user?.id;
       if (!lawyerId)
-        throw new HttpExceptoin(401, MESSAGES.unauthorized[LANGUAGE]);
+        throw new HttpException(401, MESSAGES.unauthorized[LANGUAGE]);
 
       const lawyer = await this.lawyerService.findById(lawyerId);
       if (!lawyer)
-        throw new HttpExceptoin(404, MESSAGES.noUserWithId[LANGUAGE]);
+        throw new HttpException(404, MESSAGES.noUserWithId[LANGUAGE]);
 
       return res.status(200).json({ success: true, data: lawyer });
     } catch (err) {
@@ -41,13 +41,13 @@ class LawyerController {
     try {
       const lawyerId = req.user?.id;
       if (!lawyerId)
-        throw new HttpExceptoin(401, MESSAGES.unauthorized[LANGUAGE]);
+        throw new HttpException(401, MESSAGES.unauthorized[LANGUAGE]);
 
       const patch = await UpdateProfileSchema.parseAsync(req.body);
       const updated = await this.lawyerService.updateProfile(lawyerId, patch);
 
       if (!updated)
-        throw new HttpExceptoin(404, MESSAGES.noUserWithId[LANGUAGE]);
+        throw new HttpException(404, MESSAGES.noUserWithId[LANGUAGE]);
 
       return res.status(200).json({ success: true, data: updated });
     } catch (err) {
@@ -66,7 +66,7 @@ class LawyerController {
     try {
       const lawyerId = req.user?.id;
       if (!lawyerId)
-        throw new HttpExceptoin(401, MESSAGES.unauthorized[LANGUAGE]);
+        throw new HttpException(401, MESSAGES.unauthorized[LANGUAGE]);
 
       const { language } = await LanguageBodySchema.parseAsync(req.body);
       const updated = await this.lawyerService.addLanguage(lawyerId, language);
@@ -86,7 +86,7 @@ class LawyerController {
     try {
       const lawyerId = req.user?.id;
       if (!lawyerId)
-        throw new HttpExceptoin(401, MESSAGES.unauthorized[LANGUAGE]);
+        throw new HttpException(401, MESSAGES.unauthorized[LANGUAGE]);
 
       const { language } = await LanguageBodySchema.parseAsync(req.params);
       await this.lawyerService.removeLanguage(lawyerId, language);
@@ -104,7 +104,7 @@ class LawyerController {
     try {
       const lawyerId = req.user?.id;
       if (!lawyerId)
-        throw new HttpExceptoin(401, MESSAGES.unauthorized[LANGUAGE]);
+        throw new HttpException(401, MESSAGES.unauthorized[LANGUAGE]);
 
       const { name, level } = await AddSkillSchema.parseAsync(req.body);
       const updated = await this.lawyerService.addSkill(lawyerId, name, level);
@@ -124,7 +124,7 @@ class LawyerController {
     try {
       const lawyerId = req.user?.id;
       if (!lawyerId)
-        throw new HttpExceptoin(401, MESSAGES.unauthorized[LANGUAGE]);
+        throw new HttpException(401, MESSAGES.unauthorized[LANGUAGE]);
 
       const { name } = ParamNameSchema.parse(req.params);
       await this.lawyerService.removeSkill(lawyerId, name);
@@ -144,7 +144,7 @@ class LawyerController {
     try {
       const lawyerId = req.user?.id;
       if (!lawyerId)
-        throw new HttpExceptoin(401, MESSAGES.unauthorized[LANGUAGE]);
+        throw new HttpException(401, MESSAGES.unauthorized[LANGUAGE]);
 
       const { name } = ParamNameSchema.parse(req.params);
       const { level } = await UpdateSkillLevelSchema.parseAsync(req.body);
@@ -168,7 +168,7 @@ class LawyerController {
     try {
       const lawyerId = req.user?.id;
       if (!lawyerId)
-        throw new HttpExceptoin(401, MESSAGES.unauthorized[LANGUAGE]);
+        throw new HttpException(401, MESSAGES.unauthorized[LANGUAGE]);
 
       const workExperience = await AddWorkExperienceSchema.parseAsync(req.body);
       const updated = await this.lawyerService.addWorkExperience(
@@ -191,7 +191,7 @@ class LawyerController {
     try {
       const lawyerId = req.user?.id;
       if (!lawyerId)
-        throw new HttpExceptoin(401, MESSAGES.unauthorized[LANGUAGE]);
+        throw new HttpException(401, MESSAGES.unauthorized[LANGUAGE]);
 
       const { id } = ParamWorkExperienceIdSchema.parse(req.params);
       await this.lawyerService.removeWorkExperience(lawyerId, id);

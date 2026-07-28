@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { env } from "../config/env";
 import { AuthService } from "../services/auth.service";
 import { LoginSchema, SignupSchema } from "../validators/auth.validator";
-import { HttpExceptoin } from "../exceptions/httpException";
+import { HttpException } from "../exceptions/httpException";
 import { MESSAGES } from "../constants/messages";
 
 const LANGUAGE = env.LANGUAGE;
@@ -64,7 +64,7 @@ class AuthController {
       const refreshToken = req.cookies.refreshToken;
 
       if (!refreshToken)
-        throw new HttpExceptoin(401, MESSAGES.unauthorized[LANGUAGE]);
+        throw new HttpException(401, MESSAGES.unauthorized[LANGUAGE]);
 
       const { accessToken, refreshToken: newRefreshToken } =
         await this.authService.refresh(refreshToken);

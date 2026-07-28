@@ -39,11 +39,11 @@ export const SignupSchema = z
 
     password: PasswordSchema,
 
-    barLicenseNumber: RequiredString,
+    barLicenseNumber: OptionalString,
 
-    address: AddressSchema,
+    address: AddressSchema.optional(),
 
-    yearsOfExperience: z.number().int().min(0).max(80),
+    yearsOfExperience: z.number().int().min(0).max(80).optional(),
 
     website: z.string().trim().url().optional(),
 

@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { CASE_STATES, CaseSchema, COURT_TYPES } from "../models/case.model";
+import { CASE_STATES, COURT_TYPES } from "../interfaces/case.interface";
+// import { CaseSchema } from "../models/case.model";
 import { Types } from "mongoose";
 import { MESSAGES } from "../constants/messages";
 import { env } from "../config/env";
@@ -80,7 +81,7 @@ export const CreateCaseSchema = z.object({
 
   state: CaseStateSchema.optional(),
 
-  court: CourtSchema,
+  court: CourtSchema.optional(),
 
   clients: z.array(ClientSchema).min(1, {
     message: MESSAGES["caseNeedClient"][LANGUAGE],
@@ -99,6 +100,8 @@ export const UpdateCaseSchema = CreateCaseSchema.partial();
 export const UpdateCaseStateSchema = z.object({
   state: CaseStateSchema,
 });
+
+export const UpdateCourtSchema = CourtSchema.partial();
 
 export const AddClientSchema = ClientSchema;
 

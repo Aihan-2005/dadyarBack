@@ -2,10 +2,9 @@ import bcrypt from "bcrypt";
 import { LawyerRepository } from "../repositories/lawyer.repository";
 import { TokenService } from "./token.service";
 import { CreateLawyerInput, LoginDTO } from "../interfaces/lawyer.interface";
-import { HttpExceptoin } from "../exceptions/httpException";
+import { HttpException } from "../exceptions/httpException";
 import { MESSAGES } from "../constants/messages";
 import { env } from "../config/env";
-import type { Request, NextFunction } from "express";
 const LANGUAGE = env.LANGUAGE;
 
 export class AuthService {
@@ -26,7 +25,7 @@ export class AuthService {
     const phone = this.normalizePhone(input.phone);
 
     if (!email && !phone)
-      throw new HttpExceptoin(400, MESSAGES.noEmailNorPhone[LANGUAGE]);
+      throw new HttpException(400, MESSAGES.noEmailNorPhone[LANGUAGE]);
 
     return { email, phone };
   }
@@ -42,29 +41,30 @@ export class AuthService {
   private async handelLawyerExsist(input: CreateLawyerInput) {
     const email = this.normalizeEmail(input.email);
     const phone = input.phone?.trim();
-    console.log(email, phone);
 
     if (!email && !phone) {
-      throw new HttpExceptoin(400, MESSAGES.noEmailNorPhone[LANGUAGE]);
+      throw new HttpException(400, MESSAGES.noEmailNorPhone[LANGUAGE]);
     }
 
     if (email) {
       const emailExsist = await this.repo.findByEmail(email);
       if (emailExsist)
-        throw new HttpExceptoin(400, MESSAGES.emailExsist[LANGUAGE]);
+        throw new HttpException(400, MESSAGES.emailExsist[LANGUAGE]);
     }
 
     if (phone) {
       const phoneExsist = await this.repo.findByPhone(phone);
       if (phoneExsist)
-        throw new HttpExceptoin(400, MESSAGES.phoneExsist[LANGUAGE]);
+        throw new HttpException(400, MESSAGES.phoneExsist[LANGUAGE]);
     }
+
+    if (!input.barLicenseNumber) return;
 
     const barExsist = await this.repo.findByBarLicence(
       input.barLicenseNumber.trim(),
     );
 
-    if (barExsist) throw new HttpExceptoin(400, MESSAGES.barExsist[LANGUAGE]);
+    if (barExsist) throw new HttpException(400, MESSAGES.barExsist[LANGUAGE]);
   }
 
   private normalizeData(input: CreateLawyerInput, password: string) {
@@ -74,16 +74,15 @@ export class AuthService {
       email: this.normalizeEmail(input.email),
       phone: input.phone?.trim(),
       password,
-      barLicenseNumber: input.barLicenseNumber.trim(),
+      barLicenseNumber: input.barLicenseNumber?.trim(),
       address: {
-        province: input.address.province.trim(),
-        city: input.address.city.trim(),
-        fullAddress: input.address.fullAddress.trim(),
+        province: input.address?.province?.trim(),
+        city: input.address?.city?.trim(),
+        fullAddress: input.address?.fullAddress?.trim(),
       },
       yearsOfExperience: input.yearsOfExperience,
       website: input.website?.trim(),
       bio: input.bio?.trim(),
-      studies: input.studies ?? [],
       workExperiences: input.workExperiences ?? [],
       skills: input.skills ?? [],
       languages: input.languages ?? [],
@@ -101,7 +100,7 @@ export class AuthService {
       : await this.repo.findAuthByPhone(phone!);
 
     if (!authUser)
-      throw new HttpExceptoin(401, MESSAGES.noUserWithEmailOrPhone[LANGUAGE]);
+      throw new HttpException(401, MESSAGES.noUserWithEmailOrPhone[LANGUAGE]);
 
     const checkPassword = await this.comparePassword(
       input.password,
@@ -112,14 +111,12 @@ export class AuthService {
       const errorMessage = email
         ? MESSAGES.emailorPasswordWrong[LANGUAGE]
         : MESSAGES.phoneOrPasswordWrong[LANGUAGE];
-      throw new HttpExceptoin(401, errorMessage);
+      throw new HttpException(401, errorMessage);
     }
 
     const userId = authUser._id.toString();
 
-    console.log("creating access token");
     const accessToken = this.tokenService.generateAccessToken(userId);
-    console.log("created acess token");
     const refreshToken = await this.tokenService.generateRefreshToken(userId);
 
     // NOTE: remove password before returning user

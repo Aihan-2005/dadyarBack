@@ -22,17 +22,11 @@ export interface CreateLawyerInput {
   email?: string;
   phone?: string;
   password: string;
-  barLicenseNumber: string;
-  address: { province: string; city: string; fullAddress: string };
-  yearsOfExperience: number;
+  barLicenseNumber?: string;
+  address?: { province?: string; city?: string; fullAddress?: string };
+  yearsOfExperience?: number;
   website?: string;
   bio?: string;
-  studies?: Array<{
-    graduationYear: number;
-    degree: string;
-    college: string;
-    field: string;
-  }>;
   workExperiences?: Array<{
     title: string;
     organization: string;
