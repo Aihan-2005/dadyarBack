@@ -11,20 +11,10 @@ import {
   UpdateCaseSchema,
 } from "../validators/case.validator";
 
-export const CASE_STATES = [
-  "PENDING",
-  "IN_PROGRESS",
-  "DONE",
-  "ARCHIVED",
-] as const;
-
-export const COURT_TYPES = [
-  "GENERAL_COURT",
-  "REVOLUTIONARY_COURT",
-  "CRIMINAL_COURT",
-  "FAMILY_COURT",
-  "JUVENILE_COURT",
-] as const;
+export {
+  CASE_SATATE,
+  COURT_TYPES,
+} from "../constants/case.constants";
 
 export interface FindCasesOptions {
   state?: string;

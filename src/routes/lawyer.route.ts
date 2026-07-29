@@ -1,48 +1,72 @@
 import { Router } from "express";
-import LawyerController from "../controller/lawyer.controller";
-import { LawyerService } from "../services/lawyer.service";
-import { Route } from "../interfaces/routes.interface";
+
+import {
+  LawyerController,
+} from "../controller/lawyer.controller";
+
+import type {
+  Route,
+} from "../interfaces/routes.interface";
+
 import requireAuth from "../middlewere/auth.middlewere";
 
+import {
+  LawyerService,
+} from "../services/lawyer.service";
+
 class LawyerRoute implements Route {
+  public readonly path =
+    "/lawyers";
 
-  public path = "/lawyers";
-  public router = Router();
-  private readonly lawyerController = new LawyerController(new LawyerService());
+  public readonly router =
+    Router();
 
+  private readonly lawyerController:
+    LawyerController;
 
   constructor() {
-    this.authRoutes()
-    this.initilizeRoutes()
+    const lawyerService =
+      new LawyerService();
+
+    this.lawyerController =
+      new LawyerController(
+        lawyerService,
+      );
+
+    this.initializeMiddlewares();
+    this.initializeRoutes();
   }
 
-  private authRoutes() {
-    this.router.use(requireAuth)
-  }
-  private initilizeRoutes() {
-    // Profile
-    this.router.get("/me", this.lawyerController.me);
-    this.router.patch("/me", this.lawyerController.updateMe);
-
-    // Studies
-    this.router.post("/me/studies", this.lawyerController.addStudy);
-    this.router.delete("/me/studies/:studyId", this.lawyerController.removeStudy);
-
-    // Languages
-    this.router.post("/me/languages", this.lawyerController.addLanguage);
-    this.router.delete("/me/languages/:language", this.lawyerController.removeLanguage);
-
-    // Skills
-    this.router.post("/me/skills", this.lawyerController.addSkill);
-    this.router.delete("/me/skills/:name", this.lawyerController.removeSkill);
-    this.router.patch("/me/skills/:name", this.lawyerController.changeSkillLevel);
-
-    // Work Experiences
-    this.router.post("/me/work-experiences", this.lawyerController.addWorkExperience);
-    this.router.delete("/me/work-experiences/:id", this.lawyerController.removeWorkExperience);
+  private initializeMiddlewares(): void {
+    this.router.use(
+      requireAuth,
+    );
   }
 
+  private initializeRoutes(): void {
+    this.router.get(
+      "/me",
+      this.lawyerController.me,
+    );
+
+    /**
+     * مسیر اصلی مورد استفاده فرانت.
+     */
+    this.router.put(
+      "/me/profile",
+      this.lawyerController
+        .updateProfile,
+    );
+
+    /**
+     * سازگاری موقت با route قبلی.
+     */
+    this.router.patch(
+      "/me",
+      this.lawyerController
+        .updateProfile,
+    );
+  }
 }
-
 
 export default LawyerRoute;

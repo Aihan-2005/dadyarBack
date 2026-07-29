@@ -1,81 +1,383 @@
-import { Types } from "mongoose";
 import { z } from "zod";
+
 import { SKILL_LEVELS } from "../models/lawyer.model";
-import { MongoIdSchema } from "./case.validator";
-import { MESSAGES } from "../constants/messages";
-import { env } from "../config/env";
 
-const LANGUAGE = env.LANGUAGE;
+const normalizePersianDigits = (
+  value: string,
+): string => {
+  const persianDigits =
+    "۰۱۲۳۴۵۶۷۸۹";
 
-const RequiredString = z.string().trim().min(1);
+  const arabicDigits =
+    "٠١٢٣٤٥٦٧٨٩";
 
-const OptionalString = z.string().trim().optional();
+  return value
+    .replace(
+      /[۰-۹]/g,
+      (character) =>
+        String(
+          persianDigits.indexOf(
+            character,
+          ),
+        ),
+    )
+    .replace(
+      /[٠-٩]/g,
+      (character) =>
+        String(
+          arabicDigits.indexOf(
+            character,
+          ),
+        ),
+    );
+};
 
-const OptionalNullableString = z.string().trim().optional().nullable();
+const cleanOptionalString = (
+  maxLength: number,
+) =>
+  z.preprocess(
+    (value) => {
+      if (
+        value === undefined ||
+        value === null
+      ) {
+        return undefined;
+      }
 
-export const UpdateProfileSchema = z.object({
-  name: RequiredString.optional(),
+      if (
+        typeof value === "string" &&
+        value.trim() === ""
+      ) {
+        return undefined;
+      }
 
-  lastname: RequiredString.optional(),
+      return value;
+    },
+    z
+      .string()
+      .trim()
+      .max(maxLength)
+      .optional(),
+  );
 
-  website: z.string().trim().url().optional(),
+const optionalPhoneSchema =
+  z.preprocess(
+    (value) => {
+      if (
+        value === undefined ||
+        value === null
+      ) {
+        return undefined;
+      }
 
-  bio: OptionalString,
+      if (
+        typeof value === "string" &&
+        value.trim() === ""
+      ) {
+        return undefined;
+      }
 
-  yearsOfExperience: z.number().int().min(0).max(80).optional(),
+      return value;
+    },
+    z
+      .string()
+      .trim()
+      .regex(/^09\d{9}$/)
+      .optional(),
+  );
 
-  address: z
-    .object({
-      province: RequiredString,
+const optionalWebsiteSchema =
+  z.preprocess(
+    (value) => {
+      if (
+        value === undefined ||
+        value === null
+      ) {
+        return undefined;
+      }
 
-      city: RequiredString,
+      if (
+        typeof value !== "string"
+      ) {
+        return value;
+      }
 
-      fullAddress: RequiredString.max(200),
-    })
-    .optional(),
-});
+      const trimmed =
+        value.trim();
 
-export const LanguageBodySchema = z.object({
-  language: RequiredString,
-});
+      if (trimmed === "") {
+        return undefined;
+      }
 
-export const SkillLevelsSchema = z.enum(SKILL_LEVELS);
+      if (
+        !/^https?:\/\//i.test(
+          trimmed,
+        )
+      ) {
+        return `https://${trimmed}`;
+      }
 
-export const AddSkillSchema = z.object({
-  name: RequiredString,
+      return trimmed;
+    },
+    z
+      .string()
+      .url()
+      .max(500)
+      .optional(),
+  );
 
-  level: SkillLevelsSchema,
-});
+const yearsOfExperienceSchema =
+  z.preprocess(
+    (value) => {
+      if (
+        typeof value === "string"
+      ) {
+        const normalized =
+          normalizePersianDigits(
+            value.trim(),
+          );
 
-export const UpdateSkillLevelSchema = z.object({
-  level: SkillLevelsSchema,
-});
+        if (normalized === "") {
+          return 0;
+        }
 
-export const ParamIdSchema = z.object({
-  id: MongoIdSchema,
-});
+        return Number(normalized);
+      }
 
-export const ParamNameSchema = z.object({
-  name: RequiredString,
-});
+      return value;
+    },
+    z
+      .number()
+      .int()
+      .min(0)
+      .max(80),
+  );
 
-export const AddWorkExperienceSchema = z
-  .object({
-    title: RequiredString,
+const yearSchema = z
+  .string()
+  .trim()
+  .transform(
+    normalizePersianDigits,
+  )
+  .refine(
+    (value) =>
+      /^(13|14)\d{2}$/.test(
+        value,
+      ),
+    {
+      message:
+        "سال باید چهاررقمی باشد",
+    },
+  );
 
-    organization: RequiredString,
+const endYearSchema = z
+  .string()
+  .trim()
+  .transform((value) => {
+    if (value === "") {
+      return "اکنون";
+    }
 
-    startYear: z.number().int().min(1300).max(1500),
+    if (
+      value === "تا کنون" ||
+      value === "تاکنون"
+    ) {
+      return "اکنون";
+    }
 
-    endYear: z.number().int().min(1300).max(1500),
-
-    description: OptionalNullableString,
+    return normalizePersianDigits(
+      value,
+    );
   })
-  .refine((data) => data.endYear >= data.startYear, {
-    message: MESSAGES["endYearBeforeStart"][LANGUAGE],
-    path: ["endYear"],
-  });
+  .refine(
+    (value) =>
+      value === "اکنون" ||
+      /^(13|14)\d{2}$/.test(
+        value,
+      ),
+    {
+      message:
+        "سال پایان باید چهاررقمی یا «اکنون» باشد",
+    },
+  );
 
-export const ParamWorkExperienceIdSchema = z.object({
-  id: MongoIdSchema,
-});
+const experienceSchema = z
+  .object({
+    /**
+     * شناسه ساخته‌شده در فرانت فقط برای مدیریت local state است.
+     * بک‌اند آن را ذخیره نمی‌کند.
+     */
+    id: z
+      .string()
+      .optional(),
+
+    title: z
+      .string()
+      .trim()
+      .min(1)
+      .max(150),
+
+    company: z
+      .string()
+      .trim()
+      .min(1)
+      .max(150),
+
+    startYear:
+      yearSchema,
+
+    endYear:
+      endYearSchema,
+
+    description:
+      cleanOptionalString(2000),
+  })
+  .strict()
+  .superRefine(
+    (data, context) => {
+      if (
+        data.endYear !==
+          "اکنون" &&
+        Number(data.endYear) <
+          Number(data.startYear)
+      ) {
+        context.addIssue({
+          code:
+            z.ZodIssueCode.custom,
+
+          path: ["endYear"],
+
+          message:
+            "سال پایان نمی‌تواند قبل از سال شروع باشد",
+        });
+      }
+    },
+  );
+
+const skillLevelSchema =
+  z.preprocess(
+    (value) =>
+      typeof value ===
+      "string"
+        ? Number(value)
+        : value,
+    z.union([
+      z.literal(1),
+      z.literal(2),
+      z.literal(3),
+      z.literal(4),
+      z.literal(5),
+    ]),
+  );
+
+const skillSchema = z
+  .object({
+    id: z
+      .string()
+      .optional(),
+
+    name: z
+      .string()
+      .trim()
+      .min(1)
+      .max(100),
+
+    level:
+      skillLevelSchema,
+  })
+  .strict();
+
+export const LawyerProfileSchema =
+  z
+    .object({
+      specialization: z
+        .string()
+        .trim()
+        .max(150),
+
+      licenseNumber: z
+        .string()
+        .trim()
+        .max(50),
+
+      yearsOfExperience:
+        yearsOfExperienceSchema,
+
+      phone:
+        optionalPhoneSchema,
+
+      website:
+        optionalWebsiteSchema,
+
+      address: z
+        .string()
+        .trim()
+        .max(500),
+
+      bio: z
+        .string()
+        .trim()
+        .max(2000),
+
+      experience: z
+        .array(
+          experienceSchema,
+        )
+        .max(30),
+
+      skills: z
+        .array(skillSchema)
+        .max(50),
+    })
+    .strict()
+    .transform((data) => ({
+      specialization:
+        data.specialization,
+
+      licenseNumber:
+        data.licenseNumber,
+
+      yearsOfExperience:
+        data.yearsOfExperience,
+
+      phone:
+        data.phone,
+
+      website:
+        data.website,
+
+      address:
+        data.address,
+
+      bio:
+        data.bio,
+
+      experience:
+        data.experience.map(
+          ({
+            id: _id,
+            ...experience
+          }) => experience,
+        ),
+
+      skills:
+        data.skills.map(
+          ({
+            id: _id,
+            ...skill
+          }) => skill,
+        ),
+    }));
+
+export const SkillLevelsSchema =
+  z.enum(
+    SKILL_LEVELS.map(
+      String,
+    ) as [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+    ],
+  );

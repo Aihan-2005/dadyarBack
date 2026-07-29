@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CASE_STATES, CaseSchema, COURT_TYPES } from "../models/case.model";
+import { CASE_SATATE, COURT_TYPES } from "../constants/case.constants";
 import { Types } from "mongoose";
 import { MESSAGES } from "../constants/messages";
 import { env } from "../config/env";
@@ -16,7 +16,7 @@ const RequiredString = z.string().trim().min(1);
 
 const OptionalString = z.string().trim().optional();
 
-export const CaseStateSchema = z.enum(CASE_STATES);
+export const CaseStateSchema = z.enum(CASE_SATATE);
 
 export const CourtTypeSchema = z.enum(COURT_TYPES);
 

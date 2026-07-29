@@ -117,4 +117,40 @@ export const MESSAGES = {
     en: "End Year Can't Be Before Start Year",
     fa: "سال انتها نمیتواند ثبل از شروع باشد",
   },
+  invalidCredentials: {
+  en: "Email/phone or password is incorrect",
+  fa: "ایمیل/شماره همراه یا رمز عبور صحیح نیست",
+},
+
+duplicateField: {
+  en: "A record with this value already exists",
+  fa: "رکوردی با این مقدار از قبل وجود دارد",
+},
+
+passwordTooLong: {
+  en: "Password must not be longer than 72 bytes",
+  fa: "رمز عبور نباید بیشتر از ۷۲ بایت باشد",
+},
+
+accountSuspended: {
+  en: "This account has been suspended",
+  fa: "این حساب کاربری تعلیق شده است",
+},
+
+accountRejected: {
+  en: "This lawyer account has been rejected",
+  fa: "حساب وکیل موردنظر رد شده است",
+},
+
+accountPendingVerification: {
+  en: "Lawyer account verification is not completed",
+  fa: "فرایند تأیید حساب وکیل هنوز تکمیل نشده است",
+},
+
+invalidAccountRole: {
+  en: "The account role is not allowed",
+  fa: "نقش این حساب اجازه دسترسی به این بخش را ندارد",
+},
 };
+
+

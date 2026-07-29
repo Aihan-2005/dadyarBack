@@ -1,103 +1,342 @@
-import type { Request } from "express";
-import jwt, { JwtPayload } from "jsonwebtoken";
-import { randomUUID } from "crypto";
-import dayjs from "dayjs";
-import { RefreshTokenRepository } from "../repositories/refreshToken.repository";
-import { env } from "../config/env";
-import { Payload, RefreshTokenPayload } from "../interfaces/token.interface";
-import { MESSAGES } from "../constants/messages";
-import { HttpExceptoin } from "../exceptions/httpException";
+import {
+  randomUUID,
+} from "crypto";
+
+import type {
+  Request,
+} from "express";
+
+import jwt, {
+  type JwtPayload,
+} from "jsonwebtoken";
+
+import {
+  env,
+} from "../config/env";
+
+import {
+  LAWYER_ROLES,
+} from "../constants/lawyer.constants";
+
+import {
+  MESSAGES,
+} from "../constants/messages";
+
+import {
+  HttpExceptoin,
+} from "../exceptions/httpException";
+
+import type {
+  AccessTokenPayload,
+  RefreshTokenPayload,
+  TokenPair,
+} from "../interfaces/token.interface";
+
+import {
+  RefreshTokenRepository,
+} from "../repositories/refreshToken.repository";
 
 export class TokenService {
-  private readonly repo = new RefreshTokenRepository();
+  private readonly repo =
+    new RefreshTokenRepository();
 
-  public static getTokenFromHeaders(req: Request): string | null {
-    const header = req.headers.authorization;
-    if (!header) return null;
+  public static getTokenFromHeaders(
+    req: Request,
+  ): string | null {
+    const authorization =
+      req.headers.authorization;
 
-    const [type, token] = header.split(" ");
-    if (type !== "Bearer" || !token) return null;
+    if (!authorization) {
+      return null;
+    }
+
+    const [
+      scheme,
+      token,
+    ] = authorization
+      .trim()
+      .split(/\s+/);
+
+    if (
+      scheme !== "Bearer" ||
+      !token
+    ) {
+      return null;
+    }
 
     return token;
   }
 
-  private signToken(
-    payload: object,
-    secret: string,
-    expiresInSec: number,
-    jti?: string,
-  ) {
-    const options = jti
-      ? { jwtid: jti, expiresIn: expiresInSec }
-      : { expiresIn: expiresInSec };
-    return jwt.sign(payload, secret, options);
+  private invalidTokenException() {
+    return new HttpExceptoin(
+      401,
+      MESSAGES.unauthorized[
+        env.LANGUAGE
+      ],
+      "INVALID_ACCESS_TOKEN",
+    );
   }
 
-  public generateAccessToken(userId: string): string {
-    // 15 minutes
-    return this.signToken(
-      { userId } satisfies Payload,
+  private invalidRefreshTokenException() {
+    return new HttpExceptoin(
+      401,
+      MESSAGES.invalidRefToken[
+        env.LANGUAGE
+      ],
+      "INVALID_REFRESH_TOKEN",
+    );
+  }
+
+  public generateAccessToken(
+    userId: string,
+  ): string {
+    return jwt.sign(
+      {
+        role:
+          LAWYER_ROLES.LAWYER,
+
+        type:
+          "access",
+      },
       env.JWT_ACC_SECRET,
-      15 * 60,
+      {
+        subject:
+          userId,
+
+        issuer:
+          env.JWT_ISSUER,
+
+        audience:
+          env.JWT_AUDIENCE,
+
+        expiresIn:
+          env.ACCESS_TOKEN_TTL_SECONDS,
+      },
     );
   }
 
-  public verifyAccessToken(token: string): JwtPayload {
-    return jwt.verify(token, env.JWT_ACC_SECRET) as JwtPayload;
-  }
+  public async generateRefreshToken(
+    userId: string,
+  ): Promise<string> {
+    const jti =
+      randomUUID();
 
-  public async generateRefreshToken(userId: string): Promise<string> {
-    const jti = randomUUID();
-    const expiresAt = dayjs().add(30, "day").toDate();
+    const refreshTokenTTLSeconds =
+      env.REFRESH_TOKEN_TTL_DAYS *
+      24 *
+      60 *
+      60;
 
-    // 30 days in seconds
-    const raw = this.signToken(
-      { userId } satisfies Payload,
-      env.JWT_REF_SECRET,
-      30 * 24 * 60 * 60,
+    const expiresAt =
+      new Date(
+        Date.now() +
+          refreshTokenTTLSeconds *
+            1000,
+      );
+
+    const refreshToken =
+      jwt.sign(
+        {
+          type:
+            "refresh",
+        },
+        env.JWT_REF_SECRET,
+        {
+          subject:
+            userId,
+
+          jwtid:
+            jti,
+
+          issuer:
+            env.JWT_ISSUER,
+
+          audience:
+            env.JWT_AUDIENCE,
+
+          expiresIn:
+            refreshTokenTTLSeconds,
+        },
+      );
+
+    await this.repo.create(
+      userId,
       jti,
+      expiresAt,
     );
 
-    await this.repo.create(userId, jti, expiresAt);
-    return raw;
+    return refreshToken;
   }
 
-  public verifyRefreshToken(token: string): RefreshTokenPayload {
-    return jwt.verify(token, env.JWT_REF_SECRET) as RefreshTokenPayload;
+  public async issueTokenPair(
+    userId: string,
+  ): Promise<TokenPair> {
+    const accessToken =
+      this.generateAccessToken(
+        userId,
+      );
+
+    const refreshToken =
+      await this.generateRefreshToken(
+        userId,
+      );
+
+    return {
+      accessToken,
+
+      refreshToken,
+
+      accessTokenExpiresIn:
+        env.ACCESS_TOKEN_TTL_SECONDS,
+    };
   }
 
-  /**
-   * Rotation flow:
-   * - verify JWT signature + exp
-   * - check jti exists in DB
-   * - delete old jti (revoke)
-   * - issue new access + refresh
-   */
-  public async rotateRefreshToken(refreshToken: string) {
-    const payload = this.verifyRefreshToken(refreshToken);
+  public verifyAccessToken(
+    token: string,
+  ): AccessTokenPayload {
+    try {
+      const decoded =
+        jwt.verify(
+          token,
+          env.JWT_ACC_SECRET,
+          {
+            issuer:
+              env.JWT_ISSUER,
 
-    const jti = payload.jti;
-    const userId = payload.userId;
+            audience:
+              env.JWT_AUDIENCE,
+          },
+        );
 
-    if (!jti || !userId)
-      throw new HttpExceptoin(401, MESSAGES.invlaidRefToken[env.LANGUAGE]);
+      if (
+        typeof decoded ===
+          "string" ||
+        typeof decoded.sub !==
+          "string" ||
+        decoded.type !==
+          "access" ||
+        decoded.role !==
+          LAWYER_ROLES.LAWYER
+      ) {
+        throw this.invalidTokenException();
+      }
 
-    const stored = await this.repo.findByJti(jti);
-    if (!stored)
-      throw new HttpExceptoin(401, MESSAGES.noRefToken[env.LANGUAGE]);
+      return decoded as
+        AccessTokenPayload;
+    } catch (error) {
+      if (
+        error instanceof
+        HttpExceptoin
+      ) {
+        throw error;
+      }
 
-    // revoke old token (prevents replay)
-    await this.repo.deleteByJti(jti);
-
-    const accessToken = this.generateAccessToken(userId);
-    const newRefreshToken = await this.generateRefreshToken(userId);
-
-    return { accessToken, refreshToken: newRefreshToken };
+      throw this.invalidTokenException();
+    }
   }
 
-  public revokeRefreshToken(refreshToken: string) {
-    const payload = this.verifyRefreshToken(refreshToken);
-    if (!payload.jti) return null;
-    return this.repo.deleteByJti(payload.jti);
+  public verifyRefreshToken(
+    token: string,
+  ): RefreshTokenPayload {
+    try {
+      const decoded =
+        jwt.verify(
+          token,
+          env.JWT_REF_SECRET,
+          {
+            issuer:
+              env.JWT_ISSUER,
+
+            audience:
+              env.JWT_AUDIENCE,
+          },
+        );
+
+      if (
+        typeof decoded ===
+          "string" ||
+        typeof decoded.sub !==
+          "string" ||
+        typeof decoded.jti !==
+          "string" ||
+        decoded.type !==
+          "refresh"
+      ) {
+        throw this
+          .invalidRefreshTokenException();
+      }
+
+      return decoded as
+        RefreshTokenPayload;
+    } catch (error) {
+      if (
+        error instanceof
+        HttpExceptoin
+      ) {
+        throw error;
+      }
+
+      throw this
+        .invalidRefreshTokenException();
+    }
+  }
+
+  public async consumeRefreshToken(
+    refreshToken: string,
+  ): Promise<string> {
+    const payload =
+      this.verifyRefreshToken(
+        refreshToken,
+      );
+
+    const stored =
+      await this.repo.consumeByJti(
+        payload.jti,
+      );
+
+    if (!stored) {
+      throw new HttpExceptoin(
+        401,
+        MESSAGES.noRefToken[
+          env.LANGUAGE
+        ],
+        "REFRESH_TOKEN_REVOKED",
+      );
+    }
+
+    if (
+      stored.userId.toString() !==
+      payload.sub
+    ) {
+      throw this
+        .invalidRefreshTokenException();
+    }
+
+    return payload.sub;
+  }
+
+  
+  public async revokeRefreshToken(
+    refreshToken: string,
+  ): Promise<void> {
+    try {
+      const payload =
+        this.verifyRefreshToken(
+          refreshToken,
+        );
+
+      await this.repo.deleteByJti(
+        payload.jti,
+      );
+    } catch (error) {
+      if (
+        error instanceof
+        HttpExceptoin
+      ) {
+        return;
+      }
+
+      throw error;
+    }
   }
 }

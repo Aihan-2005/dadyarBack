@@ -1,5 +1,5 @@
 import { model, Schema } from "mongoose";
-import { CASE_STATES, COURT_TYPES } from "../interfaces/case.interface";
+import { CASE_SATATE, COURT_TYPES } from "../constants/case.constants";
 
 const CourtSchema = new Schema(
   {
@@ -164,7 +164,7 @@ export const CaseSchema = new Schema(
 
     state: {
       type: String,
-      enum: CASE_STATES,
+      enum: CASE_SATATE,
       default: "PENDING",
       index: true,
     },

@@ -1,175 +1,249 @@
-import { model, Schema } from "mongoose";
-import { MESSAGES } from "../constants/messages";
+import {
+  model,
+  Schema,
+} from "mongoose";
+
 import { env } from "../config/env";
 
+import {
+  DEFAULT_LAWYER_ROLE,
+  DEFAULT_LAWYER_STATUS,
+  LAWYER_ROLES,
+  LAWYER_STATUSES,
+} from "../constants/lawyer.constants";
+
+import { MESSAGES } from "../constants/messages";
+
+import type {
+  Lawyer,
+  Skill,
+  WorkExperience,
+} from "../interfaces/lawyer.interface";
+
 export const SKILL_LEVELS = [
-  "BEGINNER",
-  "INTERMEDIATE",
-  "GOOD",
-  "ADVANCED",
-  "EXPERT",
+  1,
+  2,
+  3,
+  4,
+  5,
 ] as const;
 
-export const WorkExperienceSchema = new Schema({
-  title: {
-    type: String,
-    required: true,
-    trim: true,
-  },
-
-  organization: {
-    type: String,
-    required: true,
-    trim: true,
-  },
-
-  startYear: {
-    type: Number,
-    min: 1300,
-    max: 1500,
-    required: true,
-  },
-
-  endYear: {
-    type: Number,
-    min: 1300,
-    max: 1500,
-    required: true,
-  },
-
-  description: {
-    type: String,
-    trim: true,
-    maxlength: 2000,
-  },
-});
-
-export const SkillSchema = new Schema({
-  name: {
-    type: String,
-    required: true,
-    trim: true,
-  },
-
-  level: {
-    type: String,
-    required: true,
-    enum: SKILL_LEVELS,
-  },
-});
-
-const AddressSchema = new Schema(
-  {
-    province: {
+export const WorkExperienceSchema =
+  new Schema<WorkExperience>({
+    title: {
       type: String,
       required: true,
       trim: true,
+      maxlength: 150,
     },
 
-    city: {
+    company: {
       type: String,
       required: true,
       trim: true,
+      maxlength: 150,
     },
 
-    fullAddress: {
+    startYear: {
       type: String,
       required: true,
       trim: true,
-      maxLength: 200,
+      maxlength: 20,
     },
-  },
-  { _id: false },
-);
 
-export const LawyerSchema = new Schema(
-  {
-    name: {
+    endYear: {
       type: String,
       required: true,
       trim: true,
+      maxlength: 20,
     },
 
-    lastname: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-
-    email: {
-      type: String,
-      unique: true,
-      lowercase: true,
-      trim: true,
-      sparse: true, // for anyone who didn't know without this you can't have unique-index on optional filed becuase you could have a lot of null values
-    },
-
-    phone: {
-      type: String,
-      match: /^09\d{9}$/,
-      unique: true,
-      trim: true,
-      sparse: true,
-    },
-
-    password: {
-      type: String,
-      required: true,
-      select: false, // dont return pass when searching for lawyers
-    },
-
-    barLicenseNumber: {
-      type: String,
-      // required: true,
-      unique: true,
-      trim: true,
-      index: true,
-      sparse: true,
-    },
-
-    yearsOfExperience: {
-      type: Number,
-      min: 0,
-      max: 80,
-    },
-    website: {
-      type: String,
-      trim: true,
-    },
-
-    bio: {
+    description: {
       type: String,
       trim: true,
       maxlength: 2000,
     },
-    address: {
-      type: AddressSchema,
+  });
+
+export const SkillSchema =
+  new Schema<Skill>({
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 100,
     },
 
-    workExperiences: {
-      type: [WorkExperienceSchema],
-      default: [],
+    level: {
+      type: Number,
+      required: true,
+      enum: SKILL_LEVELS,
+      min: 1,
+      max: 5,
     },
+  });
 
-    skills: {
-      type: [SkillSchema],
-      default: [],
-    },
+export const LawyerSchema =
+  new Schema<Lawyer>(
+    {
+      firstName: {
+        type: String,
+        required: true,
+        trim: true,
+        maxlength: 100,
+      },
 
-    languages: {
-      type: [String],
-      default: [],
+      lastName: {
+        type: String,
+        required: true,
+        trim: true,
+        maxlength: 100,
+      },
+
+      email: {
+        type: String,
+        unique: true,
+        lowercase: true,
+        trim: true,
+        sparse: true,
+      },
+
+      phone: {
+        type: String,
+        match: /^09\d{9}$/,
+        unique: true,
+        trim: true,
+        sparse: true,
+      },
+
+      password: {
+        type: String,
+        required: true,
+        select: false,
+      },
+
+      role: {
+        type: String,
+        enum: Object.values(
+          LAWYER_ROLES,
+        ),
+        default:
+          DEFAULT_LAWYER_ROLE,
+        required: true,
+        immutable: true,
+        index: true,
+      },
+
+      status: {
+        type: String,
+        enum: Object.values(
+          LAWYER_STATUSES,
+        ),
+        default:
+          DEFAULT_LAWYER_STATUS,
+        required: true,
+        index: true,
+      },
+
+      emailVerifiedAt: {
+        type: Date,
+        default: null,
+      },
+
+      phoneVerifiedAt: {
+        type: Date,
+        default: null,
+      },
+
+      licenseVerifiedAt: {
+        type: Date,
+        default: null,
+      },
+
+      lastLoginAt: {
+        type: Date,
+        default: null,
+      },
+
+      specialization: {
+        type: String,
+        trim: true,
+        maxlength: 150,
+      },
+
+      
+      licenseNumber: {
+        type: String,
+        unique: true,
+        trim: true,
+        sparse: true,
+        maxlength: 50,
+      },
+
+      yearsOfExperience: {
+        type: Number,
+        required: true,
+        min: 0,
+        max: 80,
+        default: 0,
+      },
+
+      website: {
+        type: String,
+        trim: true,
+        maxlength: 500,
+      },
+
+      address: {
+        type: String,
+        trim: true,
+        maxlength: 500,
+      },
+
+      bio: {
+        type: String,
+        trim: true,
+        maxlength: 2000,
+      },
+
+      experience: {
+        type: [
+          WorkExperienceSchema,
+        ],
+        default: [],
+      },
+
+      skills: {
+        type: [SkillSchema],
+        default: [],
+      },
     },
+    {
+      timestamps: true,
+      versionKey: false,
+    },
+  );
+
+LawyerSchema.pre(
+  "validate",
+  function () {
+    if (
+      !this.email &&
+      !this.phone
+    ) {
+      throw new Error(
+        MESSAGES.noEmailNorPhone[
+          env.LANGUAGE
+        ],
+      );
+    }
   },
-  { timestamps: true },
 );
 
-LawyerSchema.pre("validate", function () {
-  if (!this.email && !this.phone) {
-    throw new Error(MESSAGES.noEmailNorPhone[env.LANGUAGE]);
-  }
-});
-
-const LawyerModel = model("Lawyer", LawyerSchema);
+const LawyerModel =
+  model<Lawyer>(
+    "Lawyer",
+    LawyerSchema,
+  );
 
 export default LawyerModel;

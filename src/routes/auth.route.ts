@@ -1,28 +1,92 @@
-import { Router } from "express";
-import { Route } from "../interfaces/routes.interface";
-import AuthController from "../controller/auth.controller";
-import { AuthService } from "../services/auth.service";
-import { LawyerRepository } from "../repositories/lawyer.repository";
+import {
+  Router,
+} from "express";
 
-class AuthRoute implements Route {
-  public path = "/auth";
-  public router = Router();
+import {
+  AuthController,
+} from "../controller/auth.controller";
 
-  private readonly authController: AuthController;
+import type {
+  Route,
+} from "../interfaces/routes.interface";
+
+import {
+  requireAuth,
+} from "../middlewere/auth.middlewere";
+
+import {
+  loginRateLimiter,
+  refreshRateLimiter,
+  signupRateLimiter,
+} from "../middlewere/authRateLimit.middlewere";
+
+import {
+  LawyerRepository,
+} from "../repositories/lawyer.repository";
+
+import {
+  AuthService,
+} from "../services/auth.service";
+
+class AuthRoute
+  implements Route {
+  public readonly path =
+    "/auth";
+
+  public readonly router =
+    Router();
+
+  private readonly authController:
+    AuthController;
 
   constructor() {
-    const lawyerRepo = new LawyerRepository();
-    const authService = new AuthService(lawyerRepo);
-    this.authController = new AuthController(authService);
+    const lawyerRepository =
+      new LawyerRepository();
 
-    this.initilizeRoutes();
+    const authService =
+      new AuthService(
+        lawyerRepository,
+      );
+
+    this.authController =
+      new AuthController(
+        authService,
+      );
+
+    this.initializeRoutes();
   }
 
-  private initilizeRoutes() {
-    this.router.post("/signup", this.authController.signup);
-    this.router.post("/login", this.authController.login);
-    this.router.post("/refresh", this.authController.refresh);
-    this.router.post("/logout", this.authController.logout);
+  private initializeRoutes():
+    void {
+    this.router.post(
+      "/signup",
+      signupRateLimiter,
+      this.authController.signup,
+    );
+
+    this.router.post(
+      "/login",
+      loginRateLimiter,
+      this.authController.login,
+    );
+
+    this.router.post(
+      "/refresh",
+      refreshRateLimiter,
+      this.authController.refresh,
+    );
+
+    this.router.post(
+      "/logout",
+      this.authController.logout,
+    );
+
+   
+    this.router.get(
+      "/me",
+      requireAuth,
+      this.authController.me,
+    );
   }
 }
 

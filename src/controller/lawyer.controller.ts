@@ -1,206 +1,113 @@
-import { NextFunction, Request, Response } from "express";
-import { LawyerService } from "../services/lawyer.service";
-import { HttpExceptoin } from "../exceptions/httpException";
-import { MESSAGES } from "../constants/messages";
+import type {
+  NextFunction,
+  Request,
+  Response,
+} from "express";
+
 import { env } from "../config/env";
+import { MESSAGES } from "../constants/messages";
+
+import { HttpExceptoin } from "../exceptions/httpException";
+
+import { LawyerService } from "../services/lawyer.service";
 
 import {
-  UpdateProfileSchema,
-  LanguageBodySchema,
-  AddSkillSchema,
-  UpdateSkillLevelSchema,
-  ParamNameSchema,
-  ParamWorkExperienceIdSchema,
-  AddWorkExperienceSchema,
+  LawyerProfileSchema,
 } from "../validators/lawyer.validator";
 
 const LANGUAGE = env.LANGUAGE;
 
-class LawyerController {
-  constructor(private readonly lawyerService: LawyerService) {}
+export class LawyerController {
+  constructor(
+    private readonly lawyerService:
+      LawyerService,
+  ) {}
 
-  // GET /lawyers/me
-  public me = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const lawyerId = req.user?.id;
-      if (!lawyerId)
-        throw new HttpExceptoin(401, MESSAGES.unauthorized[LANGUAGE]);
-
-      const lawyer = await this.lawyerService.findById(lawyerId);
-      if (!lawyer)
-        throw new HttpExceptoin(404, MESSAGES.noUserWithId[LANGUAGE]);
-
-      return res.status(200).json({ success: true, data: lawyer });
-    } catch (err) {
-      next(err);
-    }
-  };
-
-  // PATCH /lawyers/me
-  public updateMe = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const lawyerId = req.user?.id;
-      if (!lawyerId)
-        throw new HttpExceptoin(401, MESSAGES.unauthorized[LANGUAGE]);
-
-      const patch = await UpdateProfileSchema.parseAsync(req.body);
-      const updated = await this.lawyerService.updateProfile(lawyerId, patch);
-
-      if (!updated)
-        throw new HttpExceptoin(404, MESSAGES.noUserWithId[LANGUAGE]);
-
-      return res.status(200).json({ success: true, data: updated });
-    } catch (err) {
-      next(err);
-    }
-  };
-
-  // ---------------- Languages ----------------
-
-  // POST /lawyers/me/languages
-  public addLanguage = async (
+  private getLawyerId(
     req: Request,
-    res: Response,
-    next: NextFunction,
-  ) => {
-    try {
-      const lawyerId = req.user?.id;
-      if (!lawyerId)
-        throw new HttpExceptoin(401, MESSAGES.unauthorized[LANGUAGE]);
+  ): string {
+    const lawyerId =
+      req.user?.id;
 
-      const { language } = await LanguageBodySchema.parseAsync(req.body);
-      const updated = await this.lawyerService.addLanguage(lawyerId, language);
-
-      return res.status(201).json({ success: true, data: updated });
-    } catch (err) {
-      next(err);
-    }
-  };
-
-  // DELETE /lawyers/me/languages/:language
-  public removeLanguage = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) => {
-    try {
-      const lawyerId = req.user?.id;
-      if (!lawyerId)
-        throw new HttpExceptoin(401, MESSAGES.unauthorized[LANGUAGE]);
-
-      const { language } = await LanguageBodySchema.parseAsync(req.params);
-      await this.lawyerService.removeLanguage(lawyerId, language);
-
-      return res.status(200).json({ success: true });
-    } catch (err) {
-      next(err);
-    }
-  };
-
-  // ---------------- Skills ----------------
-
-  // POST /lawyers/me/skills
-  public addSkill = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const lawyerId = req.user?.id;
-      if (!lawyerId)
-        throw new HttpExceptoin(401, MESSAGES.unauthorized[LANGUAGE]);
-
-      const { name, level } = await AddSkillSchema.parseAsync(req.body);
-      const updated = await this.lawyerService.addSkill(lawyerId, name, level);
-
-      return res.status(201).json({ success: true, data: updated });
-    } catch (err) {
-      next(err);
-    }
-  };
-
-  // DELETE /lawyers/me/skills/:name
-  public removeSkill = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) => {
-    try {
-      const lawyerId = req.user?.id;
-      if (!lawyerId)
-        throw new HttpExceptoin(401, MESSAGES.unauthorized[LANGUAGE]);
-
-      const { name } = ParamNameSchema.parse(req.params);
-      await this.lawyerService.removeSkill(lawyerId, name);
-
-      return res.status(200).json({ success: true });
-    } catch (err) {
-      next(err);
-    }
-  };
-
-  // PATCH /lawyers/me/skills/:name
-  public changeSkillLevel = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) => {
-    try {
-      const lawyerId = req.user?.id;
-      if (!lawyerId)
-        throw new HttpExceptoin(401, MESSAGES.unauthorized[LANGUAGE]);
-
-      const { name } = ParamNameSchema.parse(req.params);
-      const { level } = await UpdateSkillLevelSchema.parseAsync(req.body);
-
-      await this.lawyerService.changeSkillLevel(lawyerId, name, level);
-
-      return res.status(200).json({ success: true });
-    } catch (err) {
-      next(err);
-    }
-  };
-
-  // ---------------- Work Experiences ----------------
-
-  // POST /lawyers/me/work-experiences
-  public addWorkExperience = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) => {
-    try {
-      const lawyerId = req.user?.id;
-      if (!lawyerId)
-        throw new HttpExceptoin(401, MESSAGES.unauthorized[LANGUAGE]);
-
-      const workExperience = await AddWorkExperienceSchema.parseAsync(req.body);
-      const updated = await this.lawyerService.addWorkExperience(
-        lawyerId,
-        workExperience,
+    if (!lawyerId) {
+      throw new HttpExceptoin(
+        401,
+        MESSAGES.unauthorized[
+          LANGUAGE
+        ],
       );
-
-      return res.status(201).json({ success: true, data: updated });
-    } catch (err) {
-      next(err);
     }
-  };
 
-  // DELETE /lawyers/me/work-experiences/:id
-  public removeWorkExperience = async (
+    return lawyerId;
+  }
+
+  
+  public me = async (
     req: Request,
     res: Response,
     next: NextFunction,
-  ) => {
+  ): Promise<Response | void> => {
     try {
-      const lawyerId = req.user?.id;
-      if (!lawyerId)
-        throw new HttpExceptoin(401, MESSAGES.unauthorized[LANGUAGE]);
+      const lawyerId =
+        this.getLawyerId(req);
 
-      const { id } = ParamWorkExperienceIdSchema.parse(req.params);
-      await this.lawyerService.removeWorkExperience(lawyerId, id);
+      const lawyer =
+        await this.lawyerService
+          .findById(
+            lawyerId,
+          );
 
-      return res.status(200).json({ success: true });
-    } catch (err) {
-      next(err);
+      if (!lawyer) {
+        throw new HttpExceptoin(
+          404,
+          MESSAGES.noUserWithId[
+            LANGUAGE
+          ],
+        );
+      }
+
+      return res
+        .status(200)
+        .json({
+          success: true,
+          data: lawyer,
+        });
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+ 
+  public updateProfile = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<Response | void> => {
+    try {
+      const lawyerId =
+        this.getLawyerId(req);
+
+      const profile =
+        await LawyerProfileSchema
+          .parseAsync(
+            req.body ?? {},
+          );
+
+      const updated =
+        await this.lawyerService
+          .updateProfile(
+            lawyerId,
+            profile,
+          );
+
+      return res
+        .status(200)
+        .json({
+          success: true,
+          data: updated,
+        });
+    } catch (error) {
+      return next(error);
     }
   };
 }
-
-export default LawyerController;

@@ -1,6 +1,20 @@
 export class HttpExceptoin extends Error {
   constructor(
-    public status: number,
-    public message: string
-  ) { super(message) }
+    public readonly status: number,
+    message: string,
+    public readonly code :
+    string = "HTTP_ERRPR",
+    public readonly details?:
+    unknown,
+  ) {
+    super(message);
+
+    this.name = 
+    'HttpExceptoin';
+
+    Object.setPrototypeOf(
+      this,
+      HttpExceptoin.prototype,
+    );    
+  }
 }

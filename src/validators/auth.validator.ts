@@ -1,66 +1,194 @@
-import { z } from "zod";
-import { MESSAGES } from "../constants/messages";
-import { env } from "../config/env";
+import {
+  Buffer,
+} from "node:buffer";
 
-const LANGUAGE = env.LANGUAGE;
+import {
+  z,
+} from "zod";
 
-const RequiredString = z.string().trim().min(1);
+import {
+  env,
+} from "../config/env";
 
-const OptionalString = z.string().trim().max(2000).optional();
+import {
+  MESSAGES,
+} from "../constants/messages";
 
-const EmailSchema = z.string().trim().toLowerCase().email();
+const LANGUAGE =
+  env.LANGUAGE;
 
-const PhoneSchema = z
+function normalizeDigits(
+  value: string,
+): string {
+  const persianDigits =
+    "۰۱۲۳۴۵۶۷۸۹";
+
+  const arabicDigits =
+    "٠١٢٣٤٥٦٧٨٩";
+
+  return value
+    .replace(
+      /[۰-۹]/g,
+      (character) =>
+        String(
+          persianDigits.indexOf(
+            character,
+          ),
+        ),
+    )
+    .replace(
+      /[٠-٩]/g,
+      (character) =>
+        String(
+          arabicDigits.indexOf(
+            character,
+          ),
+        ),
+    );
+}
+
+const RequiredNameSchema =
+  z
+    .string()
+    .trim()
+    .min(1)
+    .max(100);
+
+const EmailSchema = z
   .string()
   .trim()
-  .regex(/^09\d{9}$/);
+  .toLowerCase()
+  .email();
 
-const PasswordSchema = z.string().min(8);
+const PhoneSchema = z.preprocess(
+  (value) => {
+    if (
+      typeof value === "string"
+    ) {
+      return normalizeDigits(
+        value.trim(),
+      );
+    }
 
-const LoginPasswordSchema = z.string().min(1);
+    return value;
+  },
+  z
+    .string()
+    .regex(/^09\d{9}$/),
+);
 
-const AddressSchema = z.object({
-  province: RequiredString,
+const PasswordSchema = z
+  .string()
+  .min(
+    8,
+    "رمز عبور باید حداقل ۸ کاراکتر باشد",
+  )
+  .refine(
+    (value) =>
+      Buffer.byteLength(
+        value,
+        "utf8",
+      ) <= 72,
+    {
+      message:
+        MESSAGES.passwordTooLong[
+          LANGUAGE
+        ],
+    },
+  );
 
-  city: RequiredString,
-
-  fullAddress: RequiredString.max(200),
-});
+const LoginPasswordSchema =
+  z
+    .string()
+    .min(1)
+    .refine(
+      (value) =>
+        Buffer.byteLength(
+          value,
+          "utf8",
+        ) <= 72,
+      {
+        message:
+          MESSAGES.passwordTooLong[
+            LANGUAGE
+          ],
+      },
+    );
 
 export const SignupSchema = z
   .object({
-    name: RequiredString,
+    firstName:
+      RequiredNameSchema,
 
-    lastname: RequiredString,
+    lastName:
+      RequiredNameSchema,
 
-    email: EmailSchema.optional(),
+    email:
+      EmailSchema.optional(),
 
-    phone: PhoneSchema.optional(),
+    phone:
+      PhoneSchema.optional(),
 
-    password: PasswordSchema,
-
-    barLicenseNumber: RequiredString,
-
-    address: AddressSchema,
-
-    yearsOfExperience: z.number().int().min(0).max(80),
-
-    website: z.string().trim().url().optional(),
-
-    bio: OptionalString,
+    password:
+      PasswordSchema,
   })
-  .refine((data) => !!data.email || !!data.phone, {
-    message: MESSAGES.noEmailNorPhone[LANGUAGE],
-  });
+  .strict()
+  .superRefine(
+    (data, context) => {
+      if (
+        !data.email &&
+        !data.phone
+      ) {
+        context.addIssue({
+          code:
+            z.ZodIssueCode.custom,
+
+          path: ["email"],
+
+          message:
+            MESSAGES
+              .noEmailNorPhone[
+                LANGUAGE
+              ],
+        });
+      }
+    },
+  );
 
 export const LoginSchema = z
   .object({
-    email: EmailSchema.optional(),
+    email:
+      EmailSchema.optional(),
 
-    phone: PhoneSchema.optional(),
+    phone:
+      PhoneSchema.optional(),
 
-    password: LoginPasswordSchema,
+    password:
+      LoginPasswordSchema,
   })
-  .refine((data) => !!data.email || !!data.phone, {
-    message: MESSAGES.noEmailNorPhone[LANGUAGE],
-  });
+  .strict()
+  .superRefine(
+    (data, context) => {
+      const identifierCount =
+        Number(
+          Boolean(data.email),
+        ) +
+        Number(
+          Boolean(data.phone),
+        );
+
+      if (
+        identifierCount !== 1
+      ) {
+        context.addIssue({
+          code:
+            z.ZodIssueCode.custom,
+
+          path: ["email"],
+
+          message:
+            "دقیقاً یکی از ایمیل یا شماره همراه باید ارسال شود",
+        });
+      }
+    },
+  );
