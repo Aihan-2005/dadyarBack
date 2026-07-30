@@ -1,123 +1,163 @@
-import { MESSAGES } from "../constants/messages";
-import {
-  CreateLawyerInput,
-  Level,
-  Skill,
-  // Study,
-  WorkExperience,
-} from "../interfaces/lawyer.interface";
-import { LawyerRepository } from "../repositories/lawyer.repository";
+import type { UpdateQuery } from "mongoose";
+
 import { env } from "../config/env";
+
+import { LAWYER_STATUSES } from "../constants/lawyer.constants";
+
+import { MESSAGES } from "../constants/messages";
+
+import { toPublicLawyerDTO } from "../dtos/lawyer.dto";
+
 import { HttpException } from "../exceptions/httpException";
+
+import type {
+  Lawyer,
+  UpdateLawyerProfileInput,
+} from "../interfaces/lawyer.interface";
+
+import { LawyerRepository } from "../repositories/lawyer.repository";
+
 const LANGUAGE = env.LANGUAGE;
 
 export class LawyerService {
   private readonly repo = new LawyerRepository();
 
-  // ----------------------- helpers ------------------------------
-
-  // ----------------------- Core -------------------------------
-
-  public findById(id: string) {
-    return this.repo.findById(id);
+  private normalizePhone(phone?: string): string | undefined {
+    return phone?.trim() || undefined;
   }
 
-  public updateProfile(
-    id: string,
-    patch: Partial<
-      Pick<
-        CreateLawyerInput,
-        | "name"
-        | "lastname"
-        | "address"
-        | "yearsOfExperience"
-        | "website"
-        | "bio"
-      >
-    >,
-  ) {
-    return this.repo.updateById(id, patch);
+  private normalizeLicenseNumber(licenseNumber: string): string | undefined {
+    return licenseNumber.trim() || undefined;
   }
 
-  // public async addStudy(lawyerId: string, study: Study) {
-  //   const updated = await this.repo.addStudy(lawyerId, study);
-  //   if (!updated) throw new HttpException(404, MESSAGES.noUserWithId[LANGUAGE]);
-  //   return updated;
-  // }
-  //
-  // public async removeStudy(lawyerId: string, studyId: string) {
-  //   const result = await this.repo.removeStudy(lawyerId, studyId);
-  //   if (result.matchedCount === 0)
-  //     throw new HttpException(404, MESSAGES.noUserWithId[LANGUAGE]);
-  //   if (result.modifiedCount === 0)
-  //     throw new HttpException(404, MESSAGES.noStudyWithId[LANGUAGE]);
-  // }
-
-  public async addLanguage(lawyerId: string, language: string) {
-    const updated = await this.repo.addLanguage(lawyerId, language);
-    if (!updated) throw new HttpException(404, MESSAGES.noUserWithId[LANGUAGE]);
-    return updated;
+  private sameLawyer(recordId: unknown, lawyerId: string): boolean {
+    return String(recordId) === lawyerId;
   }
 
-  public async removeLanguage(lawyerId: string, language: string) {
-    const result = await this.repo.removeLanguage(lawyerId, language);
-    if (result.matchedCount === 0)
-      throw new HttpException(404, MESSAGES.noUserWithId[LANGUAGE]);
-    if (result.modifiedCount === 0)
-      throw new HttpException(404, MESSAGES.noLanguageFound[LANGUAGE]);
+  public async findById(lawyerId: string) {
+    const lawyer = await this.repo.findById(lawyerId);
+
+    if (!lawyer) {
+      return null;
+    }
+
+    return toPublicLawyerDTO(lawyer);
   }
 
-  public async addSkill(lawyerId: string, name: string, level: Level) {
-    const skill: Skill = { name, level };
-    const updated = await this.repo.addSkill(lawyerId, skill);
-    if (!updated) throw new HttpException(404, MESSAGES.noUserWithId[LANGUAGE]);
-    return updated;
-  }
-
-  public async removeSkill(lawyerId: string, skillName: string) {
-    const result = await this.repo.removeSkill(lawyerId, skillName);
-    if (result.matchedCount === 0)
-      throw new HttpException(404, MESSAGES.noUserWithId[LANGUAGE]);
-    if (result.modifiedCount === 0)
-      throw new HttpException(404, MESSAGES.noSkillWithName[LANGUAGE]);
-  }
-
-  public async changeSkillLevel(
+  public async updateProfile(
     lawyerId: string,
-    skillName: string,
-    newLevel: Level,
+    input: UpdateLawyerProfileInput,
   ) {
-    const result = await this.repo.updateSkillLevel(
-      lawyerId,
-      skillName,
-      newLevel,
-    );
-    if (result.matchedCount === 0)
-      throw new HttpException(404, MESSAGES.noUserWithId[LANGUAGE]);
-    if (result.modifiedCount === 0)
-      throw new HttpException(404, MESSAGES.noSkillWithName[LANGUAGE]);
-  }
+    const current = await this.repo.findById(lawyerId);
 
-  public async addWorkExperience(
-    lawyerId: string,
-    workExperience: WorkExperience,
-  ) {
-    const updated = await this.repo.addWorkExperience(lawyerId, workExperience);
-    if (!updated) throw new HttpException(404, MESSAGES.noUserWithId[LANGUAGE]);
-    return updated;
-  }
-
-  public async removeWorkExperience(
-    lawyerId: string,
-    workExperienceId: string,
-  ) {
-    const result = await this.repo.removeWorkExperience(
-      lawyerId,
-      workExperienceId,
-    );
-    if (result.matchedCount === 0)
+    if (!current) {
       throw new HttpException(404, MESSAGES.noUserWithId[LANGUAGE]);
-    if (result.modifiedCount === 0)
-      throw new HttpException(404, MESSAGES.noWorkExperienceWithId[LANGUAGE]);
+    }
+
+    const normalizedPhone = this.normalizePhone(input.phone);
+
+    const normalizedLicense = this.normalizeLicenseNumber(input.licenseNumber);
+
+    if (!normalizedPhone && !current.email) {
+      throw new HttpException(400, MESSAGES.noEmailNorPhone[LANGUAGE]);
+    }
+
+    const phoneChanged = normalizedPhone !== current.phone;
+
+    const licenseChanged = normalizedLicense !== current.licenseNumber;
+
+    const [phoneOwner, licenseOwner] = await Promise.all([
+      normalizedPhone && phoneChanged
+        ? this.repo.findByPhone(normalizedPhone)
+        : Promise.resolve(null),
+
+      normalizedLicense && licenseChanged
+        ? this.repo.findByLicenseNumber(normalizedLicense)
+        : Promise.resolve(null),
+    ]);
+
+    if (phoneOwner && !this.sameLawyer(phoneOwner._id, lawyerId)) {
+      throw new HttpException(409, MESSAGES.phoneExsist[LANGUAGE]);
+    }
+
+    if (licenseOwner && !this.sameLawyer(licenseOwner._id, lawyerId)) {
+      throw new HttpException(409, MESSAGES.barExsist[LANGUAGE]);
+    }
+
+    const setFields: Record<string, unknown> = {
+      specialization: input.specialization.trim(),
+
+      yearsOfExperience: input.yearsOfExperience,
+
+      address: input.address.trim(),
+
+      bio: input.bio.trim(),
+
+      experience: input.experience.map((item) => ({
+        title: item.title.trim(),
+
+        company: item.company.trim(),
+
+        startYear: item.startYear,
+
+        endYear: item.endYear,
+
+        description: item.description?.trim(),
+      })),
+
+      skills: input.skills.map((item) => ({
+        name: item.name.trim(),
+
+        level: item.level,
+      })),
+    };
+
+    const unsetFields: Record<string, 1> = {};
+
+    if (normalizedPhone) {
+      setFields.phone = normalizedPhone;
+    } else {
+      unsetFields.phone = 1;
+    }
+
+    if (input.website) {
+      setFields.website = input.website;
+    } else {
+      unsetFields.website = 1;
+    }
+
+    if (normalizedLicense) {
+      setFields.licenseNumber = normalizedLicense;
+    } else {
+      unsetFields.licenseNumber = 1;
+    }
+
+    if (phoneChanged) {
+      setFields.phoneVerifiedAt = null;
+    }
+
+    if (licenseChanged) {
+      setFields.licenseVerifiedAt = null;
+
+      if (current.status === LAWYER_STATUSES.ACTIVE) {
+        setFields.status = LAWYER_STATUSES.PENDING_VERIFICATION;
+      }
+    }
+
+    const update: UpdateQuery<Lawyer> = {
+      $set: setFields,
+    };
+
+    if (Object.keys(unsetFields).length > 0) {
+      update.$unset = unsetFields;
+    }
+
+    const updated = await this.repo.updateProfileById(lawyerId, update);
+
+    if (!updated) {
+      throw new HttpException(404, MESSAGES.noUserWithId[LANGUAGE]);
+    }
+
+    return toPublicLawyerDTO(updated);
   }
 }

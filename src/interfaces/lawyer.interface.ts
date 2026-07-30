@@ -1,45 +1,121 @@
-import { InferSchemaType } from "mongoose";
-import {
-  LawyerSchema,
-  SkillSchema,
-  WorkExperienceSchema,
-} from "../models/lawyer.model";
+import type { Types } from "mongoose";
 
-export type Lawyer = InferSchemaType<typeof LawyerSchema>;
-export type Skill = InferSchemaType<typeof SkillSchema>;
-export type WorkExperience = InferSchemaType<typeof WorkExperienceSchema>;
+import type { LawyerRole, LawyerStatus } from "../constants/lawyer.constants";
 
-export type Level =
-  | "BEGINNER"
-  | "INTERMEDIATE"
-  | "GOOD"
-  | "ADVANCED"
-  | "EXPERT";
+export type SkillLevel = 1 | 2 | 3 | 4 | 5;
 
-export interface CreateLawyerInput {
+export interface WorkExperience {
+  _id?: Types.ObjectId;
+
+  title: string;
+  company: string;
+
+  startYear: string;
+  endYear: string;
+
+  description?: string;
+}
+
+export interface Skill {
+  _id?: Types.ObjectId;
+
   name: string;
-  lastname: string;
+  level: SkillLevel;
+}
+
+export interface Lawyer {
+  firstName: string;
+  lastName: string;
+
   email?: string;
   phone?: string;
+
   password: string;
-  barLicenseNumber?: string;
-  address?: { province?: string; city?: string; fullAddress?: string };
-  yearsOfExperience?: number;
+
+  role: LawyerRole;
+  status: LawyerStatus;
+
+  emailVerifiedAt: Date | null;
+  phoneVerifiedAt: Date | null;
+  licenseVerifiedAt: Date | null;
+
+  lastLoginAt: Date | null;
+
+  specialization?: string;
+  licenseNumber?: string;
+
+  yearsOfExperience: number;
+
   website?: string;
+  address?: string;
   bio?: string;
-  workExperiences?: Array<{
-    title: string;
-    organization: string;
-    startYear: number;
-    endYear?: number;
-    description?: string;
-  }>;
-  skills?: Array<{ name: string; level: Level }>;
-  languages?: string[];
+
+  experience: WorkExperience[];
+  skills: Skill[];
+
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface LawyerRecord extends Lawyer {
+  _id: Types.ObjectId;
+
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface LawyerAuthRecord extends LawyerRecord {
+  password: string;
+}
+
+export interface LawyerAccessContext {
+  _id: Types.ObjectId;
+
+  role: LawyerRole;
+  status: LawyerStatus;
+}
+
+export interface CreateLawyerInput {
+  firstName: string;
+  lastName: string;
+
+  email?: string;
+  phone?: string;
+
+  password: string;
 }
 
 export interface LoginDTO {
   email?: string;
   phone?: string;
+
   password: string;
+}
+
+export interface UpdateLawyerProfileInput {
+  specialization: string;
+  licenseNumber: string;
+
+  yearsOfExperience: number;
+
+  phone?: string;
+  website?: string;
+
+  address: string;
+  bio: string;
+
+  experience: Array<{
+    title: string;
+    company: string;
+
+    startYear: string;
+    endYear: string;
+
+    description?: string;
+  }>;
+
+  skills: Array<{
+    name: string;
+    level: SkillLevel;
+  }>;
 }

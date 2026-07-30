@@ -1,56 +1,75 @@
+import { Buffer } from "node:buffer";
+
 import { z } from "zod";
-import { MESSAGES } from "../constants/messages";
+
 import { env } from "../config/env";
+
+import { MESSAGES } from "../constants/messages";
 
 const LANGUAGE = env.LANGUAGE;
 
-const RequiredString = z.string().trim().min(1);
+function normalizeDigits(value: string): string {
+  const persianDigits = "۰۱۲۳۴۵۶۷۸۹";
 
-const OptionalString = z.string().trim().max(2000).optional();
+  const arabicDigits = "٠١٢٣٤٥٦٧٨٩";
+
+  return value
+    .replace(/[۰-۹]/g, (character) => String(persianDigits.indexOf(character)))
+    .replace(/[٠-٩]/g, (character) => String(arabicDigits.indexOf(character)));
+}
+
+const RequiredNameSchema = z.string().trim().min(1).max(100);
 
 const EmailSchema = z.string().trim().toLowerCase().email();
 
-const PhoneSchema = z
+const PhoneSchema = z.preprocess(
+  (value) => {
+    if (typeof value === "string") {
+      return normalizeDigits(value.trim());
+    }
+
+    return value;
+  },
+  z.string().regex(/^09\d{9}$/),
+);
+
+const PasswordSchema = z
   .string()
-  .trim()
-  .regex(/^09\d{9}$/);
+  .min(8, "رمز عبور باید حداقل ۸ کاراکتر باشد")
+  .refine((value) => Buffer.byteLength(value, "utf8") <= 72, {
+    message: MESSAGES.passwordTooLong[LANGUAGE],
+  });
 
-const PasswordSchema = z.string().min(8);
-
-const LoginPasswordSchema = z.string().min(1);
-
-const AddressSchema = z.object({
-  province: RequiredString,
-
-  city: RequiredString,
-
-  fullAddress: RequiredString.max(200),
-});
+const LoginPasswordSchema = z
+  .string()
+  .min(1)
+  .refine((value) => Buffer.byteLength(value, "utf8") <= 72, {
+    message: MESSAGES.passwordTooLong[LANGUAGE],
+  });
 
 export const SignupSchema = z
   .object({
-    name: RequiredString,
+    firstName: RequiredNameSchema,
 
-    lastname: RequiredString,
+    lastName: RequiredNameSchema,
 
     email: EmailSchema.optional(),
 
     phone: PhoneSchema.optional(),
 
     password: PasswordSchema,
-
-    barLicenseNumber: OptionalString,
-
-    address: AddressSchema.optional(),
-
-    yearsOfExperience: z.number().int().min(0).max(80).optional(),
-
-    website: z.string().trim().url().optional(),
-
-    bio: OptionalString,
   })
-  .refine((data) => !!data.email || !!data.phone, {
-    message: MESSAGES.noEmailNorPhone[LANGUAGE],
+  .strict()
+  .superRefine((data, context) => {
+    if (!data.email && !data.phone) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+
+        path: ["email"],
+
+        message: MESSAGES.noEmailNorPhone[LANGUAGE],
+      });
+    }
   });
 
 export const LoginSchema = z
@@ -61,6 +80,18 @@ export const LoginSchema = z
 
     password: LoginPasswordSchema,
   })
-  .refine((data) => !!data.email || !!data.phone, {
-    message: MESSAGES.noEmailNorPhone[LANGUAGE],
+  .strict()
+  .superRefine((data, context) => {
+    const identifierCount =
+      Number(Boolean(data.email)) + Number(Boolean(data.phone));
+
+    if (identifierCount !== 1) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+
+        path: ["email"],
+
+        message: "دقیقاً یکی از ایمیل یا شماره همراه باید ارسال شود",
+      });
+    }
   });

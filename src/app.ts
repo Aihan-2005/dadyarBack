@@ -1,58 +1,186 @@
-import express, { Application } from "express";
-import { Route } from "./interfaces/routes.interface";
-import { env, Enviroment } from "./config/env";
-import hpp from "hpp";
-import cors from "cors";
-import helmet from "helmet";
+import express, {
+  type Application,
+} from "express";
+
 import compression from "compression";
 import cookieParser from "cookie-parser";
+import cors from "cors";
+import helmet from "helmet";
+import hpp from "hpp";
+
+import {
+  env,
+  type Enviroment,
+} from "./config/env";
+
+import type {
+  Route,
+} from "./interfaces/routes.interface";
+
 import errorHandler from "./middlewere/error";
 
 class App {
-  public app: Application;
-  public enviroment: Enviroment;
-  private readonly port: number;
-  private readonly origin: string;
-  private readonly credentials: boolean;
-  private readonly PREFIX_ROUTES = "/api/v1";
+  public readonly app:
+    Application;
 
-  constructor(routes: Route[]) {
-    this.app = express();
-    this.enviroment = env.NODE_ENV;
-    this.port = env.PORT;
-    this.origin = env.ORIGIN;
-    this.credentials = env.CREDENTIAL;
+  public readonly enviroment:
+    Enviroment;
 
-    this.initilizeMiddileweres();
-    this.initilizeRoutes(routes);
+  private readonly port:
+    number;
 
-    this.initilizeErrorHandeling();
+  private readonly prefixRoutes =
+    "/api/v1";
+
+  constructor(
+    routes: Route[],
+  ) {
+    this.app =
+      express();
+
+    this.enviroment =
+      env.NODE_ENV;
+
+    this.port =
+      env.PORT;
+
+    this.initializeApplication();
+    this.initializeMiddlewares();
+    this.initializeRoutes(routes);
+    this.initializeErrorHandling();
   }
 
-  private initilizeMiddileweres() {
-    this.app.use(cors({ origin: this.origin, credentials: this.credentials }));
-    this.app.use(hpp());
-    this.app.use(helmet());
-    this.app.use(compression());
-    this.app.use(express.json());
-    this.app.use(express.urlencoded({ extended: true }));
-    this.app.use(cookieParser());
+  private initializeApplication():
+    void {
+    this.app.disable(
+      "x-powered-by",
+    );
+
+    if (env.TRUST_PROXY) {
+     
+      this.app.set(
+        "trust proxy",
+        1,
+      );
+    }
   }
 
-  private initilizeRoutes(routes: Route[]) {
-    routes.forEach((route) => {
-      this.app.use(this.PREFIX_ROUTES + route.path, route.router);
-    });
+  private initializeMiddlewares():
+    void {
+    this.app.use(
+      cors({
+        origin: (
+          origin,
+          callback,
+        ) => {
+         
+          if (!origin) {
+            return callback(
+              null,
+              true,
+            );
+          }
+
+          if (
+            env.ORIGINS.includes(
+              origin,
+            )
+          ) {
+            return callback(
+              null,
+              true,
+            );
+          }
+
+          return callback(
+            new Error(
+              "Origin is not allowed by CORS",
+            ),
+          );
+        },
+
+        credentials:
+          env.CREDENTIAL,
+
+        methods: [
+          "GET",
+          "POST",
+          "PUT",
+          "PATCH",
+          "DELETE",
+          "OPTIONS",
+        ],
+
+        allowedHeaders: [
+          "Content-Type",
+          "Authorization",
+          "Accept",
+        ],
+      }),
+    );
+
+    this.app.use(
+      helmet(),
+    );
+
+    this.app.use(
+      hpp(),
+    );
+
+    this.app.use(
+      compression(),
+    );
+
+    this.app.use(
+      express.json({
+        limit: "1mb",
+      }),
+    );
+
+    this.app.use(
+      express.urlencoded({
+        extended: true,
+
+        limit: "1mb",
+      }),
+    );
+
+    this.app.use(
+      cookieParser(),
+    );
   }
 
-  private initilizeErrorHandeling() {
-    this.app.use(errorHandler);
+  private initializeRoutes(
+    routes: Route[],
+  ): void {
+    for (
+      const route of routes
+    ) {
+      this.app.use(
+        this.prefixRoutes +
+          route.path,
+
+        route.router,
+      );
+    }
   }
 
-  public listen() {
-    this.app.listen(this.port, () => {
-      console.log(`server listening on port ${this.port}`);
-    });
+  private initializeErrorHandling():
+    void {
+    this.app.use(
+      errorHandler,
+    );
+  }
+
+  public listen(): void {
+    this.app.listen(
+      this.port,
+      () => {
+        console.log(
+          `Server listening on port ${this.port}`,
+        );
+      },
+    );
   }
 }
 

@@ -1,151 +1,253 @@
 import bcrypt from "bcrypt";
-import { LawyerRepository } from "../repositories/lawyer.repository";
-import { TokenService } from "./token.service";
-import { CreateLawyerInput, LoginDTO } from "../interfaces/lawyer.interface";
-import { HttpException } from "../exceptions/httpException";
-import { MESSAGES } from "../constants/messages";
+
 import { env } from "../config/env";
+
+import {
+  LAWYER_ROLES,
+  LAWYER_STATUSES,
+  resolveLawyerRole,
+  resolveLawyerStatus,
+  type LawyerRole,
+  type LawyerStatus,
+} from "../constants/lawyer.constants";
+
+import { MESSAGES } from "../constants/messages";
+
+import { toPublicLawyerDTO } from "../dtos/lawyer.dto";
+
+import { HttpException } from "../exceptions/httpException";
+
+import type {
+  CreateLawyerInput,
+  LawyerRecord,
+  LoginDTO,
+} from "../interfaces/lawyer.interface";
+
+import { LawyerRepository } from "../repositories/lawyer.repository";
+
+import { TokenService } from "./token.service";
+
 const LANGUAGE = env.LANGUAGE;
 
 export class AuthService {
   private readonly tokenService = new TokenService();
+
   constructor(private readonly repo: LawyerRepository) {}
 
-  // ----------------------- helpers ------------------------------
-  private normalizeEmail(email?: string) {
+  private normalizeEmail(email?: string): string | undefined {
     return email?.trim().toLowerCase();
   }
 
-  private normalizePhone(phone?: string) {
+  private normalizePhone(phone?: string): string | undefined {
     return phone?.trim();
   }
 
-  private getLoginIdentifier(input: LoginDTO) {
+  private hashPassword(password: string) {
+    return bcrypt.hash(password, 12);
+  }
+
+  private comparePassword(plainPassword: string, hashedPassword: string) {
+    return bcrypt.compare(plainPassword, hashedPassword);
+  }
+
+  private assertAccountCanAuthenticate(
+    role: LawyerRole,
+    status: LawyerStatus,
+  ): void {
+    if (role !== LAWYER_ROLES.LAWYER) {
+      throw new HttpException(
+        403,
+        MESSAGES.invalidAccountRole[LANGUAGE],
+        "INVALID_ACCOUNT_ROLE",
+      );
+    }
+
+    if (status === LAWYER_STATUSES.SUSPENDED) {
+      throw new HttpException(
+        403,
+        MESSAGES.accountSuspended[LANGUAGE],
+        "ACCOUNT_SUSPENDED",
+      );
+    }
+
+    if (status === LAWYER_STATUSES.REJECTED) {
+      throw new HttpException(
+        403,
+        MESSAGES.accountRejected[LANGUAGE],
+        "ACCOUNT_REJECTED",
+      );
+    }
+  }
+
+  private async ensureLawyerDoesNotExist(
+    input: CreateLawyerInput,
+  ): Promise<void> {
     const email = this.normalizeEmail(input.email);
+
     const phone = this.normalizePhone(input.phone);
 
-    if (!email && !phone)
-      throw new HttpException(400, MESSAGES.noEmailNorPhone[LANGUAGE]);
+    const [emailOwner, phoneOwner] = await Promise.all([
+      email ? this.repo.findByEmail(email) : Promise.resolve(null),
 
-    return { email, phone };
-  }
+      phone ? this.repo.findByPhone(phone) : Promise.resolve(null),
+    ]);
 
-  private comparePassword(inputPassword: string, userPassword: string) {
-    return bcrypt.compare(inputPassword, userPassword);
-  }
-
-  private hash(str: string) {
-    return bcrypt.hash(str, 12);
-  }
-
-  private async handelLawyerExsist(input: CreateLawyerInput) {
-    const email = this.normalizeEmail(input.email);
-    const phone = input.phone?.trim();
-
-    if (!email && !phone) {
-      throw new HttpException(400, MESSAGES.noEmailNorPhone[LANGUAGE]);
+    if (emailOwner) {
+      throw new HttpException(
+        409,
+        MESSAGES.emailExsist[LANGUAGE],
+        "EMAIL_ALREADY_EXISTS",
+      );
     }
 
-    if (email) {
-      const emailExsist = await this.repo.findByEmail(email);
-      if (emailExsist)
-        throw new HttpException(400, MESSAGES.emailExsist[LANGUAGE]);
+    if (phoneOwner) {
+      throw new HttpException(
+        409,
+        MESSAGES.phoneExsist[LANGUAGE],
+        "PHONE_ALREADY_EXISTS",
+      );
     }
-
-    if (phone) {
-      const phoneExsist = await this.repo.findByPhone(phone);
-      if (phoneExsist)
-        throw new HttpException(400, MESSAGES.phoneExsist[LANGUAGE]);
-    }
-
-    if (!input.barLicenseNumber) return;
-
-    const barExsist = await this.repo.findByBarLicence(
-      input.barLicenseNumber.trim(),
-    );
-
-    if (barExsist) throw new HttpException(400, MESSAGES.barExsist[LANGUAGE]);
   }
 
-  private normalizeData(input: CreateLawyerInput, password: string) {
+  private normalizeSignupData(
+    input: CreateLawyerInput,
+    hashedPassword: string,
+  ): CreateLawyerInput {
     return {
-      name: input.name.trim(),
-      lastname: input.lastname.trim(),
+      firstName: input.firstName.trim(),
+
+      lastName: input.lastName.trim(),
+
       email: this.normalizeEmail(input.email),
-      phone: input.phone?.trim(),
-      password,
-      barLicenseNumber: input.barLicenseNumber?.trim(),
-      address: {
-        province: input.address?.province?.trim(),
-        city: input.address?.city?.trim(),
-        fullAddress: input.address?.fullAddress?.trim(),
-      },
-      yearsOfExperience: input.yearsOfExperience,
-      website: input.website?.trim(),
-      bio: input.bio?.trim(),
-      workExperiences: input.workExperiences ?? [],
-      skills: input.skills ?? [],
-      languages: input.languages ?? [],
+
+      phone: this.normalizePhone(input.phone),
+
+      password: hashedPassword,
     };
   }
 
-  // ----------------------- Core -------------------------------
+  public async signup(input: CreateLawyerInput) {
+    await this.ensureLawyerDoesNotExist(input);
+
+    const hashedPassword = await this.hashPassword(input.password);
+
+    const created = await this.repo.create(
+      this.normalizeSignupData(input, hashedPassword),
+    );
+
+    const userId = created._id.toString();
+
+    const tokenPair = await this.tokenService.issueTokenPair(userId);
+
+    const user = toPublicLawyerDTO(
+      created.toObject() as unknown as LawyerRecord,
+    );
+
+    return {
+      user,
+
+      ...tokenPair,
+    };
+  }
+
   public async login(input: LoginDTO) {
-    // await this.handelLawyerDontExsist(input)
-    // const user = (await this.getUser(input))!
-    // const hashedPassword = await this.getUserPassword(user._id)
-    const { email, phone } = this.getLoginIdentifier(input);
+    const email = this.normalizeEmail(input.email);
+
+    const phone = this.normalizePhone(input.phone);
+
     const authUser = email
       ? await this.repo.findAuthByEmail(email)
       : await this.repo.findAuthByPhone(phone!);
 
-    if (!authUser)
-      throw new HttpException(401, MESSAGES.noUserWithEmailOrPhone[LANGUAGE]);
+    if (!authUser) {
+      throw new HttpException(
+        401,
+        MESSAGES.invalidCredentials[LANGUAGE],
+        "INVALID_CREDENTIALS",
+      );
+    }
 
-    const checkPassword = await this.comparePassword(
+    const passwordMatches = await this.comparePassword(
       input.password,
       authUser.password,
     );
 
-    if (!checkPassword) {
-      const errorMessage = email
-        ? MESSAGES.emailorPasswordWrong[LANGUAGE]
-        : MESSAGES.phoneOrPasswordWrong[LANGUAGE];
-      throw new HttpException(401, errorMessage);
+    if (!passwordMatches) {
+      throw new HttpException(
+        401,
+        MESSAGES.invalidCredentials[LANGUAGE],
+        "INVALID_CREDENTIALS",
+      );
     }
+
+    const role = resolveLawyerRole(authUser.role);
+
+    const status = resolveLawyerStatus(authUser.status);
+
+    this.assertAccountCanAuthenticate(role, status);
 
     const userId = authUser._id.toString();
 
-    const accessToken = this.tokenService.generateAccessToken(userId);
-    const refreshToken = await this.tokenService.generateRefreshToken(userId);
+    const lastLoginAt = new Date();
 
-    // NOTE: remove password before returning user
-    const { password, ...safeUser } = authUser;
+    await this.repo.updateLastLogin(userId, lastLoginAt);
 
-    return { user: safeUser, accessToken, refreshToken };
+    const tokenPair = await this.tokenService.issueTokenPair(userId);
+
+    const user = toPublicLawyerDTO({
+      ...authUser,
+
+      role,
+
+      status,
+
+      lastLoginAt,
+    });
+
+    return {
+      user,
+
+      ...tokenPair,
+    };
   }
 
-  public async signup(input: CreateLawyerInput) {
-    await this.handelLawyerExsist(input);
+  public async refresh(refreshToken: string) {
+    const userId = await this.tokenService.consumeRefreshToken(refreshToken);
 
-    const hashedPassword = await this.hash(input.password);
+    const account = await this.repo.findAccessContextById(userId);
 
-    const created = await this.repo.create(
-      this.normalizeData(input, hashedPassword),
-    );
+    if (!account) {
+      throw new HttpException(
+        401,
+        MESSAGES.unableToFindUser[LANGUAGE],
+        "SESSION_USER_NOT_FOUND",
+      );
+    }
 
-    const userId = created._id.toString();
-    const accessToken = this.tokenService.generateAccessToken(userId);
-    const refreshToken = await this.tokenService.generateRefreshToken(userId);
-    return { user: created, accessToken, refreshToken };
-    // return created
+    const role = resolveLawyerRole(account.role);
+
+    const status = resolveLawyerStatus(account.status);
+
+    this.assertAccountCanAuthenticate(role, status);
+
+    return this.tokenService.issueTokenPair(userId);
   }
 
-  public refresh(refreshToken: string) {
-    return this.tokenService.rotateRefreshToken(refreshToken);
+  public async logout(refreshToken: string): Promise<void> {
+    await this.tokenService.revokeRefreshToken(refreshToken);
   }
 
-  public logout(refreshToken: string) {
-    return this.tokenService.revokeRefreshToken(refreshToken);
+  public async me(lawyerId: string) {
+    const lawyer = await this.repo.findById(lawyerId);
+
+    if (!lawyer) {
+      throw new HttpException(
+        404,
+        MESSAGES.noUserWithId[LANGUAGE],
+        "USER_NOT_FOUND",
+      );
+    }
+
+    return toPublicLawyerDTO(lawyer);
   }
 }
