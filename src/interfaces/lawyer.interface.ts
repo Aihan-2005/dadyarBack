@@ -1,16 +1,8 @@
 import type { Types } from "mongoose";
 
-import type {
-  LawyerRole,
-  LawyerStatus,
-} from "../constants/lawyer.constants";
+import type { LawyerRole, LawyerStatus } from "../constants/lawyer.constants";
 
-export type SkillLevel =
-  | 1
-  | 2
-  | 3
-  | 4
-  | 5;
+export type SkillLevel = 1 | 2 | 3 | 4 | 5;
 
 export interface WorkExperience {
   _id?: Types.ObjectId;
@@ -30,7 +22,6 @@ export interface Skill {
   name: string;
   level: SkillLevel;
 }
-
 
 export interface Lawyer {
   firstName: string;
@@ -66,16 +57,14 @@ export interface Lawyer {
   updatedAt?: Date;
 }
 
-export interface LawyerRecord
-  extends Lawyer {
+export interface LawyerRecord extends Lawyer {
   _id: Types.ObjectId;
 
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface LawyerAuthRecord
-  extends LawyerRecord {
+export interface LawyerAuthRecord extends LawyerRecord {
   password: string;
 }
 
@@ -102,7 +91,6 @@ export interface LoginDTO {
 
   password: string;
 }
-
 
 export interface UpdateLawyerProfileInput {
   specialization: string;

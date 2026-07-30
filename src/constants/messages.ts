@@ -117,40 +117,94 @@ export const MESSAGES = {
     en: "End Year Can't Be Before Start Year",
     fa: "سال انتها نمیتواند ثبل از شروع باشد",
   },
+  caseExsist: {
+    en: "Case Number Already Exists",
+    fa: "پرونده از قبل موجود بود",
+  },
+  caseNotFound: {
+    en: "Case Was Not Found",
+    fa: "پرونده یافت نشد",
+  },
+  noCaseFieldFound: {
+    en: "At least one case field is required",
+    fa: "حداقل یک فیلد برای پرونده باید داده بشود",
+  },
+  noCourtFieldFound: {
+    en: "At least one court field is required",
+    fa: "حداقل یک فیلد برای دادگاه باید داده بشود",
+  },
+  noClientFieldFound: {
+    en: "At least one client field is required",
+    fa: "حداقل یک فیلد برای کابر باید داده بشود",
+  },
+  noOpposingFieldFound: {
+    en: "At least one opposing party field is required",
+    fa: "حداقل یک فیلد برای طرف مخالف باید داده بشود",
+  },
+  noOpposingLawyerFiledFound: {
+    en: "At least one opposing lawyer field is required",
+    fa: "حداقل یک فیلد برای وکیل مخالف باید داده بشود",
+  },
+  noAssistantFieldFound: {
+    en: "At least one assistant lawyer field is required",
+    fa: "حداقل یک فیلد برای وکیل مساعد باید داده بشود",
+  },
+  noRelatedPersonFieldFound: {
+    en: "At least one related person field is required",
+    fa: "حداقل یک فیلد برای شخص مرتبط باید داده بشود",
+  },
+  clientNotFound: {
+    en: "Client was not found",
+    fa: "کاربر یافت نشد",
+  },
+  opposingNotFound: {
+    en: "opposing party was found",
+    fa: "هیچ فردی از گروه مخالف پیدا نشد",
+  },
+  assistantNotFound: {
+    en: "Assistant lawyer not found",
+    fa: "وکیل مساعد یافت نشد",
+  },
+  opposingLawyernotFound: {
+    en: "Opposing lawyer not found",
+    fa: "وکیل مخالف پیدا نشد",
+  },
+  relatedPersonNotFound: {
+    en: "Related person not found",
+    fa: "فرد مرتبط یافت نشد",
+  },
   invalidCredentials: {
-  en: "Email/phone or password is incorrect",
-  fa: "ایمیل/شماره همراه یا رمز عبور صحیح نیست",
-},
+    en: "Email/phone or password is incorrect",
+    fa: "ایمیل/شماره همراه یا رمز عبور صحیح نیست",
+  },
 
-duplicateField: {
-  en: "A record with this value already exists",
-  fa: "رکوردی با این مقدار از قبل وجود دارد",
-},
+  duplicateField: {
+    en: "A record with this value already exists",
+    fa: "رکوردی با این مقدار از قبل وجود دارد",
+  },
 
-passwordTooLong: {
-  en: "Password must not be longer than 72 bytes",
-  fa: "رمز عبور نباید بیشتر از ۷۲ بایت باشد",
-},
+  passwordTooLong: {
+    en: "Password must not be longer than 72 bytes",
+    fa: "رمز عبور نباید بیشتر از ۷۲ بایت باشد",
+  },
 
-accountSuspended: {
-  en: "This account has been suspended",
-  fa: "این حساب کاربری تعلیق شده است",
-},
+  accountSuspended: {
+    en: "This account has been suspended",
+    fa: "این حساب کاربری تعلیق شده است",
+  },
 
-accountRejected: {
-  en: "This lawyer account has been rejected",
-  fa: "حساب وکیل موردنظر رد شده است",
-},
+  accountRejected: {
+    en: "This lawyer account has been rejected",
+    fa: "حساب وکیل موردنظر رد شده است",
+  },
 
-accountPendingVerification: {
-  en: "Lawyer account verification is not completed",
-  fa: "فرایند تأیید حساب وکیل هنوز تکمیل نشده است",
-},
+  accountPendingVerification: {
+    en: "Lawyer account verification is not completed",
+    fa: "فرایند تأیید حساب وکیل هنوز تکمیل نشده است",
+  },
 
-invalidAccountRole: {
-  en: "The account role is not allowed",
-  fa: "نقش این حساب اجازه دسترسی به این بخش را ندارد",
-},
+  invalidAccountRole: {
+    en: "The account role is not allowed",
+    fa: "نقش این حساب اجازه دسترسی به این بخش را ندارد",
+  },
 };
-
-

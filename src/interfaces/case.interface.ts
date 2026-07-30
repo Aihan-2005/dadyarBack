@@ -51,3 +51,9 @@ export type CreateCaseInput = z.infer<typeof CreateCaseSchema> & {
 };
 
 export type UpdateCaseInput = z.infer<typeof UpdateCaseSchema>;
+
+export type CaseCreatePayload = Omit<CreateCaseInput, "lawyerId">;
+
+export type SubDocumentWithId = {
+  _id?: Types.ObjectId | string;
+};

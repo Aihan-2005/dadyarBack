@@ -1,20 +1,14 @@
-export class HttpExceptoin extends Error {
+export class HttpException extends Error {
   constructor(
     public readonly status: number,
     message: string,
-    public readonly code :
-    string = "HTTP_ERRPR",
-    public readonly details?:
-    unknown,
+    public readonly code: string = "HTTP_ERRPR",
+    public readonly details?: unknown,
   ) {
     super(message);
 
-    this.name = 
-    'HttpExceptoin';
+    this.name = "HttpException";
 
-    Object.setPrototypeOf(
-      this,
-      HttpExceptoin.prototype,
-    );    
+    Object.setPrototypeOf(this, HttpException.prototype);
   }
 }

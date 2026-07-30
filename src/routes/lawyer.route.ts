@@ -1,71 +1,45 @@
 import { Router } from "express";
 
-import {
-  LawyerController,
-} from "../controller/lawyer.controller";
+import { LawyerController } from "../controller/lawyer.controller";
 
-import type {
-  Route,
-} from "../interfaces/routes.interface";
+import type { Route } from "../interfaces/routes.interface";
 
 import requireAuth from "../middlewere/auth.middlewere";
 
-import {
-  LawyerService,
-} from "../services/lawyer.service";
+import { LawyerService } from "../services/lawyer.service";
 
 class LawyerRoute implements Route {
-  public readonly path =
-    "/lawyers";
+  public readonly path = "/lawyers";
 
-  public readonly router =
-    Router();
+  public readonly router = Router();
 
-  private readonly lawyerController:
-    LawyerController;
+  private readonly lawyerController: LawyerController;
 
   constructor() {
-    const lawyerService =
-      new LawyerService();
+    const lawyerService = new LawyerService();
 
-    this.lawyerController =
-      new LawyerController(
-        lawyerService,
-      );
+    this.lawyerController = new LawyerController(lawyerService);
 
     this.initializeMiddlewares();
     this.initializeRoutes();
   }
 
   private initializeMiddlewares(): void {
-    this.router.use(
-      requireAuth,
-    );
+    this.router.use(requireAuth);
   }
 
   private initializeRoutes(): void {
-    this.router.get(
-      "/me",
-      this.lawyerController.me,
-    );
+    this.router.get("/me", this.lawyerController.me);
 
     /**
      * مسیر اصلی مورد استفاده فرانت.
      */
-    this.router.put(
-      "/me/profile",
-      this.lawyerController
-        .updateProfile,
-    );
+    this.router.put("/me/profile", this.lawyerController.updateProfile);
 
     /**
      * سازگاری موقت با route قبلی.
      */
-    this.router.patch(
-      "/me",
-      this.lawyerController
-        .updateProfile,
-    );
+    this.router.patch("/me", this.lawyerController.updateProfile);
   }
 }
 

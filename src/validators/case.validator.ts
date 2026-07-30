@@ -80,7 +80,7 @@ export const CreateCaseSchema = z.object({
 
   state: CaseStateSchema.optional(),
 
-  court: CourtSchema,
+  court: CourtSchema.optional(),
 
   clients: z.array(ClientSchema).min(1, {
     message: MESSAGES["caseNeedClient"][LANGUAGE],
@@ -99,6 +99,8 @@ export const UpdateCaseSchema = CreateCaseSchema.partial();
 export const UpdateCaseStateSchema = z.object({
   state: CaseStateSchema,
 });
+
+export const UpdateCourtSchema = CourtSchema.partial();
 
 export const AddClientSchema = ClientSchema;
 

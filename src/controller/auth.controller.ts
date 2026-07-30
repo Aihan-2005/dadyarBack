@@ -1,74 +1,39 @@
-import type {
-  CookieOptions,
-  NextFunction,
-  Request,
-  Response,
-} from "express";
+import type { CookieOptions, NextFunction, Request, Response } from "express";
 
-import {
-  env,
-} from "../config/env";
+import { env } from "../config/env";
 
-import {
-  MESSAGES,
-} from "../constants/messages";
+import { MESSAGES } from "../constants/messages";
 
-import {
-  HttpExceptoin,
-} from "../exceptions/httpException";
+import { HttpException } from "../exceptions/httpException";
 
-import {
-  AuthService,
-} from "../services/auth.service";
+import { AuthService } from "../services/auth.service";
 
-import {
-  LoginSchema,
-  SignupSchema,
-} from "../validators/auth.validator";
+import { LoginSchema, SignupSchema } from "../validators/auth.validator";
 
-const LANGUAGE =
-  env.LANGUAGE;
+const LANGUAGE = env.LANGUAGE;
 
 export class AuthController {
-  private readonly refreshCookieName =
-    "dadyar_refresh_token";
+  private readonly refreshCookieName = "dadyar_refresh_token";
 
-  
-  private readonly refreshCookiePath =
-    "/api";
+  private readonly refreshCookiePath = "/api";
 
-  constructor(
-    private readonly authService:
-      AuthService,
-  ) {}
+  constructor(private readonly authService: AuthService) {}
 
-  private getRefreshCookieOptions():
-    CookieOptions {
+  private getRefreshCookieOptions(): CookieOptions {
     return {
       httpOnly: true,
 
-      secure:
-        env.COOKIE_SECURE,
+      secure: env.COOKIE_SECURE,
 
-      sameSite:
-        "lax",
+      sameSite: "lax",
 
-      path:
-        this.refreshCookiePath,
+      path: this.refreshCookiePath,
 
-      maxAge:
-        env.REFRESH_TOKEN_TTL_DAYS *
-        24 *
-        60 *
-        60 *
-        1000,
+      maxAge: env.REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000,
     };
   }
 
-  private setRefreshCookie(
-    res: Response,
-    refreshToken: string,
-  ): void {
+  private setRefreshCookie(res: Response, refreshToken: string): void {
     res.cookie(
       this.refreshCookieName,
       refreshToken,
@@ -76,47 +41,22 @@ export class AuthController {
     );
   }
 
-  private clearRefreshCookie(
-    res: Response,
-  ): void {
-    const {
-      maxAge: _maxAge,
-      ...clearOptions
-    } =
-      this.getRefreshCookieOptions();
+  private clearRefreshCookie(res: Response): void {
+    const { maxAge: _maxAge, ...clearOptions } = this.getRefreshCookieOptions();
 
-    res.clearCookie(
-      this.refreshCookieName,
-      clearOptions,
-    );
+    res.clearCookie(this.refreshCookieName, clearOptions);
   }
 
-  private disableCaching(
-    res: Response,
-  ): void {
-    res.setHeader(
-      "Cache-Control",
-      "no-store",
-    );
+  private disableCaching(res: Response): void {
+    res.setHeader("Cache-Control", "no-store");
 
-    res.setHeader(
-      "Pragma",
-      "no-cache",
-    );
+    res.setHeader("Pragma", "no-cache");
   }
 
-  private getRefreshToken(
-    req: Request,
-  ): string | null {
-    const token =
-      req.cookies?.[
-        this.refreshCookieName
-      ];
+  private getRefreshToken(req: Request): string | null {
+    const token = req.cookies?.[this.refreshCookieName];
 
-    return typeof token ===
-      "string"
-      ? token
-      : null;
+    return typeof token === "string" ? token : null;
   }
 
   public signup = async (
@@ -125,41 +65,26 @@ export class AuthController {
     next: NextFunction,
   ): Promise<Response | void> => {
     try {
-      const input =
-        await SignupSchema
-          .parseAsync(
-            req.body ?? {},
-          );
+      const input = await SignupSchema.parseAsync(req.body ?? {});
 
-      const {
-        user,
-        accessToken,
-        refreshToken,
-        accessTokenExpiresIn,
-      } =
-        await this.authService
-          .signup(input);
+      const { user, accessToken, refreshToken, accessTokenExpiresIn } =
+        await this.authService.signup(input);
 
       this.disableCaching(res);
 
-      this.setRefreshCookie(
-        res,
-        refreshToken,
-      );
+      this.setRefreshCookie(res, refreshToken);
 
-      return res
-        .status(201)
-        .json({
-          success: true,
+      return res.status(201).json({
+        success: true,
 
-          data: {
-            user,
+        data: {
+          user,
 
-            accessToken,
+          accessToken,
 
-            accessTokenExpiresIn,
-          },
-        });
+          accessTokenExpiresIn,
+        },
+      });
     } catch (error) {
       return next(error);
     }
@@ -171,41 +96,26 @@ export class AuthController {
     next: NextFunction,
   ): Promise<Response | void> => {
     try {
-      const input =
-        await LoginSchema
-          .parseAsync(
-            req.body ?? {},
-          );
+      const input = await LoginSchema.parseAsync(req.body ?? {});
 
-      const {
-        user,
-        accessToken,
-        refreshToken,
-        accessTokenExpiresIn,
-      } =
-        await this.authService
-          .login(input);
+      const { user, accessToken, refreshToken, accessTokenExpiresIn } =
+        await this.authService.login(input);
 
       this.disableCaching(res);
 
-      this.setRefreshCookie(
-        res,
-        refreshToken,
-      );
+      this.setRefreshCookie(res, refreshToken);
 
-      return res
-        .status(200)
-        .json({
-          success: true,
+      return res.status(200).json({
+        success: true,
 
-          data: {
-            user,
+        data: {
+          user,
 
-            accessToken,
+          accessToken,
 
-            accessTokenExpiresIn,
-          },
-        });
+          accessTokenExpiresIn,
+        },
+      });
     } catch (error) {
       return next(error);
     }
@@ -217,48 +127,35 @@ export class AuthController {
     next: NextFunction,
   ): Promise<Response | void> => {
     try {
-      const refreshToken =
-        this.getRefreshToken(req);
+      const refreshToken = this.getRefreshToken(req);
 
       if (!refreshToken) {
-        throw new HttpExceptoin(
+        throw new HttpException(
           401,
-          MESSAGES.refTokenMandatory[
-            LANGUAGE
-          ],
+          MESSAGES.refTokenMandatory[LANGUAGE],
           "REFRESH_TOKEN_REQUIRED",
         );
       }
 
       const {
         accessToken,
-        refreshToken:
-          newRefreshToken,
+        refreshToken: newRefreshToken,
         accessTokenExpiresIn,
-      } =
-        await this.authService
-          .refresh(
-            refreshToken,
-          );
+      } = await this.authService.refresh(refreshToken);
 
       this.disableCaching(res);
 
-      this.setRefreshCookie(
-        res,
-        newRefreshToken,
-      );
+      this.setRefreshCookie(res, newRefreshToken);
 
-      return res
-        .status(200)
-        .json({
-          success: true,
+      return res.status(200).json({
+        success: true,
 
-          data: {
-            accessToken,
+        data: {
+          accessToken,
 
-            accessTokenExpiresIn,
-          },
-        });
+          accessTokenExpiresIn,
+        },
+      });
     } catch (error) {
       return next(error);
     }
@@ -269,35 +166,24 @@ export class AuthController {
     res: Response,
     next: NextFunction,
   ): Promise<Response | void> => {
-    const refreshToken =
-      this.getRefreshToken(req);
+    const refreshToken = this.getRefreshToken(req);
 
     try {
       if (refreshToken) {
-        await this.authService
-          .logout(
-            refreshToken,
-          );
+        await this.authService.logout(refreshToken);
       }
 
       this.disableCaching(res);
 
-      this.clearRefreshCookie(
-        res,
-      );
+      this.clearRefreshCookie(res);
 
-      return res
-        .status(200)
-        .json({
-          success: true,
+      return res.status(200).json({
+        success: true,
 
-          data: null,
-        });
+        data: null,
+      });
     } catch (error) {
-     
-      this.clearRefreshCookie(
-        res,
-      );
+      this.clearRefreshCookie(res);
 
       return next(error);
     }
@@ -309,35 +195,27 @@ export class AuthController {
     next: NextFunction,
   ): Promise<Response | void> => {
     try {
-      const lawyerId =
-        req.user?.id;
+      const lawyerId = req.user?.id;
 
       if (!lawyerId) {
-        throw new HttpExceptoin(
+        throw new HttpException(
           401,
-          MESSAGES.unauthorized[
-            LANGUAGE
-          ],
+          MESSAGES.unauthorized[LANGUAGE],
           "UNAUTHORIZED",
         );
       }
 
-      const user =
-        await this.authService.me(
-          lawyerId,
-        );
+      const user = await this.authService.me(lawyerId);
 
       this.disableCaching(res);
 
-      return res
-        .status(200)
-        .json({
-          success: true,
+      return res.status(200).json({
+        success: true,
 
-          data: {
-            user,
-          },
-        });
+        data: {
+          user,
+        },
+      });
     } catch (error) {
       return next(error);
     }
