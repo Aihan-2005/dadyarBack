@@ -1,38 +1,38 @@
 export const MESSAGES = {
   noEmailNorPhone: {
-    en: "No Email And No Phone Exsist For The User",
+    en: "No email and no phone exsist for the user",
     fa: "نه ایمیل و نه شماره تلفنی برای کاربر پیدا نشد",
   },
 
   emailExsist: {
-    en: "User With This Email Already Exsist",
+    en: "User with this email already exsist",
     fa: "گاربری با این ایمیل از قبل موجود است",
   },
 
   phoneExsist: {
-    en: "User With This Phone Already Exsist",
+    en: "User with this phone already exsist",
     fa: "کاربری با این شماره تلفن از قبل موجود است",
   },
 
   barExsist: {
-    en: "User With This BarLicence Already Exsist",
+    en: "User with this barLicence already exsist",
     fa: "کاربری با این شماره پروانه وکالت از قبل موجود است",
   },
 
   noUserWithEmailOrPhone: {
-    en: "No User Was Found With This Email/Phone",
+    en: "No user was found with this email/phone",
     fa: "هیچ کاربری با این ایمیل/شماره یافت نشد",
   },
 
   noUserWithId: {
-    en: "No User Was Found With This Id",
+    en: "No user was found with this id",
     fa: "هیچ کاربری با این شناسه یافت نشد",
   },
 
-  noStudyWithId: {
-    en: "No Study Was Found With This Id",
-    fa: "هیچ تحصیلی با این شناسه یافت نشد",
-  },
+  // noStudyWithId: {
+  //   en: "No Study Was Found With This Id",
+  //   fa: "هیچ تحصیلی با این شناسه یافت نشد",
+  // },
 
   noWorkExperienceWithId: {
     en: "No Work Experience Was Found With This Id",
@@ -206,5 +206,17 @@ export const MESSAGES = {
   invalidAccountRole: {
     en: "The account role is not allowed",
     fa: "نقش این حساب اجازه دسترسی به این بخش را ندارد",
+  },
+  nationalIdExists: {
+    en: "User with this national id already exsist",
+    fa: "کاربر با این کد ملی از قبل موجود است",
+  },
+  clientDataConflict: {
+    en: "Client with the same phone number but different national id exsist",
+    fa: "موکلی با همین شماره اما کد ملی متفاوت وجود دارد",
+  },
+  notYetBorn: {
+    en: "Birthday can't be in the furture",
+    fa: "تاریخ تولد نمی‌تواند در آینده باشد",
   },
 };
