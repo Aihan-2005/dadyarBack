@@ -4,7 +4,7 @@ import { env } from "../config/env";
 
 import { LAWYER_STATUSES } from "../constants/lawyer.constants";
 
-import { MESSAGES } from "../constants/messages";
+import { MESSAGES } from "../constants/messages.constants";
 
 import { toPublicLawyerDTO } from "../dtos/lawyer.dto";
 

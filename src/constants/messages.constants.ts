@@ -242,8 +242,38 @@ export const MESSAGES = {
     en: "Unable to create the case",
     fa: "ایجاد پرونده امکان‌پذیر نیست",
   },
+
   valueAndClientsRequiredTogether: {
     en: "Case value and clients must be updated together",
     fa: "برای تغییر مقادیر قرار قرار داد باید ارزش قرار داد و مقدار داده شده به همه موکلا داده شود",
+  },
+
+  nonCashPaymentDescriptionRequired: {
+    en: "Description is required for non-cash payments",
+    fa: "برای پرداخت غیرنقدی، توضیحات الزامی است",
+  },
+
+  noPaymentFieldFound: {
+    en: "At least one payment field must be provided",
+    fa: "حداقل یک فیلد پرداخت باید ارسال شود",
+  },
+  paymentNotFound: {
+    en: "Payment not found",
+    fa: "پرداخت یافت نشد",
+  },
+
+  clientNotAssignedToCase: {
+    en: "This client is not assigned to this case",
+    fa: "این موکل به این پرونده اختصاص داده نشده است",
+  },
+
+  paymentTotalExceedsAssignedAmount: {
+    en: "Total payments cannot exceed the client's assigned amount",
+    fa: "مجموع پرداخت‌ها نمی‌تواند از مبلغ اختصاص‌یافته به موکل بیشتر باشد",
+  },
+
+  duplicatePaymentInRequest: {
+    en: "The same payment cannot be submitted more than once",
+    fa: "یک پرداخت نمی‌تواند بیش از یک بار ارسال شود",
   },
 };

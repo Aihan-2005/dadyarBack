@@ -35,3 +35,15 @@ export type ManualCaseClientInput = {
   nationalId?: string;
   represent?: string;
 };
+
+export type PopulatedClient = {
+  _id: Types.ObjectId;
+
+  fullName: string;
+
+  phone: string;
+
+  nationalId?: string | null;
+
+  represent?: string | null;
+};

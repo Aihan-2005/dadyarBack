@@ -2,7 +2,7 @@ import { model, Schema } from "mongoose";
 import { CASE_STATES, COURT_TYPES } from "../constants/case.constants";
 
 import { env } from "../config/env";
-import { MESSAGES } from "../constants/messages";
+import { MESSAGES } from "../constants/messages.constants";
 const LANGUAGE = env.LANGUAGE;
 
 const CourtSchema = new Schema(

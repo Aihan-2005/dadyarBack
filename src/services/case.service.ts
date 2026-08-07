@@ -1,4 +1,4 @@
-import { MESSAGES } from "../constants/messages";
+import { MESSAGES } from "../constants/messages.constants";
 import mongoose, { Types, type ClientSession } from "mongoose";
 
 import type {
@@ -15,7 +15,10 @@ import type {
   SubDocumentWithId,
   UpdateCaseInput,
 } from "../interfaces/case.interface";
+import type { CasePaymentSyncClient } from "../interfaces/casePayment.interface";
+import { PopulatedClient } from "../interfaces/client.interface";
 
+import { CasePaymentService } from "./casePayment.service";
 import { ClientService } from "./client.service";
 import { HttpException } from "../exceptions/httpException";
 import { CaseRepository } from "../repositories/case.repository";
@@ -27,6 +30,8 @@ export class CaseService {
     private readonly caseRepository = new CaseRepository(),
 
     private readonly clientService = new ClientService(),
+
+    private readonly casePaymentService = new CasePaymentService(),
   ) {}
 
   private ensureNotEmptyObject(
@@ -110,8 +115,14 @@ export class CaseService {
     lawyerId: string,
     clients: ManualCaseClient[],
     session: ClientSession,
-  ): Promise<CaseClientInput[]> {
+  ): Promise<{
+    assignments: CaseClientInput[];
+
+    paymentClients: CasePaymentSyncClient[];
+  }> {
     const assignments: CaseClientInput[] = [];
+
+    const paymentClients: CasePaymentSyncClient[] = [];
 
     const resolvedClientIds = new Set<string>();
 
@@ -135,7 +146,9 @@ export class CaseService {
       if (resolvedClientIds.has(clientId)) {
         throw new HttpException(
           400,
+
           MESSAGES.duplicateCaseClient[LANGUAGE],
+
           "DUPLICATE_CASE_CLIENT",
         );
       }
@@ -156,10 +169,35 @@ export class CaseService {
 
         represent,
       });
+
+      paymentClients.push({
+        clientId,
+
+        assignedAmount: input.assignedAmount,
+
+        payments: input.payments,
+      });
     }
 
-    return assignments;
+    return {
+      assignments,
+
+      paymentClients,
+    };
   }
+
+  private getPopulatedClient(value: unknown): PopulatedClient {
+    if (!value || typeof value !== "object" || !("_id" in value)) {
+      throw new HttpException(
+        500,
+        MESSAGES.clientNotFound[LANGUAGE],
+        "INVALID_POPULATED_CLIENT",
+      );
+    }
+
+    return value as PopulatedClient;
+  }
+
   public async getCaseById(lawyerId: string, caseId: string) {
     const foundCase = await this.caseRepository.findDetailedByIdForLawyer(
       lawyerId,
@@ -174,8 +212,90 @@ export class CaseService {
       );
     }
 
-    return foundCase;
+    // ---------------- Payments ----------------
+
+    const payments = await this.casePaymentService.getCasePayments(
+      lawyerId,
+      caseId,
+    );
+
+    /*
+     * Group payments by clientId so we don't
+     * repeatedly filter the entire payment array
+     * for every client.
+     */
+    const paymentsByClientId = new Map<string, typeof payments>();
+
+    for (const payment of payments) {
+      const clientId = payment.clientId.toString();
+
+      const clientPayments = paymentsByClientId.get(clientId);
+
+      if (clientPayments) {
+        clientPayments.push(payment);
+      } else {
+        paymentsByClientId.set(clientId, [payment]);
+      }
+    }
+
+    // ---------------- Clients ----------------
+
+    const clients = foundCase.clientAssignments.map((assignment) => {
+      const client = this.getPopulatedClient(assignment.clientId);
+
+      const clientId = client._id.toString();
+
+      const clientPayments = paymentsByClientId.get(clientId) ?? [];
+
+      return {
+        fullName: client.fullName,
+
+        phone: client.phone,
+
+        nationalId: client.nationalId ?? undefined,
+
+        assignedAmount: assignment.assignedAmount,
+
+        role: this.normalizeOptionalString(assignment.role ?? undefined),
+
+        represent: this.normalizeOptionalString(
+          assignment.represent ?? client.represent ?? undefined,
+        ),
+
+        payments: clientPayments.map((payment) => ({
+          paymentId: payment._id.toString(),
+
+          method: payment.method,
+
+          amount: payment.amount,
+
+          description: payment.description ?? undefined,
+
+          dueDate: payment.dueDate ?? undefined,
+
+          isPaid: payment.isPaid,
+        })),
+      };
+    });
+
+    /*
+     * clientAssignments is the database shape.
+     *
+     * "clients" is the frontend/request shape.
+     */
+    const {
+      clientAssignments: _clientAssignments,
+
+      ...caseData
+    } = foundCase;
+
+    return {
+      ...caseData,
+
+      clients,
+    };
   }
+
   public async listCases(lawyerId: string, options: FindCasesOptions = {}) {
     const page = Math.max(options.page ?? 1, 1);
 
@@ -209,6 +329,8 @@ export class CaseService {
 
     try {
       const createdCase = await session.withTransaction(async () => {
+        // ---------------- Duplicate Case Number ----------------
+
         const duplicateCase = await this.caseRepository.findByCaseNumber(
           lawyerId,
           data.caseNumber,
@@ -223,11 +345,15 @@ export class CaseService {
           );
         }
 
-        const clientAssignments = await this.resolveCaseClients(
-          lawyerId,
-          data.clients,
-          session,
-        );
+        // ---------------- Resolve Clients ----------------
+
+        const {
+          assignments: clientAssignments,
+
+          paymentClients,
+        } = await this.resolveCaseClients(lawyerId, data.clients, session);
+
+        // ---------------- Validate Case Value ----------------
 
         this.ensureAssignmentsMatchValue(data.value, clientAssignments);
 
@@ -241,7 +367,20 @@ export class CaseService {
           clientAssignments,
         };
 
-        return this.caseRepository.create(createData, session);
+        // ---------------- Create Case ----------------
+
+        const created = await this.caseRepository.create(createData, session);
+
+        // ---------------- Create Payments ----------------
+
+        await this.casePaymentService.syncCasePayments(
+          lawyerId,
+          created._id.toString(),
+          paymentClients,
+          session,
+        );
+
+        return created;
       });
 
       if (!createdCase) {
@@ -270,6 +409,7 @@ export class CaseService {
       await session.endSession();
     }
   }
+
   public async updateCase(
     lawyerId: string,
     caseId: string,
@@ -305,7 +445,7 @@ export class CaseService {
           }
         }
 
-        // ---------------- Financial / Clients ----------------
+        // ---------------- Financial / Clients / Payments ----------------
 
         const financialChanged =
           data.value !== undefined || data.clients !== undefined;
@@ -315,12 +455,18 @@ export class CaseService {
 
           let assignments: CaseClientInput[];
 
-          if (data.clients) {
-            assignments = await this.resolveCaseClients(
+          let paymentClients: CasePaymentSyncClient[] | undefined;
+
+          if (data.clients !== undefined) {
+            const resolved = await this.resolveCaseClients(
               lawyerId,
               data.clients,
               session,
             );
+
+            assignments = resolved.assignments;
+
+            paymentClients = resolved.paymentClients;
           } else {
             assignments = existingCase.clientAssignments.map((assignment) => ({
               clientId: assignment.clientId.toString(),
@@ -335,7 +481,11 @@ export class CaseService {
             }));
           }
 
+          // ---------------- Validate Case Value ----------------
+
           this.ensureAssignmentsMatchValue(value, assignments);
+
+          // ---------------- Update Assignments ----------------
 
           const updatedFinancial =
             await this.caseRepository.updateValueAndAssignments(
@@ -353,11 +503,30 @@ export class CaseService {
               "CASE_NOT_FOUND",
             );
           }
+
+          // ---------------- Sync Payments ----------------
+
+          if (paymentClients) {
+            await this.casePaymentService.syncCasePayments(
+              lawyerId,
+              caseId,
+              paymentClients,
+              session,
+            );
+          }
         }
 
         // ---------------- Other Case Fields ----------------
 
-        const { clients: _clients, value: _value, court, ...caseData } = data;
+        const {
+          clients: _clients,
+
+          value: _value,
+
+          court,
+
+          ...caseData
+        } = data;
 
         if (Object.keys(caseData).length > 0) {
           const updated = await this.caseRepository.updateByIdForLawyer(

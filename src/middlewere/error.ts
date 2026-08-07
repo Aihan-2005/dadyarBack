@@ -5,7 +5,7 @@ import { ZodError } from "zod";
 
 import { env } from "../config/env";
 
-import { MESSAGES } from "../constants/messages";
+import { MESSAGES } from "../constants/messages.constants";
 
 import { HttpException } from "../exceptions/httpException";
 

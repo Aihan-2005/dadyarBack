@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { CASE_STATES, COURT_TYPES } from "../constants/case.constants";
 import { Types } from "mongoose";
-import { MESSAGES } from "../constants/messages";
+import { MESSAGES } from "../constants/messages.constants";
 import { env } from "../config/env";
 import { OptionalNationalIdSchema } from "./client.validator";
-
+import { CasePaymentInputSchema } from "./casePayment.validator";
 const LANGUAGE = env.LANGUAGE;
 
 export const MongoIdSchema = z
@@ -97,13 +97,15 @@ export const ManualCaseClientSchema = z
 
     assignedAmount: MoneySchema,
 
-    fullName: z.string().trim().min(1).max(200).optional(),
+    fullName: RequiredString.max(200).optional(),
 
     nationalId: OptionalNationalIdSchema,
 
     role: OptionalRoleSchema,
 
     represent: OptionalRepresentSchema,
+
+    payments: z.array(CasePaymentInputSchema).optional(),
   })
   .strict();
 

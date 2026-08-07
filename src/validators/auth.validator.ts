@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { env } from "../config/env";
 
-import { MESSAGES } from "../constants/messages";
+import { MESSAGES } from "../constants/messages.constants";
 
 const LANGUAGE = env.LANGUAGE;
 

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { CaseSchema } from "../models/case.model";
 import {
   CaseClientSchema,
+  CaseStateSchema,
   CourtSchema,
   CreateCaseSchema,
   LawyerContactSchema,
@@ -14,10 +15,15 @@ import {
 
 export { CASE_STATES, COURT_TYPES } from "../constants/case.constants";
 
+export type CaseState = z.infer<typeof CaseStateSchema>;
+
 export type FindCasesOptions = {
-  state?: string;
+  state?: CaseState;
+
   search?: string;
+
   page?: number;
+
   limit?: number;
 };
 
@@ -42,12 +48,6 @@ export type RelatedPerson = z.infer<typeof RelatedPersonSchema> & {
 
 export type SubDocumentWithId = {
   _id?: Types.ObjectId | string;
-};
-
-export type UpdateFinancialAgreementInput = {
-  value: number;
-
-  clients: ManualCaseClient[];
 };
 
 export type ManualCaseClient = z.infer<typeof ManualCaseClientSchema>;
