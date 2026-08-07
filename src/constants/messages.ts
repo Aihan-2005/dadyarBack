@@ -219,4 +219,31 @@ export const MESSAGES = {
     en: "Birthday can't be in the furture",
     fa: "تاریخ تولد نمی‌تواند در آینده باشد",
   },
+  invalidPhoneFormat: {
+    en: "The given phone number is not a valid iranian phone number",
+    fa: "شماره تلفن داده شده صحیح نیست",
+  },
+  assignmentTotalMismatch: {
+    en: "The assigned client amounts must equal the total case value",
+    fa: "مجموع مبالغ تعیین‌شده برای موکلان باید برابر ارزش کل پرونده باشد",
+  },
+
+  duplicateCaseClient: {
+    en: "The same client cannot be added to a case more than once",
+    fa: "یک موکل نمی‌تواند بیش از یک بار به پرونده اضافه شود",
+  },
+
+  clientFullNameRequired: {
+    en: "The client's full name is required for a new client",
+    fa: "برای ثبت موکل جدید، نام کامل الزامی است",
+  },
+
+  unableToCreateCase: {
+    en: "Unable to create the case",
+    fa: "ایجاد پرونده امکان‌پذیر نیست",
+  },
+  valueAndClientsRequiredTogether: {
+    en: "Case value and clients must be updated together",
+    fa: "برای تغییر مقادیر قرار قرار داد باید ارزش قرار داد و مقدار داده شده به همه موکلا داده شود",
+  },
 };

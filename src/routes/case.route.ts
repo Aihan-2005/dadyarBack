@@ -36,20 +36,6 @@ class CaseRoute implements Route {
 
     this.router.patch("/:caseId/court", this.caseController.updateCourt);
 
-    // ---------------- Clients ----------------
-
-    this.router.post("/:caseId/clients", this.caseController.addClient);
-
-    this.router.patch(
-      "/:caseId/clients/:clientId",
-      this.caseController.updateClient,
-    );
-
-    this.router.delete(
-      "/:caseId/clients/:clientId",
-      this.caseController.removeClient,
-    );
-
     // ---------------- Opposing Parties ----------------
 
     this.router.post(

@@ -65,6 +65,14 @@ export const ClientSchema = new Schema<Client>(
 
       maxlength: 500,
     },
+
+    represent: {
+      type: String,
+
+      trim: true,
+
+      maxlength: 200,
+    },
   },
   {
     timestamps: true,

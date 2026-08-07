@@ -1,10 +1,12 @@
 import { z } from "zod";
-import { CASE_SATATE, COURT_TYPES } from "../constants/case.constants";
+import { CASE_STATES, COURT_TYPES } from "../constants/case.constants";
 import { Types } from "mongoose";
 import { MESSAGES } from "../constants/messages";
 import { env } from "../config/env";
+import { OptionalNationalIdSchema } from "./client.validator";
 
 const LANGUAGE = env.LANGUAGE;
+
 export const MongoIdSchema = z
   .string()
   .trim()
@@ -14,9 +16,44 @@ export const MongoIdSchema = z
 
 const RequiredString = z.string().trim().min(1);
 
-const OptionalString = z.string().trim().optional();
+const cleanOptionalString = (maxLength: number) =>
+  z.preprocess((value) => {
+    if (value === undefined || value === null) {
+      return undefined;
+    }
 
-export const CaseStateSchema = z.enum(CASE_SATATE);
+    if (typeof value === "string" && value.trim() === "") {
+      return undefined;
+    }
+
+    return value;
+  }, z.string().trim().max(maxLength).optional());
+const OptionalString = cleanOptionalString(2000);
+
+const OptionalRoleSchema = cleanOptionalString(100);
+
+const OptionalRepresentSchema = cleanOptionalString(200);
+
+const normalizePersianDigits = (value: string): string =>
+  value
+    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
+    .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)));
+
+const PhoneSchema = z.preprocess(
+  (value: unknown) =>
+    typeof value === "string" ? normalizePersianDigits(value) : value,
+  RequiredString.regex(/^09\d{9}$/, {
+    message: MESSAGES.invalidPhoneFormat[LANGUAGE],
+  }),
+);
+
+const MoneySchema = z.preprocess(
+  (value) =>
+    typeof value === "string" && value.trim() !== "" ? Number(value) : value,
+
+  z.number().int().min(0),
+);
+export const CaseStateSchema = z.enum(CASE_STATES);
 
 export const CourtTypeSchema = z.enum(COURT_TYPES);
 
@@ -32,22 +69,50 @@ export const CourtSchema = z.object({
   branchCode: OptionalString,
 });
 
-export const ClientSchema = z.object({
-  fullName: RequiredString,
+// export const ClientSchema = z.object({
+//   fullName: RequiredString,
+//
+//   phone: RequiredString,
+//
+//   nationalId: OptionalString,
+//
+//   role: OptionalString,
+// });
 
-  phone: RequiredString,
+export const CaseClientSchema = z
+  .object({
+    clientId: MongoIdSchema,
 
-  nationalId: OptionalString,
+    assignedAmount: MoneySchema,
 
-  role: OptionalString,
-});
+    role: OptionalRoleSchema,
+
+    represent: OptionalRepresentSchema,
+  })
+  .strict();
+
+export const ManualCaseClientSchema = z
+  .object({
+    phone: PhoneSchema,
+
+    assignedAmount: MoneySchema,
+
+    fullName: z.string().trim().min(1).max(200).optional(),
+
+    nationalId: OptionalNationalIdSchema,
+
+    role: OptionalRoleSchema,
+
+    represent: OptionalRepresentSchema,
+  })
+  .strict();
 
 export const OpposingPartySchema = z.object({
   fullName: RequiredString,
 
   phone: OptionalString,
 
-  nationalId: OptionalString,
+  nationalId: OptionalNationalIdSchema,
 
   description: OptionalString,
 });
@@ -59,7 +124,6 @@ export const LawyerContactSchema = z.object({
 
   barLicenseNumber: OptionalString,
 
-  // will turn the string given to date object
   licenseExpiresAt: z.coerce.date().optional(),
 
   licensePlaceOfIssue: OptionalString,
@@ -73,28 +137,51 @@ export const RelatedPersonSchema = z.object({
   description: OptionalString,
 });
 
-export const CreateCaseSchema = z.object({
-  title: RequiredString,
+const CaseBodySchema = z
+  .object({
+    title: RequiredString,
 
-  caseNumber: RequiredString,
+    caseNumber: RequiredString,
 
-  state: CaseStateSchema.optional(),
+    value: MoneySchema,
 
-  court: CourtSchema.optional(),
+    state: CaseStateSchema.optional(),
 
-  clients: z.array(ClientSchema).min(1, {
-    message: MESSAGES["caseNeedClient"][LANGUAGE],
-  }),
+    court: CourtSchema.optional(),
 
-  opposingParties: z.array(OpposingPartySchema).optional(),
+    clients: z.array(ManualCaseClientSchema).min(1, {
+      message: MESSAGES.caseNeedClient[LANGUAGE],
+    }),
 
-  assistantLawyers: z.array(LawyerContactSchema).optional(),
+    opposingParties: z.array(OpposingPartySchema).optional(),
 
-  opposingLawyers: z.array(LawyerContactSchema).optional(),
+    assistantLawyers: z.array(LawyerContactSchema).optional(),
 
-  relatedPeople: z.array(RelatedPersonSchema).optional(),
-});
-export const UpdateCaseSchema = CreateCaseSchema.partial();
+    opposingLawyers: z.array(LawyerContactSchema).optional(),
+
+    relatedPeople: z.array(RelatedPersonSchema).optional(),
+  })
+  .strict();
+
+export const CreateCaseSchema = CaseBodySchema;
+
+export const UpdateCaseSchema = CaseBodySchema.omit({ state: true })
+  .partial()
+  .superRefine((data, context) => {
+    const hasValue = data.value !== undefined;
+
+    const hasClients = data.clients !== undefined;
+
+    if (hasValue !== hasClients) {
+      context.addIssue({
+        code: "custom",
+
+        path: hasValue ? ["clients"] : ["value"],
+
+        message: MESSAGES.valueAndClientsRequiredTogether[LANGUAGE],
+      });
+    }
+  });
 
 export const UpdateCaseStateSchema = z.object({
   state: CaseStateSchema,
@@ -102,9 +189,9 @@ export const UpdateCaseStateSchema = z.object({
 
 export const UpdateCourtSchema = CourtSchema.partial();
 
-export const AddClientSchema = ClientSchema;
+// export const AddCaseClientSchema = ManualCaseClientSchema;
 
-export const UpdateClientSchema = ClientSchema.partial();
+// export const UpdateCaseClientSchema = ManualCaseClientSchema.partial();
 
 export const AddOpposingPartySchema = OpposingPartySchema;
 
@@ -130,10 +217,10 @@ export const ParamSubDocumentIdSchema = z.object({
   id: MongoIdSchema,
 });
 
-export const ParamCaseAndClientIdSchema = z.object({
-  caseId: MongoIdSchema,
-  clientId: MongoIdSchema,
-});
+// export const ParamCaseAndClientIdSchema = z.object({
+//   caseId: MongoIdSchema,
+//   clientId: MongoIdSchema,
+// });
 
 export const ParamCaseAndOpposingPartyIdSchema = z.object({
   caseId: MongoIdSchema,

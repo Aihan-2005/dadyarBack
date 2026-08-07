@@ -29,7 +29,7 @@ const PhoneSchema = z.preprocess(
   z.string().regex(/^09\d{9}$/),
 );
 
-const OptionalNationalIdSchema = z.preprocess(
+export const OptionalNationalIdSchema = z.preprocess(
   (value) => {
     if (value === undefined || value === null) {
       return undefined;
@@ -108,6 +108,13 @@ export const MongoIdSchema = z
     message: MESSAGES.invalidObjectId[LANGUAGE],
   });
 
+const OptionalRepresentSchema = z.preprocess((value) => {
+  if (value === undefined || value === null || value === "") {
+    return undefined;
+  }
+  return value;
+}, z.string().trim().max(200).optional());
+
 const ClientBodySchema = z
   .object({
     fullName: RequiredFullNameSchema,
@@ -121,6 +128,8 @@ const ClientBodySchema = z
     birthday: OptionalBirthdaySchema,
 
     homeAddress: OptionalAddressSchema,
+
+    represent: OptionalRepresentSchema,
   })
   .strict();
 
@@ -130,7 +139,7 @@ export const UpdateClientSchema = ClientBodySchema.partial().superRefine(
   (data, context) => {
     if (Object.keys(data).length === 0) {
       context.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
 
         message: MESSAGES.noClientFieldFound[LANGUAGE],
       });

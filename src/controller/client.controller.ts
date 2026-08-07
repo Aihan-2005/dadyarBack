@@ -60,8 +60,6 @@ export class ClientController {
 
       const client = await this.clientService.createClient(lawyerId, input);
 
-      this.disableCaching(res);
-
       return res.status(201).json({
         success: true,
 
@@ -174,8 +172,6 @@ export class ClientController {
         clientId,
         input,
       );
-
-      this.disableCaching(res);
 
       return res.status(200).json({
         success: true,

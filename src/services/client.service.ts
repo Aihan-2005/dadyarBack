@@ -9,6 +9,7 @@ import { HttpException } from "../exceptions/httpException";
 import type {
   Client,
   ClientCreatePayload,
+  ClientRecord,
   FindClientsOptions,
   ManualCaseClientInput,
   UpdateClientInput,
@@ -131,6 +132,8 @@ export class ClientService {
 
       homeNumber: this.normalizeOptionalString(input.homeNumber),
 
+      represent: this.normalizeOptionalString(input.represent),
+
       birthday: input.birthday,
 
       homeAddress: this.normalizeOptionalString(input.homeAddress),
@@ -229,6 +232,16 @@ export class ClientService {
       setFields.phone = phone;
     }
 
+    if (input.represent !== undefined) {
+      const represent = this.normalizeOptionalString(input.represent);
+
+      if (represent) {
+        setFields.represent = represent;
+      } else {
+        unsetFields.represent = 1;
+      }
+    }
+
     if (input.nationalId !== undefined) {
       if (nationalId) {
         setFields.nationalId = nationalId;
@@ -294,10 +307,12 @@ export class ClientService {
     lawyerId: string,
     input: ManualCaseClientInput,
     session: ClientSession,
-  ) {
+  ): Promise<ClientRecord> {
     const phone = this.normalizePhone(input.phone);
 
     const nationalId = this.normalizeNationalId(input.nationalId);
+
+    const represent = this.normalizeOptionalString(input.represent);
 
     const existing = await this.repo.findByPhone(lawyerId, phone, session);
 
@@ -314,10 +329,42 @@ export class ClientService {
         );
       }
 
+      if (input.represent !== undefined && represent !== existing.represent) {
+        const update: UpdateQuery<Client> = represent
+          ? {
+              $set: {
+                represent,
+              },
+            }
+          : {
+              $unset: {
+                represent: 1,
+              },
+            };
+
+        const updated = await this.repo.updateByIdForLawyer(
+          lawyerId,
+          existing._id.toString(),
+          update,
+          session,
+        );
+
+        return updated ?? existing;
+      }
+
       return existing;
     }
 
-    // TODO: might need to change that in future because now the idea is that every person have one number
+    const fullName = input.fullName?.trim();
+
+    if (!fullName) {
+      throw new HttpException(
+        400,
+        MESSAGES.clientFullNameRequired[LANGUAGE],
+        "CLIENT_FULL_NAME_REQUIRED",
+      );
+    }
+
     if (nationalId) {
       const nationalIdOwner = await this.repo.findByNationalId(
         lawyerId,
@@ -337,11 +384,10 @@ export class ClientService {
     return this.repo.create(
       lawyerId,
       {
-        fullName: this.normalizeRequiredString(input.fullName),
-
+        fullName,
         phone,
-
         nationalId,
+        represent,
       },
       session,
     );

@@ -1,43 +1,37 @@
 import { Types } from "mongoose";
+import { z } from "zod";
+import {
+  CreateClientSchema,
+  UpdateClientSchema,
+} from "../validators/client.validator";
 
-export interface Client {
+export type ClientCreatePayload = z.infer<typeof CreateClientSchema>;
+
+export type UpdateClientInput = z.infer<typeof UpdateClientSchema>;
+
+export type Client = ClientCreatePayload & {
   lawyerId: Types.ObjectId;
-
-  fullName: string;
-
-  phone: string;
-
-  nationalId?: string;
-
-  homeNumber?: string;
-
-  birthday?: Date;
-
-  homeAddress?: string;
-}
-
-export interface ClientRecord extends Client {
-  _id: Types.ObjectId;
 
   createdAt: Date;
 
   updatedAt: Date;
-}
+};
 
-export type ClientCreatePayload = Omit<Client, "lawyerId">;
+export type ClientRecord = Client & {
+  _id: Types.ObjectId;
+};
 
-export type UpdateClientInput = Partial<Omit<Client, "lawyerId">>;
-
-export interface FindClientsOptions {
+export type FindClientsOptions = {
   search?: string;
 
   page?: number;
 
   limit?: number;
-}
+};
 
-export interface ManualCaseClientInput {
-  fullName: string;
+export type ManualCaseClientInput = {
+  fullName?: string;
   phone: string;
   nationalId?: string;
-}
+  represent?: string;
+};

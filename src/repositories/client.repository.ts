@@ -168,6 +168,7 @@ export class ClientRepository extends BaseRepository<Client> {
     lawyerId: string,
     clientId: string,
     update: UpdateQuery<Client>,
+    session?: ClientSession,
   ) {
     return this.model
       .findOneAndUpdate(
@@ -181,6 +182,7 @@ export class ClientRepository extends BaseRepository<Client> {
           new: true,
 
           runValidators: true,
+          session,
         },
       )
       .lean<ClientRecord>()
