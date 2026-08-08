@@ -391,20 +391,7 @@ export class CaseService {
         );
       }
 
-      const detailedCase = await this.caseRepository.findDetailedByIdForLawyer(
-        lawyerId,
-        createdCase._id.toString(),
-      );
-
-      if (!detailedCase) {
-        throw new HttpException(
-          404,
-          MESSAGES.caseNotFound[LANGUAGE],
-          "CASE_NOT_FOUND",
-        );
-      }
-
-      return detailedCase;
+      return this.getCaseById(lawyerId, createdCase._id.toString());
     } finally {
       await session.endSession();
     }

@@ -167,20 +167,16 @@ const CaseBodySchema = z
 
 export const CreateCaseSchema = CaseBodySchema;
 
-export const UpdateCaseSchema = CaseBodySchema.omit({ state: true })
+export const UpdateCaseSchema = CreateCaseSchema.omit({
+  state: true,
+})
   .partial()
   .superRefine((data, context) => {
-    const hasValue = data.value !== undefined;
-
-    const hasClients = data.clients !== undefined;
-
-    if (hasValue !== hasClients) {
+    if (Object.keys(data).length === 0) {
       context.addIssue({
         code: "custom",
 
-        path: hasValue ? ["clients"] : ["value"],
-
-        message: MESSAGES.valueAndClientsRequiredTogether[LANGUAGE],
+        message: MESSAGES.noCaseFieldFound[LANGUAGE],
       });
     }
   });
