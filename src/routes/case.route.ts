@@ -1,8 +1,8 @@
 import { Router } from "express";
-import CaseController from "../controller/case.controller";
+import CaseController from "../controllers/case.controller";
 import { CaseService } from "../services/case.service";
 import { Route } from "../interfaces/routes.interface";
-import requireAuth from "../middlewere/auth.middlewere";
+import requireAuth from "../middlewares/auth.middleware";
 
 class CaseRoute implements Route {
   public path = "/cases";

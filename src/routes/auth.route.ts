@@ -1,16 +1,16 @@
 import { Router } from "express";
 
-import { AuthController } from "../controller/auth.controller";
+import { AuthController } from "../controllers/auth.controller";
 
 import type { Route } from "../interfaces/routes.interface";
 
-import requireAuth from "../middlewere/auth.middlewere";
+import requireAuth from "../middlewares/auth.middleware";
 
 import {
   loginRateLimiter,
   refreshRateLimiter,
   signupRateLimiter,
-} from "../middlewere/authRateLimit.middlewere";
+} from "../middlewares/authRateLimit.middleware";
 
 import { LawyerRepository } from "../repositories/lawyer.repository";
 
@@ -51,4 +51,3 @@ class AuthRoute implements Route {
 }
 
 export default AuthRoute;
-

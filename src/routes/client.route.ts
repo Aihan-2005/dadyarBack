@@ -1,10 +1,10 @@
 import { Router } from "express";
 
-import { ClientController } from "../controller/client.controller";
+import { ClientController } from "../controllers/client.controller";
 
 import type { Route } from "../interfaces/routes.interface";
 
-import requireAuth from "../middlewere/auth.middlewere";
+import requireAuth from "../middlewares/auth.middleware";
 
 import { ClientService } from "../services/client.service";
 

@@ -1,10 +1,10 @@
 import { Router } from "express";
 
-import { LawyerController } from "../controller/lawyer.controller";
+import { LawyerController } from "../controllers/lawyer.controller";
 
 import type { Route } from "../interfaces/routes.interface";
 
-import requireAuth from "../middlewere/auth.middlewere";
+import requireAuth from "../middlewares/auth.middleware";
 
 import { LawyerService } from "../services/lawyer.service";
 
