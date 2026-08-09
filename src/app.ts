@@ -182,6 +182,10 @@ class App {
       },
     );
   }
+
+  public getApp(): Application {
+  return this.app;
+}
 }
 
 export default App;
