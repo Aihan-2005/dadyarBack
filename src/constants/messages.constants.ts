@@ -276,4 +276,13 @@ export const MESSAGES = {
     en: "The same payment cannot be submitted more than once",
     fa: "یک پرداخت نمی‌تواند بیش از یک بار ارسال شود",
   },
+  expenseNotFound: {
+    en: "Expense not found",
+    fa: "هزینه یافت نشد",
+  },
+
+  duplicateExpenseInRequest: {
+    en: "The same expense cannot be submitted more than once",
+    fa: "یک هزینه نمی‌تواند بیش از یک بار ارسال شود",
+  },
 };

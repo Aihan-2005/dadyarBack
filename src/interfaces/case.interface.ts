@@ -62,7 +62,10 @@ export type CaseCreatePayload = z.infer<typeof CreateCaseSchema>;
 
 export type UpdateCaseInput = z.infer<typeof UpdateCaseSchema>;
 
-export type CreateCaseInput = Omit<CaseCreatePayload, "clients"> & {
+export type CreateCaseInput = Omit<
+  CaseCreatePayload,
+  "clients" | "expenses"
+> & {
   lawyerId: string;
 
   clientAssignments: CaseClientInput[];

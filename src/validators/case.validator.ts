@@ -5,6 +5,7 @@ import { MESSAGES } from "../constants/messages.constants";
 import { env } from "../config/env";
 import { OptionalNationalIdSchema } from "./client.validator";
 import { CasePaymentInputSchema } from "./casePayment.validator";
+import { CaseExpenseInputSchema } from "./caseExpense.validator";
 const LANGUAGE = env.LANGUAGE;
 
 export const MongoIdSchema = z
@@ -154,6 +155,8 @@ const CaseBodySchema = z
     clients: z.array(ManualCaseClientSchema).min(1, {
       message: MESSAGES.caseNeedClient[LANGUAGE],
     }),
+
+    expenses: z.array(CaseExpenseInputSchema).optional(),
 
     opposingParties: z.array(OpposingPartySchema).optional(),
 

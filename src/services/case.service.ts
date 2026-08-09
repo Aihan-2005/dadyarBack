@@ -20,6 +20,7 @@ import { PopulatedClient } from "../interfaces/client.interface";
 
 import { CasePaymentService } from "./casePayment.service";
 import { ClientService } from "./client.service";
+import { CaseExpenseService } from "./caseExpense.service";
 import { HttpException } from "../exceptions/httpException";
 import { CaseRepository } from "../repositories/case.repository";
 import { env } from "../config/env";
@@ -32,6 +33,8 @@ export class CaseService {
     private readonly clientService = new ClientService(),
 
     private readonly casePaymentService = new CasePaymentService(),
+
+    private readonly caseExpenseService = new CaseExpenseService(),
   ) {}
 
   private ensureNotEmptyObject(
@@ -207,23 +210,23 @@ export class CaseService {
     if (!foundCase) {
       throw new HttpException(
         404,
+
         MESSAGES.caseNotFound[LANGUAGE],
+
         "CASE_NOT_FOUND",
       );
     }
 
-    // ---------------- Payments ----------------
+    // ---------------- Related Financial Data ----------------
 
-    const payments = await this.casePaymentService.getCasePayments(
-      lawyerId,
-      caseId,
-    );
+    const [payments, expenses] = await Promise.all([
+      this.casePaymentService.getCasePayments(lawyerId, caseId),
 
-    /*
-     * Group payments by clientId so we don't
-     * repeatedly filter the entire payment array
-     * for every client.
-     */
+      this.caseExpenseService.getCaseExpenses(lawyerId, caseId),
+    ]);
+
+    // ---------------- Group Payments By Client ----------------
+
     const paymentsByClientId = new Map<string, typeof payments>();
 
     for (const payment of payments) {
@@ -238,7 +241,7 @@ export class CaseService {
       }
     }
 
-    // ---------------- Clients ----------------
+    // ---------------- Build Clients ----------------
 
     const clients = foundCase.clientAssignments.map((assignment) => {
       const client = this.getPopulatedClient(assignment.clientId);
@@ -278,11 +281,24 @@ export class CaseService {
       };
     });
 
-    /*
-     * clientAssignments is the database shape.
-     *
-     * "clients" is the frontend/request shape.
-     */
+    // ---------------- Build Expenses ----------------
+
+    const caseExpenses = expenses.map((expense) => ({
+      expenseId: expense._id.toString(),
+
+      title: expense.title,
+
+      amount: expense.amount,
+
+      description: expense.description ?? undefined,
+
+      expenseDate: expense.expenseDate ?? undefined,
+
+      isPaid: expense.isPaid,
+    }));
+
+    // ---------------- Response ----------------
+
     const {
       clientAssignments: _clientAssignments,
 
@@ -293,6 +309,8 @@ export class CaseService {
       ...caseData,
 
       clients,
+
+      expenses: caseExpenses,
     };
   }
 
@@ -324,6 +342,7 @@ export class CaseService {
       },
     };
   }
+
   public async createCase(lawyerId: string, data: CaseCreatePayload) {
     const session = await mongoose.startSession();
 
@@ -340,7 +359,9 @@ export class CaseService {
         if (duplicateCase) {
           throw new HttpException(
             409,
+
             MESSAGES.caseExsist[LANGUAGE],
+
             "CASE_NUMBER_ALREADY_EXISTS",
           );
         }
@@ -357,7 +378,20 @@ export class CaseService {
 
         this.ensureAssignmentsMatchValue(data.value, clientAssignments);
 
-        const { clients: _clients, ...caseData } = data;
+        /*
+         * clients and expenses are request-only
+         * fields.
+         *
+         * Neither belongs directly inside
+         * the Case Mongo document.
+         */
+        const {
+          clients: _clients,
+
+          expenses: _expenses,
+
+          ...caseData
+        } = data;
 
         const createData: CreateCaseInput = {
           ...caseData,
@@ -371,14 +405,27 @@ export class CaseService {
 
         const created = await this.caseRepository.create(createData, session);
 
-        // ---------------- Create Payments ----------------
+        const createdCaseId = created._id.toString();
+
+        // ---------------- Create / Sync Payments ----------------
 
         await this.casePaymentService.syncCasePayments(
           lawyerId,
-          created._id.toString(),
+          createdCaseId,
           paymentClients,
           session,
         );
+
+        // ---------------- Create Expenses ----------------
+
+        if (data.expenses !== undefined) {
+          await this.caseExpenseService.syncCaseExpenses(
+            lawyerId,
+            createdCaseId,
+            data.expenses,
+            session,
+          );
+        }
 
         return created;
       });
@@ -386,7 +433,9 @@ export class CaseService {
       if (!createdCase) {
         throw new HttpException(
           500,
+
           MESSAGES.unableToCreateCase[LANGUAGE],
+
           "CASE_CREATION_FAILED",
         );
       }
@@ -426,7 +475,9 @@ export class CaseService {
           if (duplicateCase) {
             throw new HttpException(
               409,
+
               MESSAGES.caseExsist[LANGUAGE],
+
               "CASE_NUMBER_ALREADY_EXISTS",
             );
           }
@@ -468,11 +519,7 @@ export class CaseService {
             }));
           }
 
-          // ---------------- Validate Case Value ----------------
-
           this.ensureAssignmentsMatchValue(value, assignments);
-
-          // ---------------- Update Assignments ----------------
 
           const updatedFinancial =
             await this.caseRepository.updateValueAndAssignments(
@@ -486,12 +533,14 @@ export class CaseService {
           if (!updatedFinancial) {
             throw new HttpException(
               404,
+
               MESSAGES.caseNotFound[LANGUAGE],
+
               "CASE_NOT_FOUND",
             );
           }
 
-          // ---------------- Sync Payments ----------------
+          // ---------------- Payments ----------------
 
           if (paymentClients) {
             await this.casePaymentService.syncCasePayments(
@@ -503,10 +552,23 @@ export class CaseService {
           }
         }
 
+        // ---------------- Expenses ----------------
+
+        if (data.expenses !== undefined) {
+          await this.caseExpenseService.syncCaseExpenses(
+            lawyerId,
+            caseId,
+            data.expenses,
+            session,
+          );
+        }
+
         // ---------------- Other Case Fields ----------------
 
         const {
           clients: _clients,
+
+          expenses: _expenses,
 
           value: _value,
 
@@ -528,7 +590,9 @@ export class CaseService {
           if (!updated) {
             throw new HttpException(
               404,
+
               MESSAGES.caseNotFound[LANGUAGE],
+
               "CASE_NOT_FOUND",
             );
           }
@@ -547,7 +611,9 @@ export class CaseService {
           if (!updatedCourt) {
             throw new HttpException(
               404,
+
               MESSAGES.caseNotFound[LANGUAGE],
+
               "CASE_NOT_FOUND",
             );
           }
@@ -559,6 +625,7 @@ export class CaseService {
       await session.endSession();
     }
   }
+
   public async updateCaseState(
     lawyerId: string,
     caseId: string,
