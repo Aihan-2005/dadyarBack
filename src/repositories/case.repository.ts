@@ -1,23 +1,31 @@
-import {
+import type { ClientSession, UpdateQuery } from "mongoose";
+
+import type {
   Case,
-  Client,
+  CaseClientInput,
   Court,
   CreateCaseInput,
+  FindCasesOptions,
   LawyerContact,
   OpposingParty,
   RelatedPerson,
-  FindCasesOptions,
 } from "../interfaces/case.interface";
+
 import { CaseModel } from "../models/case.model";
+
 import { BaseRepository } from "./base.repository";
 
-// NOTE: all public methods return promises
 export class CaseRepository extends BaseRepository<Case> {
   constructor() {
     super(CaseModel);
   }
 
-  // Helper Methods
+  // ---------------- Helpers ----------------
+
+  private escapeRegex(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
   private buildSubDocumentSet(
     path: string,
     data: Record<string, unknown>,
@@ -48,36 +56,10 @@ export class CaseRepository extends BaseRepository<Case> {
     return updateData;
   }
 
-  // Finding Methods
-  public findById(id: string) {
-    return this.model.findById(this.toObjectId(id)).lean().exec();
-  }
-
-  public findByIdForLawyer(lawyerId: string, caseId: string) {
-    return this.model
-      .findOne({
-        _id: this.toObjectId(caseId),
-        lawyerId: this.toObjectId(lawyerId),
-      })
-      .lean()
-      .exec();
-  }
-
-  public findByCaseNumber(lawyerId: string, caseNumber: string) {
-    return this.model
-      .findOne({
-        lawyerId: this.toObjectId(lawyerId),
-        caseNumber,
-      })
-      .lean()
-      .exec();
-  }
-
-  public findByLawyerId(lawyerId: string, options: FindCasesOptions = {}) {
-    const page = options.page ?? 1;
-    const limit = options.limit ?? 10;
-    const skip = (page - 1) * limit;
-
+  private buildSearchQuery(
+    lawyerId: string,
+    options: FindCasesOptions,
+  ): Record<string, unknown> {
     const query: Record<string, unknown> = {
       lawyerId: this.toObjectId(lawyerId),
     };
@@ -86,173 +68,288 @@ export class CaseRepository extends BaseRepository<Case> {
       query.state = options.state;
     }
 
-    if (options.search) {
+    const search = options.search?.trim();
+
+    if (search) {
+      const safeSearch = this.escapeRegex(search);
+
       query.$or = [
-        { title: { $regex: options.search, $options: "i" } },
-        { caseNumber: { $regex: options.search, $options: "i" } },
-        { "court.province": { $regex: options.search, $options: "i" } },
-        { "court.city": { $regex: options.search, $options: "i" } },
-        { "clients.fullName": { $regex: options.search, $options: "i" } },
         {
-          "opposingParties.fullName": { $regex: options.search, $options: "i" },
+          title: {
+            $regex: safeSearch,
+
+            $options: "i",
+          },
         },
+
+        {
+          caseNumber: {
+            $regex: safeSearch,
+
+            $options: "i",
+          },
+        },
+
+        {
+          "court.province": {
+            $regex: safeSearch,
+
+            $options: "i",
+          },
+        },
+
+        {
+          "court.city": {
+            $regex: safeSearch,
+
+            $options: "i",
+          },
+        },
+
+        // {
+        //   "opposingParties.fullName": {
+        //     $regex: safeSearch,
+        //
+        //     $options: "i",
+        //   },
+        // },
       ];
     }
 
+    return query;
+  }
+
+  // ---------------- Finding Methods ----------------
+
+  public findByIdForLawyer(
+    lawyerId: string,
+    caseId: string,
+    session?: ClientSession,
+  ) {
+    const query = this.model.findOne({
+      _id: this.toObjectId(caseId),
+
+      lawyerId: this.toObjectId(lawyerId),
+    });
+
+    if (session) {
+      query.session(session);
+    }
+
+    return query.lean().exec();
+  }
+
+  public findDetailedByIdForLawyer(lawyerId: string, caseId: string) {
+    return this.model
+      .findOne({
+        _id: this.toObjectId(caseId),
+
+        lawyerId: this.toObjectId(lawyerId),
+      })
+      .populate({
+        path: "clientAssignments.clientId",
+
+        select: [
+          "fullName",
+          "phone",
+          "nationalId",
+          "homeNumber",
+          "birthday",
+          "homeAddress",
+        ].join(" "),
+      })
+      .lean()
+      .exec();
+  }
+
+  public findByCaseNumber(
+    lawyerId: string,
+    caseNumber: string,
+    session?: ClientSession,
+  ) {
+    const query = this.model.findOne({
+      lawyerId: this.toObjectId(lawyerId),
+
+      caseNumber,
+    });
+
+    if (session) {
+      query.session(session);
+    }
+
+    return query.lean().exec();
+  }
+
+  public findByLawyerId(lawyerId: string, options: FindCasesOptions = {}) {
+    const page = Math.max(options.page ?? 1, 1);
+
+    const limit = Math.min(Math.max(options.limit ?? 10, 1), 100);
+
+    const skip = (page - 1) * limit;
+
+    const query = this.buildSearchQuery(lawyerId, options);
+
     return this.model
       .find(query)
-      .sort({ updatedAt: -1 })
+      .sort({
+        updatedAt: -1,
+      })
       .skip(skip)
       .limit(limit)
+      .populate({
+        path: "clientAssignments.clientId",
+
+        select: "fullName phone",
+      })
       .lean()
       .exec();
   }
 
   public countByLawyerId(lawyerId: string, options: FindCasesOptions = {}) {
-    const query: Record<string, unknown> = {
-      lawyerId: this.toObjectId(lawyerId),
-    };
-
-    if (options.state) {
-      query.state = options.state;
-    }
-
-    if (options.search) {
-      query.$or = [
-        { title: { $regex: options.search, $options: "i" } },
-        { caseNumber: { $regex: options.search, $options: "i" } },
-        { "court.province": { $regex: options.search, $options: "i" } },
-        { "court.city": { $regex: options.search, $options: "i" } },
-        { "clients.fullName": { $regex: options.search, $options: "i" } },
-        {
-          "opposingParties.fullName": { $regex: options.search, $options: "i" },
-        },
-      ];
-    }
+    const query = this.buildSearchQuery(lawyerId, options);
 
     return this.model.countDocuments(query).exec();
   }
 
-  // Create And Updating Methods
-  public create(data: CreateCaseInput) {
-    return this.model.create(data);
+  // ---------------- Create ----------------
+
+  public async create(data: CreateCaseInput, session?: ClientSession) {
+    if (!session) {
+      return this.model.create(data);
+    }
+
+    const [createdCase] = await this.model.create([data], {
+      session,
+    });
+
+    return createdCase;
   }
+
+  // ---------------- General Updates ----------------
 
   public updateByIdForLawyer(
     lawyerId: string,
     caseId: string,
-    data: Partial<Case>,
+    update: UpdateQuery<Case>,
+    session?: ClientSession,
   ) {
+    const query = this.model.findOneAndUpdate(
+      {
+        _id: this.toObjectId(caseId),
+
+        lawyerId: this.toObjectId(lawyerId),
+      },
+      update,
+      {
+        new: true,
+
+        runValidators: true,
+      },
+    );
+
+    if (session) {
+      query.session(session);
+    }
+
+    return query.lean().exec();
+  }
+
+  public updateState(lawyerId: string, caseId: string, state: Case["state"]) {
     return this.model
       .findOneAndUpdate(
         {
           _id: this.toObjectId(caseId),
-          lawyerId: this.toObjectId(lawyerId),
-        },
-        data,
-        {
-          new: true,
-          runValidators: true,
-        },
-      )
-      .lean()
-      .exec();
-  }
 
-  public updateState(lawyerId: string, caseId: string, state: string) {
-    return this.model
-      .findOneAndUpdate(
-        {
-          _id: this.toObjectId(caseId),
-          lawyerId: this.toObjectId(lawyerId),
-        },
-        { $set: { state } },
-        {
-          new: true,
-          runValidators: true,
-        },
-      )
-      .lean()
-      .exec();
-  }
-
-  public updateCourt(lawyerId: string, caseId: string, court: Partial<Court>) {
-    return this.model
-      .findOneAndUpdate(
-        {
-          _id: this.toObjectId(caseId),
           lawyerId: this.toObjectId(lawyerId),
         },
         {
-          $set: this.buildNestedSet("court", court),
-        },
-        {
-          new: true,
-          runValidators: true,
-        },
-      )
-      .lean()
-      .exec();
-  }
-
-  // Client Methods
-  public addClient(lawyerId: string, caseId: string, client: Client) {
-    return this.model
-      .findOneAndUpdate(
-        {
-          _id: this.toObjectId(caseId),
-          lawyerId: this.toObjectId(lawyerId),
-        },
-        { $push: { clients: client } },
-        {
-          new: true,
-          runValidators: true,
-        },
-      )
-      .lean()
-      .exec();
-  }
-
-  public updateClient(
-    lawyerId: string,
-    caseId: string,
-    clientId: string,
-    client: Partial<Client>,
-  ) {
-    return this.model
-      .updateOne(
-        {
-          _id: this.toObjectId(caseId),
-          lawyerId: this.toObjectId(lawyerId),
-          "clients._id": this.toObjectId(clientId),
-        },
-        {
-          $set: this.buildSubDocumentSet("clients", client),
-        },
-        {
-          runValidators: true,
-        },
-      )
-      .exec();
-  }
-
-  public removeClient(lawyerId: string, caseId: string, clientId: string) {
-    return this.model
-      .updateOne(
-        {
-          _id: this.toObjectId(caseId),
-          lawyerId: this.toObjectId(lawyerId),
-        },
-        {
-          $pull: {
-            clients: { _id: this.toObjectId(clientId) },
+          $set: {
+            state,
           },
         },
+        {
+          new: true,
+
+          runValidators: true,
+        },
       )
+      .lean()
       .exec();
   }
 
-  // Opposing Party Methods
+  public updateCourt(
+    lawyerId: string,
+    caseId: string,
+    court: Partial<Court>,
+    session?: ClientSession,
+  ) {
+    const query = this.model.findOneAndUpdate(
+      {
+        _id: this.toObjectId(caseId),
+
+        lawyerId: this.toObjectId(lawyerId),
+      },
+      {
+        $set: this.buildNestedSet("court", court),
+      },
+      {
+        new: true,
+
+        runValidators: true,
+      },
+    );
+
+    if (session) {
+      query.session(session);
+    }
+
+    return query.lean().exec();
+  }
+
+  // ---------------- Financial Agreement ----------------
+
+  public updateValueAndAssignments(
+    lawyerId: string,
+    caseId: string,
+    value: number,
+    assignments: CaseClientInput[],
+    session?: ClientSession,
+  ) {
+    const normalizedAssignments = assignments.map((assignment) => ({
+      ...assignment,
+
+      clientId: this.toObjectId(assignment.clientId),
+    }));
+
+    const query = this.model.findOneAndUpdate(
+      {
+        _id: this.toObjectId(caseId),
+
+        lawyerId: this.toObjectId(lawyerId),
+      },
+      {
+        $set: {
+          value,
+
+          clientAssignments: normalizedAssignments,
+        },
+      },
+      {
+        new: true,
+
+        runValidators: true,
+      },
+    );
+
+    if (session) {
+      query.session(session);
+    }
+
+    return query.lean().exec();
+  }
+
+  // ---------------- Opposing Parties ----------------
+
   public addOpposingParty(
     lawyerId: string,
     caseId: string,
@@ -262,11 +359,17 @@ export class CaseRepository extends BaseRepository<Case> {
       .findOneAndUpdate(
         {
           _id: this.toObjectId(caseId),
+
           lawyerId: this.toObjectId(lawyerId),
         },
-        { $push: { opposingParties: opposingParty } },
+        {
+          $push: {
+            opposingParties: opposingParty,
+          },
+        },
         {
           new: true,
+
           runValidators: true,
         },
       )
@@ -284,7 +387,9 @@ export class CaseRepository extends BaseRepository<Case> {
       .updateOne(
         {
           _id: this.toObjectId(caseId),
+
           lawyerId: this.toObjectId(lawyerId),
+
           "opposingParties._id": this.toObjectId(opposingPartyId),
         },
         {
@@ -306,18 +411,22 @@ export class CaseRepository extends BaseRepository<Case> {
       .updateOne(
         {
           _id: this.toObjectId(caseId),
+
           lawyerId: this.toObjectId(lawyerId),
         },
         {
           $pull: {
-            opposingParties: { _id: this.toObjectId(opposingPartyId) },
+            opposingParties: {
+              _id: this.toObjectId(opposingPartyId),
+            },
           },
         },
       )
       .exec();
   }
 
-  // Assistant Lawyer Methods
+  // ---------------- Assistant Lawyers ----------------
+
   public addAssistantLawyer(
     lawyerId: string,
     caseId: string,
@@ -327,11 +436,17 @@ export class CaseRepository extends BaseRepository<Case> {
       .findOneAndUpdate(
         {
           _id: this.toObjectId(caseId),
+
           lawyerId: this.toObjectId(lawyerId),
         },
-        { $push: { assistantLawyers: assistantLawyer } },
+        {
+          $push: {
+            assistantLawyers: assistantLawyer,
+          },
+        },
         {
           new: true,
+
           runValidators: true,
         },
       )
@@ -349,7 +464,9 @@ export class CaseRepository extends BaseRepository<Case> {
       .updateOne(
         {
           _id: this.toObjectId(caseId),
+
           lawyerId: this.toObjectId(lawyerId),
+
           "assistantLawyers._id": this.toObjectId(assistantLawyerId),
         },
         {
@@ -371,18 +488,22 @@ export class CaseRepository extends BaseRepository<Case> {
       .updateOne(
         {
           _id: this.toObjectId(caseId),
+
           lawyerId: this.toObjectId(lawyerId),
         },
         {
           $pull: {
-            assistantLawyers: { _id: this.toObjectId(assistantLawyerId) },
+            assistantLawyers: {
+              _id: this.toObjectId(assistantLawyerId),
+            },
           },
         },
       )
       .exec();
   }
 
-  // Opposing Lawyer Methods
+  // ---------------- Opposing Lawyers ----------------
+
   public addOpposingLawyer(
     lawyerId: string,
     caseId: string,
@@ -392,11 +513,17 @@ export class CaseRepository extends BaseRepository<Case> {
       .findOneAndUpdate(
         {
           _id: this.toObjectId(caseId),
+
           lawyerId: this.toObjectId(lawyerId),
         },
-        { $push: { opposingLawyers: opposingLawyer } },
+        {
+          $push: {
+            opposingLawyers: opposingLawyer,
+          },
+        },
         {
           new: true,
+
           runValidators: true,
         },
       )
@@ -414,7 +541,9 @@ export class CaseRepository extends BaseRepository<Case> {
       .updateOne(
         {
           _id: this.toObjectId(caseId),
+
           lawyerId: this.toObjectId(lawyerId),
+
           "opposingLawyers._id": this.toObjectId(opposingLawyerId),
         },
         {
@@ -436,18 +565,22 @@ export class CaseRepository extends BaseRepository<Case> {
       .updateOne(
         {
           _id: this.toObjectId(caseId),
+
           lawyerId: this.toObjectId(lawyerId),
         },
         {
           $pull: {
-            opposingLawyers: { _id: this.toObjectId(opposingLawyerId) },
+            opposingLawyers: {
+              _id: this.toObjectId(opposingLawyerId),
+            },
           },
         },
       )
       .exec();
   }
 
-  // Related People Methods
+  // ---------------- Related People ----------------
+
   public addRelatedPerson(
     lawyerId: string,
     caseId: string,
@@ -457,11 +590,17 @@ export class CaseRepository extends BaseRepository<Case> {
       .findOneAndUpdate(
         {
           _id: this.toObjectId(caseId),
+
           lawyerId: this.toObjectId(lawyerId),
         },
-        { $push: { relatedPeople: relatedPerson } },
+        {
+          $push: {
+            relatedPeople: relatedPerson,
+          },
+        },
         {
           new: true,
+
           runValidators: true,
         },
       )
@@ -479,7 +618,9 @@ export class CaseRepository extends BaseRepository<Case> {
       .updateOne(
         {
           _id: this.toObjectId(caseId),
+
           lawyerId: this.toObjectId(lawyerId),
+
           "relatedPeople._id": this.toObjectId(relatedPersonId),
         },
         {
@@ -501,11 +642,14 @@ export class CaseRepository extends BaseRepository<Case> {
       .updateOne(
         {
           _id: this.toObjectId(caseId),
+
           lawyerId: this.toObjectId(lawyerId),
         },
         {
           $pull: {
-            relatedPeople: { _id: this.toObjectId(relatedPersonId) },
+            relatedPeople: {
+              _id: this.toObjectId(relatedPersonId),
+            },
           },
         },
       )

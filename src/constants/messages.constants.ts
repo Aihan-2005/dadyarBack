@@ -1,38 +1,38 @@
 export const MESSAGES = {
   noEmailNorPhone: {
-    en: "No Email And No Phone Exsist For The User",
+    en: "No email and no phone exsist for the user",
     fa: "نه ایمیل و نه شماره تلفنی برای کاربر پیدا نشد",
   },
 
   emailExsist: {
-    en: "User With This Email Already Exsist",
+    en: "User with this email already exsist",
     fa: "گاربری با این ایمیل از قبل موجود است",
   },
 
   phoneExsist: {
-    en: "User With This Phone Already Exsist",
+    en: "User with this phone already exsist",
     fa: "کاربری با این شماره تلفن از قبل موجود است",
   },
 
   barExsist: {
-    en: "User With This BarLicence Already Exsist",
+    en: "User with this barLicence already exsist",
     fa: "کاربری با این شماره پروانه وکالت از قبل موجود است",
   },
 
   noUserWithEmailOrPhone: {
-    en: "No User Was Found With This Email/Phone",
+    en: "No user was found with this email/phone",
     fa: "هیچ کاربری با این ایمیل/شماره یافت نشد",
   },
 
   noUserWithId: {
-    en: "No User Was Found With This Id",
+    en: "No user was found with this id",
     fa: "هیچ کاربری با این شناسه یافت نشد",
   },
 
-  noStudyWithId: {
-    en: "No Study Was Found With This Id",
-    fa: "هیچ تحصیلی با این شناسه یافت نشد",
-  },
+  // noStudyWithId: {
+  //   en: "No Study Was Found With This Id",
+  //   fa: "هیچ تحصیلی با این شناسه یافت نشد",
+  // },
 
   noWorkExperienceWithId: {
     en: "No Work Experience Was Found With This Id",
@@ -206,5 +206,83 @@ export const MESSAGES = {
   invalidAccountRole: {
     en: "The account role is not allowed",
     fa: "نقش این حساب اجازه دسترسی به این بخش را ندارد",
+  },
+  nationalIdExists: {
+    en: "User with this national id already exsist",
+    fa: "کاربر با این کد ملی از قبل موجود است",
+  },
+  clientDataConflict: {
+    en: "Client with the same phone number but different national id exsist",
+    fa: "موکلی با همین شماره اما کد ملی متفاوت وجود دارد",
+  },
+  notYetBorn: {
+    en: "Birthday can't be in the furture",
+    fa: "تاریخ تولد نمی‌تواند در آینده باشد",
+  },
+  invalidPhoneFormat: {
+    en: "The given phone number is not a valid iranian phone number",
+    fa: "شماره تلفن داده شده صحیح نیست",
+  },
+  assignmentTotalMismatch: {
+    en: "The assigned client amounts must equal the total case value",
+    fa: "مجموع مبالغ تعیین‌شده برای موکلان باید برابر ارزش کل پرونده باشد",
+  },
+
+  duplicateCaseClient: {
+    en: "The same client cannot be added to a case more than once",
+    fa: "یک موکل نمی‌تواند بیش از یک بار به پرونده اضافه شود",
+  },
+
+  clientFullNameRequired: {
+    en: "The client's full name is required for a new client",
+    fa: "برای ثبت موکل جدید، نام کامل الزامی است",
+  },
+
+  unableToCreateCase: {
+    en: "Unable to create the case",
+    fa: "ایجاد پرونده امکان‌پذیر نیست",
+  },
+
+  valueAndClientsRequiredTogether: {
+    en: "Case value and clients must be updated together",
+    fa: "برای تغییر مقادیر قرار قرار داد باید ارزش قرار داد و مقدار داده شده به همه موکلا داده شود",
+  },
+
+  nonCashPaymentDescriptionRequired: {
+    en: "Description is required for non-cash payments",
+    fa: "برای پرداخت غیرنقدی، توضیحات الزامی است",
+  },
+
+  noPaymentFieldFound: {
+    en: "At least one payment field must be provided",
+    fa: "حداقل یک فیلد پرداخت باید ارسال شود",
+  },
+  paymentNotFound: {
+    en: "Payment not found",
+    fa: "پرداخت یافت نشد",
+  },
+
+  clientNotAssignedToCase: {
+    en: "This client is not assigned to this case",
+    fa: "این موکل به این پرونده اختصاص داده نشده است",
+  },
+
+  paymentTotalExceedsAssignedAmount: {
+    en: "Total payments cannot exceed the client's assigned amount",
+    fa: "مجموع پرداخت‌ها نمی‌تواند از مبلغ اختصاص‌یافته به موکل بیشتر باشد",
+  },
+
+  duplicatePaymentInRequest: {
+    en: "The same payment cannot be submitted more than once",
+    fa: "یک پرداخت نمی‌تواند بیش از یک بار ارسال شود",
+  },
+  expenseNotFound: {
+    en: "Expense not found",
+    fa: "هزینه یافت نشد",
+  },
+
+  duplicateExpenseInRequest: {
+    en: "The same expense cannot be submitted more than once",
+    fa: "یک هزینه نمی‌تواند بیش از یک بار ارسال شود",
   },
 };

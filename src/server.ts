@@ -7,6 +7,8 @@ import AuthRoute from "./routes/auth.route";
 import CaseRoute from "./routes/case.route";
 import IndexRoute from "./routes/index.route";
 import LawyerRoute from "./routes/lawyer.route";
+import ClientRoute from "./routes/client.route";
+import { FinancialReportRoute } from "./routes/financialReport.route";
 
 let isShuttingDown = false;
 
@@ -71,6 +73,8 @@ async function bootstrap(): Promise<void> {
       new LawyerRoute(),
       new AuthRoute(),
       new CaseRoute(),
+      new ClientRoute(),
+      new FinancialReportRoute(),
     ];
 
     const app = new App(routes);

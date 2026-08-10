@@ -1,32 +1,32 @@
-import { NextFunction, Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 
-import { CaseService } from "../services/case.service";
-import { HttpException } from "../exceptions/httpException";
-import { MESSAGES } from "../constants/messages";
 import { env } from "../config/env";
 
+import { MESSAGES } from "../constants/messages.constants";
+
+import { HttpException } from "../exceptions/httpException";
+
+import { CaseService } from "../services/case.service";
+
 import {
+  AddAssistantLawyerSchema,
+  AddOpposingLawyerSchema,
+  AddOpposingPartySchema,
+  AddRelatedPersonSchema,
   CreateCaseSchema,
+  ListCasesQuerySchema,
+  ParamCaseAndAssistantLawyerIdSchema,
+  ParamCaseAndOpposingLawyerIdSchema,
+  ParamCaseAndOpposingPartyIdSchema,
+  ParamCaseAndRelatedPersonIdSchema,
+  ParamCaseIdSchema,
+  UpdateAssistantLawyerSchema,
   UpdateCaseSchema,
   UpdateCaseStateSchema,
   UpdateCourtSchema,
-  AddClientSchema,
-  UpdateClientSchema,
-  AddOpposingPartySchema,
-  UpdateOpposingPartySchema,
-  AddAssistantLawyerSchema,
-  UpdateAssistantLawyerSchema,
-  AddOpposingLawyerSchema,
   UpdateOpposingLawyerSchema,
-  AddRelatedPersonSchema,
+  UpdateOpposingPartySchema,
   UpdateRelatedPersonSchema,
-  ParamCaseIdSchema,
-  ParamCaseAndClientIdSchema,
-  ParamCaseAndOpposingPartyIdSchema,
-  ParamCaseAndAssistantLawyerIdSchema,
-  ParamCaseAndOpposingLawyerIdSchema,
-  ParamCaseAndRelatedPersonIdSchema,
-  ListCasesQuerySchema,
 } from "../validators/case.validator";
 
 const LANGUAGE = env.LANGUAGE;
@@ -36,11 +36,15 @@ class CaseController {
 
   // ---------------- Helpers ----------------
 
-  private getLawyerId(req: Request) {
+  private getLawyerId(req: Request): string {
     const lawyerId = req.user?.id;
 
     if (!lawyerId) {
-      throw new HttpException(401, MESSAGES.unauthorized[LANGUAGE]);
+      throw new HttpException(
+        401,
+        MESSAGES.unauthorized[LANGUAGE],
+        "UNAUTHORIZED",
+      );
     }
 
     return lawyerId;
@@ -53,20 +57,21 @@ class CaseController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ) => {
+  ): Promise<Response | void> => {
     try {
       const lawyerId = this.getLawyerId(req);
 
-      const data = CreateCaseSchema.parse(req.body || {});
+      const input = CreateCaseSchema.parse(req.body ?? {});
 
-      const createdCase = await this.caseService.createCase(lawyerId, data);
+      const createdCase = await this.caseService.createCase(lawyerId, input);
 
       return res.status(201).json({
         success: true,
+
         data: createdCase,
       });
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      return next(error);
     }
   };
 
@@ -75,7 +80,7 @@ class CaseController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ) => {
+  ): Promise<Response | void> => {
     try {
       const lawyerId = this.getLawyerId(req);
 
@@ -85,11 +90,13 @@ class CaseController {
 
       return res.status(200).json({
         success: true,
+
         data: result.items,
+
         pagination: result.pagination,
       });
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      return next(error);
     }
   };
 
@@ -98,7 +105,7 @@ class CaseController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ) => {
+  ): Promise<Response | void> => {
     try {
       const lawyerId = this.getLawyerId(req);
 
@@ -108,10 +115,11 @@ class CaseController {
 
       return res.status(200).json({
         success: true,
+
         data: foundCase,
       });
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      return next(error);
     }
   };
 
@@ -120,26 +128,27 @@ class CaseController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ) => {
+  ): Promise<Response | void> => {
     try {
       const lawyerId = this.getLawyerId(req);
 
       const { caseId } = ParamCaseIdSchema.parse(req.params);
 
-      const data = UpdateCaseSchema.parse(req.body || {});
+      const input = UpdateCaseSchema.parse(req.body ?? {});
 
       const updatedCase = await this.caseService.updateCase(
         lawyerId,
         caseId,
-        data,
+        input,
       );
 
       return res.status(200).json({
         success: true,
+
         data: updatedCase,
       });
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      return next(error);
     }
   };
 
@@ -148,13 +157,13 @@ class CaseController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ) => {
+  ): Promise<Response | void> => {
     try {
       const lawyerId = this.getLawyerId(req);
 
       const { caseId } = ParamCaseIdSchema.parse(req.params);
 
-      const { state } = UpdateCaseStateSchema.parse(req.body || {});
+      const { state } = UpdateCaseStateSchema.parse(req.body ?? {});
 
       const updatedCase = await this.caseService.updateCaseState(
         lawyerId,
@@ -164,10 +173,11 @@ class CaseController {
 
       return res.status(200).json({
         success: true,
+
         data: updatedCase,
       });
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      return next(error);
     }
   };
 
@@ -178,13 +188,13 @@ class CaseController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ) => {
+  ): Promise<Response | void> => {
     try {
       const lawyerId = this.getLawyerId(req);
 
       const { caseId } = ParamCaseIdSchema.parse(req.params);
 
-      const court = UpdateCourtSchema.parse(req.body || {});
+      const court = UpdateCourtSchema.parse(req.body ?? {});
 
       const updatedCase = await this.caseService.updateCourt(
         lawyerId,
@@ -194,95 +204,11 @@ class CaseController {
 
       return res.status(200).json({
         success: true,
+
         data: updatedCase,
       });
-    } catch (err) {
-      next(err);
-    }
-  };
-
-  // ---------------- Clients ----------------
-
-  // POST /cases/:caseId/clients
-  public addClient = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) => {
-    try {
-      const lawyerId = this.getLawyerId(req);
-
-      const { caseId } = ParamCaseIdSchema.parse(req.params);
-
-      const client = AddClientSchema.parse(req.body || {});
-
-      const updatedCase = await this.caseService.addClient(
-        lawyerId,
-        caseId,
-        client,
-      );
-
-      return res.status(201).json({
-        success: true,
-        data: updatedCase,
-      });
-    } catch (err) {
-      next(err);
-    }
-  };
-
-  // PATCH /cases/:caseId/clients/:clientId
-  public updateClient = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) => {
-    try {
-      const lawyerId = this.getLawyerId(req);
-
-      const { caseId, clientId } = ParamCaseAndClientIdSchema.parse(req.params);
-
-      const client = UpdateClientSchema.parse(req.body || {});
-
-      const updatedCase = await this.caseService.updateClient(
-        lawyerId,
-        caseId,
-        clientId,
-        client,
-      );
-
-      return res.status(200).json({
-        success: true,
-        data: updatedCase,
-      });
-    } catch (err) {
-      next(err);
-    }
-  };
-
-  // DELETE /cases/:caseId/clients/:clientId
-  public removeClient = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) => {
-    try {
-      const lawyerId = this.getLawyerId(req);
-
-      const { caseId, clientId } = ParamCaseAndClientIdSchema.parse(req.params);
-
-      const updatedCase = await this.caseService.removeClient(
-        lawyerId,
-        caseId,
-        clientId,
-      );
-
-      return res.status(200).json({
-        success: true,
-        data: updatedCase,
-      });
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      return next(error);
     }
   };
 
@@ -293,13 +219,13 @@ class CaseController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ) => {
+  ): Promise<Response | void> => {
     try {
       const lawyerId = this.getLawyerId(req);
 
       const { caseId } = ParamCaseIdSchema.parse(req.params);
 
-      const opposingParty = AddOpposingPartySchema.parse(req.body || {});
+      const opposingParty = AddOpposingPartySchema.parse(req.body ?? {});
 
       const updatedCase = await this.caseService.addOpposingParty(
         lawyerId,
@@ -309,10 +235,11 @@ class CaseController {
 
       return res.status(201).json({
         success: true,
+
         data: updatedCase,
       });
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      return next(error);
     }
   };
 
@@ -321,14 +248,14 @@ class CaseController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ) => {
+  ): Promise<Response | void> => {
     try {
       const lawyerId = this.getLawyerId(req);
 
       const { caseId, opposingPartyId } =
         ParamCaseAndOpposingPartyIdSchema.parse(req.params);
 
-      const opposingParty = UpdateOpposingPartySchema.parse(req.body || {});
+      const opposingParty = UpdateOpposingPartySchema.parse(req.body ?? {});
 
       const updatedCase = await this.caseService.updateOpposingParty(
         lawyerId,
@@ -339,10 +266,11 @@ class CaseController {
 
       return res.status(200).json({
         success: true,
+
         data: updatedCase,
       });
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      return next(error);
     }
   };
 
@@ -351,7 +279,7 @@ class CaseController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ) => {
+  ): Promise<Response | void> => {
     try {
       const lawyerId = this.getLawyerId(req);
 
@@ -366,10 +294,11 @@ class CaseController {
 
       return res.status(200).json({
         success: true,
+
         data: updatedCase,
       });
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      return next(error);
     }
   };
 
@@ -380,13 +309,13 @@ class CaseController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ) => {
+  ): Promise<Response | void> => {
     try {
       const lawyerId = this.getLawyerId(req);
 
       const { caseId } = ParamCaseIdSchema.parse(req.params);
 
-      const assistantLawyer = AddAssistantLawyerSchema.parse(req.body || {});
+      const assistantLawyer = AddAssistantLawyerSchema.parse(req.body ?? {});
 
       const updatedCase = await this.caseService.addAssistantLawyer(
         lawyerId,
@@ -396,10 +325,11 @@ class CaseController {
 
       return res.status(201).json({
         success: true,
+
         data: updatedCase,
       });
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      return next(error);
     }
   };
 
@@ -408,14 +338,14 @@ class CaseController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ) => {
+  ): Promise<Response | void> => {
     try {
       const lawyerId = this.getLawyerId(req);
 
       const { caseId, assistantLawyerId } =
         ParamCaseAndAssistantLawyerIdSchema.parse(req.params);
 
-      const assistantLawyer = UpdateAssistantLawyerSchema.parse(req.body || {});
+      const assistantLawyer = UpdateAssistantLawyerSchema.parse(req.body ?? {});
 
       const updatedCase = await this.caseService.updateAssistantLawyer(
         lawyerId,
@@ -426,10 +356,11 @@ class CaseController {
 
       return res.status(200).json({
         success: true,
+
         data: updatedCase,
       });
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      return next(error);
     }
   };
 
@@ -438,7 +369,7 @@ class CaseController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ) => {
+  ): Promise<Response | void> => {
     try {
       const lawyerId = this.getLawyerId(req);
 
@@ -453,10 +384,11 @@ class CaseController {
 
       return res.status(200).json({
         success: true,
+
         data: updatedCase,
       });
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      return next(error);
     }
   };
 
@@ -467,13 +399,13 @@ class CaseController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ) => {
+  ): Promise<Response | void> => {
     try {
       const lawyerId = this.getLawyerId(req);
 
       const { caseId } = ParamCaseIdSchema.parse(req.params);
 
-      const opposingLawyer = AddOpposingLawyerSchema.parse(req.body || {});
+      const opposingLawyer = AddOpposingLawyerSchema.parse(req.body ?? {});
 
       const updatedCase = await this.caseService.addOpposingLawyer(
         lawyerId,
@@ -483,10 +415,11 @@ class CaseController {
 
       return res.status(201).json({
         success: true,
+
         data: updatedCase,
       });
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      return next(error);
     }
   };
 
@@ -495,14 +428,14 @@ class CaseController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ) => {
+  ): Promise<Response | void> => {
     try {
       const lawyerId = this.getLawyerId(req);
 
       const { caseId, opposingLawyerId } =
         ParamCaseAndOpposingLawyerIdSchema.parse(req.params);
 
-      const opposingLawyer = UpdateOpposingLawyerSchema.parse(req.body || {});
+      const opposingLawyer = UpdateOpposingLawyerSchema.parse(req.body ?? {});
 
       const updatedCase = await this.caseService.updateOpposingLawyer(
         lawyerId,
@@ -513,10 +446,11 @@ class CaseController {
 
       return res.status(200).json({
         success: true,
+
         data: updatedCase,
       });
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      return next(error);
     }
   };
 
@@ -525,7 +459,7 @@ class CaseController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ) => {
+  ): Promise<Response | void> => {
     try {
       const lawyerId = this.getLawyerId(req);
 
@@ -540,10 +474,11 @@ class CaseController {
 
       return res.status(200).json({
         success: true,
+
         data: updatedCase,
       });
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      return next(error);
     }
   };
 
@@ -554,13 +489,13 @@ class CaseController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ) => {
+  ): Promise<Response | void> => {
     try {
       const lawyerId = this.getLawyerId(req);
 
       const { caseId } = ParamCaseIdSchema.parse(req.params);
 
-      const relatedPerson = AddRelatedPersonSchema.parse(req.body || {});
+      const relatedPerson = AddRelatedPersonSchema.parse(req.body ?? {});
 
       const updatedCase = await this.caseService.addRelatedPerson(
         lawyerId,
@@ -570,10 +505,11 @@ class CaseController {
 
       return res.status(201).json({
         success: true,
+
         data: updatedCase,
       });
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      return next(error);
     }
   };
 
@@ -582,14 +518,14 @@ class CaseController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ) => {
+  ): Promise<Response | void> => {
     try {
       const lawyerId = this.getLawyerId(req);
 
       const { caseId, relatedPersonId } =
         ParamCaseAndRelatedPersonIdSchema.parse(req.params);
 
-      const relatedPerson = UpdateRelatedPersonSchema.parse(req.body || {});
+      const relatedPerson = UpdateRelatedPersonSchema.parse(req.body ?? {});
 
       const updatedCase = await this.caseService.updateRelatedPerson(
         lawyerId,
@@ -600,10 +536,11 @@ class CaseController {
 
       return res.status(200).json({
         success: true,
+
         data: updatedCase,
       });
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      return next(error);
     }
   };
 
@@ -612,7 +549,7 @@ class CaseController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ) => {
+  ): Promise<Response | void> => {
     try {
       const lawyerId = this.getLawyerId(req);
 
@@ -627,10 +564,11 @@ class CaseController {
 
       return res.status(200).json({
         success: true,
+
         data: updatedCase,
       });
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      return next(error);
     }
   };
 }

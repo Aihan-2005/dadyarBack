@@ -9,7 +9,7 @@ import {
   LAWYER_STATUSES,
 } from "../constants/lawyer.constants";
 
-import { MESSAGES } from "../constants/messages";
+import { MESSAGES } from "../constants/messages.constants";
 
 import {
   toLawyerProfileDTO,

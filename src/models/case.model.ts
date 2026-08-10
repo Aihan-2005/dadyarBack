@@ -1,5 +1,9 @@
 import { model, Schema } from "mongoose";
-import { CASE_SATATE, COURT_TYPES } from "../constants/case.constants";
+import { CASE_STATES, COURT_TYPES } from "../constants/case.constants";
+
+import { env } from "../config/env";
+import { MESSAGES } from "../constants/messages.constants";
+const LANGUAGE = env.LANGUAGE;
 
 const CourtSchema = new Schema(
   {
@@ -35,31 +39,35 @@ const CourtSchema = new Schema(
   { _id: false },
 );
 
-const ClientSchema = new Schema(
+const CaseClientAssignmentSchema = new Schema(
   {
-    fullName: {
-      type: String,
+    clientId: {
+      type: Schema.Types.ObjectId,
+      ref: "Client",
       required: true,
-      trim: true,
     },
 
-    phone: {
-      type: String,
+    assignedAmount: {
+      type: Number,
       required: true,
-      trim: true,
-    },
-
-    nationalId: {
-      type: String,
-      trim: true,
+      min: 0,
     },
 
     role: {
       type: String,
       trim: true,
+      maxlength: 100,
+    },
+
+    represent: {
+      type: String,
+      trim: true,
+      maxlength: 200,
     },
   },
-  { _id: true },
+  {
+    _id: false,
+  },
 );
 
 const OpposingPartySchema = new Schema(
@@ -164,7 +172,7 @@ export const CaseSchema = new Schema(
 
     state: {
       type: String,
-      enum: CASE_SATATE,
+      enum: CASE_STATES,
       default: "PENDING",
       index: true,
     },
@@ -174,10 +182,21 @@ export const CaseSchema = new Schema(
       //required: true,
     },
 
-    clients: {
-      type: [ClientSchema],
+    value: {
+      type: Number,
       required: true,
-      default: [],
+      min: 0,
+    },
+
+    clientAssignments: {
+      type: [CaseClientAssignmentSchema],
+      required: true,
+      validate: {
+        validator(value: unknown[]) {
+          return value.length > 0;
+        },
+        message: MESSAGES.caseNeedClient[LANGUAGE],
+      },
     },
 
     opposingParties: {

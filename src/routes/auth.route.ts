@@ -1,74 +1,42 @@
-import {
-  Router,
-} from "express";
+import { Router } from "express";
 
-import {
-  AuthController,
-} from "../controller/auth.controller";
+import { AuthController } from "../controllers/auth.controller";
 
-import type {
-  Route,
-} from "../interfaces/routes.interface";
+import type { Route } from "../interfaces/routes.interface";
 
-import {
-  requireAuth,
-} from "../middlewere/auth.middlewere";
+import requireAuth from "../middlewares/auth.middleware";
 
 import {
   loginRateLimiter,
   refreshRateLimiter,
   signupRateLimiter,
-} from "../middlewere/authRateLimit.middlewere";
+} from "../middlewares/authRateLimit.middleware";
 
-import {
-  LawyerRepository,
-} from "../repositories/lawyer.repository";
+import { LawyerRepository } from "../repositories/lawyer.repository";
 
-import {
-  AuthService,
-} from "../services/auth.service";
+import { AuthService } from "../services/auth.service";
 
-class AuthRoute
-  implements Route {
-  public readonly path =
-    "/auth";
+class AuthRoute implements Route {
+  public readonly path = "/auth";
 
-  public readonly router =
-    Router();
+  public readonly router = Router();
 
-  private readonly authController:
-    AuthController;
+  private readonly authController: AuthController;
 
   constructor() {
-    const lawyerRepository =
-      new LawyerRepository();
+    const lawyerRepository = new LawyerRepository();
 
-    const authService =
-      new AuthService(
-        lawyerRepository,
-      );
+    const authService = new AuthService(lawyerRepository);
 
-    this.authController =
-      new AuthController(
-        authService,
-      );
+    this.authController = new AuthController(authService);
 
     this.initializeRoutes();
   }
 
-  private initializeRoutes():
-    void {
-    this.router.post(
-      "/signup",
-      signupRateLimiter,
-      this.authController.signup,
-    );
+  private initializeRoutes(): void {
+    this.router.post("/signup", signupRateLimiter, this.authController.signup);
 
-    this.router.post(
-      "/login",
-      loginRateLimiter,
-      this.authController.login,
-    );
+    this.router.post("/login", loginRateLimiter, this.authController.login);
 
     this.router.post(
       "/refresh",
@@ -76,17 +44,9 @@ class AuthRoute
       this.authController.refresh,
     );
 
-    this.router.post(
-      "/logout",
-      this.authController.logout,
-    );
+    this.router.post("/logout", this.authController.logout);
 
-   
-    this.router.get(
-      "/me",
-      requireAuth,
-      this.authController.me,
-    );
+    this.router.get("/me", requireAuth, this.authController.me);
   }
 }
 
