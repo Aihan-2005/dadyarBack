@@ -9,6 +9,9 @@ import IndexRoute from "./routes/index.route";
 import LawyerRoute from "./routes/lawyer.route";
 import ClientRoute from "./routes/client.route";
 import { FinancialReportRoute } from "./routes/financialReport.route";
+import { env } from "./config/env";
+import { ApiDocsRoute } from "./routes/apiDocs.route";
+import { Route } from "./interfaces/routes.interface";
 
 let isShuttingDown = false;
 
@@ -55,11 +58,7 @@ async function shutdown(signal: NodeJS.Signals): Promise<void> {
 }
 
 async function bootstrap(): Promise<void> {
-  console.info(
-    `[Server] Starting application in ${
-      process.env.NODE_ENV ?? "development"
-    } mode...`,
-  );
+  console.info(`[Server] Starting application in ${env.NODE_ENV} mode...`);
 
   const database = new Database();
 
@@ -68,7 +67,7 @@ async function bootstrap(): Promise<void> {
 
     console.info("[Server] Database connection established.");
 
-    const routes = [
+    const routes: Route[] = [
       new IndexRoute(),
       new LawyerRoute(),
       new AuthRoute(),
@@ -77,14 +76,16 @@ async function bootstrap(): Promise<void> {
       new FinancialReportRoute(),
     ];
 
+    if (env.ENABLE_API_DOCS) {
+      routes.push(new ApiDocsRoute());
+    }
+
     const app = new App(routes);
 
     app.listen();
 
     console.info(
-      `[Server] Application started successfully on port ${
-        process.env.PORT ?? "5000"
-      }.`,
+      `[Server] Application started successfully on port ${env.PORT}.`,
     );
   } catch (error: unknown) {
     const normalizedError = normalizeError(error);

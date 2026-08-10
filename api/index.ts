@@ -1,20 +1,30 @@
 import App from "../src/app";
 
+import { env } from "../src/config/env";
+import { Database } from "../src/config/db";
+
+import type { Route } from "../src/interfaces/routes.interface";
+
 import IndexRoute from "../src/routes/index.route";
 import LawyerRoute from "../src/routes/lawyer.route";
 import AuthRoute from "../src/routes/auth.route";
 import CaseRoute from "../src/routes/case.route";
+import ClientRoute from "../src/routes/client.route";
+import { FinancialReportRoute } from "../src/routes/financialReport.route";
+import { ApiDocsRoute } from "../src/routes/apiDocs.route";
 
-import { Database } from "../src/config/db";
-
-
-const routes = [
+const routes: Route[] = [
   new IndexRoute(),
   new LawyerRoute(),
   new AuthRoute(),
   new CaseRoute(),
+  new ClientRoute(),
+  new FinancialReportRoute(),
 ];
 
+if (env.ENABLE_API_DOCS) {
+  routes.push(new ApiDocsRoute());
+}
 
 const app = new App(routes);
 
@@ -23,7 +33,6 @@ const database = new Database();
 let connected = false;
 
 export default async function handler(req: any, res: any) {
-
   if (!connected) {
     await database.connect();
     connected = true;
@@ -31,3 +40,4 @@ export default async function handler(req: any, res: any) {
 
   return app.getApp()(req, res);
 }
+

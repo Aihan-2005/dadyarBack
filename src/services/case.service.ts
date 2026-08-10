@@ -251,6 +251,8 @@ export class CaseService {
       const clientPayments = paymentsByClientId.get(clientId) ?? [];
 
       return {
+        clientId,
+
         fullName: client.fullName,
 
         phone: client.phone,
@@ -645,7 +647,7 @@ export class CaseService {
       );
     }
 
-    return updatedCase;
+    return this.getCaseById(lawyerId, caseId);
   }
 
   public async updateCourt(
@@ -653,11 +655,7 @@ export class CaseService {
     caseId: string,
     court: Partial<Court>,
   ) {
-    this.ensureNotEmptyObject(
-      court,
-      MESSAGES["noCourtFieldFound"][LANGUAGE],
-      400,
-    );
+    this.ensureNotEmptyObject(court, MESSAGES.noCourtFieldFound[LANGUAGE], 400);
 
     const updatedCase = await this.caseRepository.updateCourt(
       lawyerId,
@@ -666,10 +664,14 @@ export class CaseService {
     );
 
     if (!updatedCase) {
-      throw new HttpException(404, MESSAGES.caseNotFound[LANGUAGE]);
+      throw new HttpException(
+        404,
+        MESSAGES.caseNotFound[LANGUAGE],
+        "CASE_NOT_FOUND",
+      );
     }
 
-    return updatedCase;
+    return this.getCaseById(lawyerId, caseId);
   }
 
   public async addOpposingParty(
@@ -684,10 +686,14 @@ export class CaseService {
     );
 
     if (!updatedCase) {
-      throw new HttpException(404, MESSAGES.caseNotFound[LANGUAGE]);
+      throw new HttpException(
+        404,
+        MESSAGES.caseNotFound[LANGUAGE],
+        "CASE_NOT_FOUND",
+      );
     }
 
-    return updatedCase;
+    return this.getCaseById(lawyerId, caseId);
   }
 
   public async updateOpposingParty(
@@ -756,10 +762,14 @@ export class CaseService {
     );
 
     if (!updatedCase) {
-      throw new HttpException(404, MESSAGES.caseNotFound[LANGUAGE]);
+      throw new HttpException(
+        404,
+        MESSAGES.caseNotFound[LANGUAGE],
+        "CASE_NOT_FOUND",
+      );
     }
 
-    return updatedCase;
+    return this.getCaseById(lawyerId, caseId);
   }
 
   public async updateAssistantLawyer(
@@ -828,10 +838,14 @@ export class CaseService {
     );
 
     if (!updatedCase) {
-      throw new HttpException(404, MESSAGES.caseNotFound[LANGUAGE]);
+      throw new HttpException(
+        404,
+        MESSAGES.caseNotFound[LANGUAGE],
+        "CASE_NOT_FOUND",
+      );
     }
 
-    return updatedCase;
+    return this.getCaseById(lawyerId, caseId);
   }
 
   public async updateOpposingLawyer(
@@ -900,10 +914,14 @@ export class CaseService {
     );
 
     if (!updatedCase) {
-      throw new HttpException(404, MESSAGES.caseNotFound[LANGUAGE]);
+      throw new HttpException(
+        404,
+        MESSAGES.caseNotFound[LANGUAGE],
+        "CASE_NOT_FOUND",
+      );
     }
 
-    return updatedCase;
+    return this.getCaseById(lawyerId, caseId);
   }
 
   public async updateRelatedPerson(

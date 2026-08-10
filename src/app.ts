@@ -11,6 +11,7 @@ import { env, type Enviroment } from "./config/env";
 import type { Route } from "./interfaces/routes.interface";
 
 import errorHandler from "./middlewares/error";
+import { API_PREFIX } from "./constants/route.constants";
 
 class App {
   public readonly app: Application;
@@ -19,7 +20,7 @@ class App {
 
   private readonly port: number;
 
-  private readonly prefixRoutes = "/api/v1";
+  private readonly prefixRoutes = API_PREFIX;
 
   constructor(routes: Route[]) {
     this.app = express();
@@ -109,9 +110,8 @@ class App {
   }
 
   public getApp(): Application {
-  return this.app;
-}
+    return this.app;
+  }
 }
 
 export default App;
-
