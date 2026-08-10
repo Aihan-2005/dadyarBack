@@ -1,4 +1,8 @@
-import { model, Schema } from "mongoose";
+import {
+  model,
+  Schema,
+  type HydratedDocument,
+} from "mongoose";
 
 import { env } from "../config/env";
 
@@ -12,6 +16,7 @@ import {
 import { MESSAGES } from "../constants/messages.constants";
 
 import type {
+  Education,
   Lawyer,
   Skill,
   WorkExperience,
@@ -19,55 +24,104 @@ import type {
 
 export const SKILL_LEVELS = [1, 2, 3, 4, 5] as const;
 
-export const WorkExperienceSchema = new Schema<WorkExperience>({
-  title: {
-    type: String,
-    trim: true,
-    maxlength: 150,
-  },
+export const EducationSchema = new Schema<Education>(
+  {
+    degree: {
+      type: String,
+      trim: true,
+      maxlength: 120,
+      default: "",
+    },
 
-  company: {
-    type: String,
-    trim: true,
-    maxlength: 150,
-  },
+    field: {
+      type: String,
+      trim: true,
+      maxlength: 120,
+      default: "",
+    },
 
-  startYear: {
-    type: String,
-    trim: true,
-    maxlength: 20,
-  },
+    university: {
+      type: String,
+      trim: true,
+      maxlength: 160,
+      default: "",
+    },
 
-  endYear: {
-    type: String,
-    required: true,
-    trim: true,
-    maxlength: 20,
+    year: {
+      type: String,
+      trim: true,
+      maxlength: 20,
+      default: "",
+    },
   },
+  {
+    versionKey: false,
+  },
+);
 
-  description: {
-    type: String,
-    trim: true,
-    maxlength: 2000,
-  },
-});
+export const WorkExperienceSchema = new Schema<WorkExperience>(
+  {
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 150,
+    },
 
-export const SkillSchema = new Schema<Skill>({
-  name: {
-    type: String,
-    required: true,
-    trim: true,
-    maxlength: 100,
-  },
+    company: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 150,
+    },
 
-  level: {
-    type: Number,
-    required: true,
-    enum: SKILL_LEVELS,
-    min: 1,
-    max: 5,
+    startYear: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 20,
+    },
+
+    endYear: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 20,
+    },
+
+    description: {
+      type: String,
+      trim: true,
+      maxlength: 2000,
+      default: "",
+    },
   },
-});
+  {
+    versionKey: false,
+  },
+);
+
+export const SkillSchema = new Schema<Skill>(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 100,
+    },
+
+    level: {
+      type: Number,
+      required: true,
+      enum: SKILL_LEVELS,
+      min: 1,
+      max: 5,
+    },
+  },
+  {
+    versionKey: false,
+  },
+);
 
 export const LawyerSchema = new Schema<Lawyer>(
   {
@@ -148,6 +202,7 @@ export const LawyerSchema = new Schema<Lawyer>(
       type: String,
       trim: true,
       maxlength: 150,
+      default: "",
     },
 
     licenseNumber: {
@@ -176,12 +231,19 @@ export const LawyerSchema = new Schema<Lawyer>(
       type: String,
       trim: true,
       maxlength: 500,
+      default: "",
     },
 
     bio: {
       type: String,
       trim: true,
       maxlength: 2000,
+      default: "",
+    },
+
+    education: {
+      type: [EducationSchema],
+      default: [],
     },
 
     experience: {
@@ -193,6 +255,17 @@ export const LawyerSchema = new Schema<Lawyer>(
       type: [SkillSchema],
       default: [],
     },
+
+    languages: {
+      type: [
+        {
+          type: String,
+          trim: true,
+          maxlength: 80,
+        },
+      ],
+      default: [],
+    },
   },
   {
     timestamps: true,
@@ -200,11 +273,14 @@ export const LawyerSchema = new Schema<Lawyer>(
   },
 );
 
-LawyerSchema.pre("validate", function () {
-  if (!this.email && !this.phone) {
-    throw new Error(MESSAGES.noEmailNorPhone[env.LANGUAGE]);
-  }
-});
+LawyerSchema.pre(
+  "validate",
+  function (this: HydratedDocument<Lawyer>) {
+    if (!this.email && !this.phone) {
+      throw new Error(MESSAGES.noEmailNorPhone[env.LANGUAGE]);
+    }
+  },
+);
 
 const LawyerModel = model<Lawyer>("Lawyer", LawyerSchema);
 

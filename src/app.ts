@@ -107,6 +107,10 @@ class App {
       console.log(`Server listening on port ${this.port}`);
     });
   }
+
+  public getApp(): Application {
+  return this.app;
+}
 }
 
 export default App;
