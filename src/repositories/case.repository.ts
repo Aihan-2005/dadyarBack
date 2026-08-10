@@ -156,6 +156,7 @@ export class CaseRepository extends BaseRepository<Case> {
           "homeNumber",
           "birthday",
           "homeAddress",
+          "represent",
         ].join(" "),
       })
       .lean()

@@ -9,6 +9,7 @@ import { openApiRegistry } from "./openapi.registry";
  * into openApiRegistry when imported.
  */
 import "./routes";
+import { API_PREFIX } from "../constants/route.constants";
 
 const generator = new OpenApiGeneratorV3(openApiRegistry.definitions);
 
@@ -22,4 +23,12 @@ export const openApiDocument = generator.generateDocument({
 
     description: "API documentation for the Dadyar backend.",
   },
+
+  servers: [
+    {
+      url: API_PREFIX,
+
+      description: "Dadyar API",
+    },
+  ],
 });

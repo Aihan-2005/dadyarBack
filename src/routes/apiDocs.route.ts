@@ -1,7 +1,9 @@
 import { Router } from "express";
+
 import swaggerUi from "swagger-ui-express";
 
 import type { Route } from "../interfaces/routes.interface";
+
 import { openApiDocument } from "../docs/openapi";
 
 export class ApiDocsRoute implements Route {
@@ -14,18 +16,29 @@ export class ApiDocsRoute implements Route {
   }
 
   private initializeRoutes(): void {
-    this.router.get("/openapi.json", (_req, res) => {
-      return res.status(200).json(openApiDocument);
-    });
+    // ---------------- Raw OpenAPI JSON ----------------
 
-    this.router.use(
+    this.router.get(
+      "/openapi.json",
+
+      (_req, res) => {
+        return res.status(200).json(openApiDocument);
+      },
+    );
+
+    // ---------------- Swagger UI ----------------
+
+    this.router.use("/", swaggerUi.serve);
+
+    this.router.get(
       "/",
-      swaggerUi.serve,
       swaggerUi.setup(openApiDocument, {
         customSiteTitle: "Dadyar API Docs",
 
         swaggerOptions: {
           displayRequestDuration: true,
+
+          persistAuthorization: true,
         },
       }),
     );
