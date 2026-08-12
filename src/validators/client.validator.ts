@@ -1,25 +1,44 @@
-import { Types } from 'mongoose'
-import { z } from 'zod'
+import {
+  Types,
+} from "mongoose";
 
-import { env } from '../config/env'
-import { MESSAGES } from '../constants/messages.constants'
+import {
+  z,
+} from "zod";
 
-const LANGUAGE = env.LANGUAGE
+import {
+  env,
+} from "../config/env";
 
+import {
+  MESSAGES,
+} from "../constants/messages.constants";
+
+const LANGUAGE =
+  env.LANGUAGE;
+
+/*
+|--------------------------------------------------------------------------
+| Helpers
+|--------------------------------------------------------------------------
+*/
 
 function normalizeDigits(
-  value: string
+  value:
+    string
 ): string {
   const persianDigits =
-    '۰۱۲۳۴۵۶۷۸۹'
+    "۰۱۲۳۴۵۶۷۸۹";
 
   const arabicDigits =
-    '٠١٢٣٤٥٦٧٨٩'
+    "٠١٢٣٤٥٦٧٨٩";
 
   return value
     .replace(
       /[۰-۹]/g,
-      (character) =>
+      (
+        character
+      ) =>
         String(
           persianDigits.indexOf(
             character
@@ -28,71 +47,106 @@ function normalizeDigits(
     )
     .replace(
       /[٠-٩]/g,
-      (character) =>
+      (
+        character
+      ) =>
         String(
           arabicDigits.indexOf(
             character
           )
         )
-    )
+    );
 }
 
+/*
+|--------------------------------------------------------------------------
+| Required Full Name
+|--------------------------------------------------------------------------
+*/
 
 const RequiredFullNameSchema =
   z
     .string()
     .trim()
     .min(1)
-    .max(200)
+    .max(200);
+
+/*
+|--------------------------------------------------------------------------
+| Phone
+|--------------------------------------------------------------------------
+*/
 
 const PhoneSchema =
   z.preprocess(
-    (value) => {
+    (
+      value
+    ) => {
       if (
         typeof value ===
-        'string'
+        "string"
       ) {
         return normalizeDigits(
           value.trim()
-        )
+        );
       }
 
-      return value
+      return value;
     },
 
     z
       .string()
       .regex(
-        /^09\d{9}$/
+        /^09\d{9}$/,
+        {
+          message:
+            MESSAGES
+              .invalidPhoneFormat[
+              LANGUAGE
+            ],
+        }
       )
-  )
+  );
 
+/*
+|--------------------------------------------------------------------------
+| Optional National ID
+|--------------------------------------------------------------------------
+|
+| این Schema توسط case.validator.ts هم استفاده می‌شود.
+|--------------------------------------------------------------------------
+*/
 
 export const OptionalNationalIdSchema =
   z.preprocess(
-    (value) => {
+    (
+      value
+    ) => {
       if (
-        value === undefined ||
-        value === null
+        value ===
+          undefined ||
+        value ===
+          null
       ) {
-        return undefined
+        return undefined;
       }
 
       if (
         typeof value !==
-        'string'
+        "string"
       ) {
-        return value
+        return value;
       }
 
       const normalized =
         normalizeDigits(
           value.trim()
-        )
+        );
 
-      return normalized === ''
+      return normalized ===
+        ""
         ? undefined
-        : normalized
+        : normalized;
     },
 
     z
@@ -101,154 +155,229 @@ export const OptionalNationalIdSchema =
         /^\d{10}$/
       )
       .optional()
-  )
+  );
+
+/*
+|--------------------------------------------------------------------------
+| Optional Home Number
+|--------------------------------------------------------------------------
+*/
 
 const OptionalHomeNumberSchema =
   z.preprocess(
-    (value) => {
+    (
+      value
+    ) => {
       if (
-        value === undefined ||
-        value === null
+        value ===
+          undefined ||
+        value ===
+          null
       ) {
-        return undefined
+        return undefined;
       }
 
       if (
         typeof value !==
-        'string'
+        "string"
       ) {
-        return value
+        return value;
       }
 
       const normalized =
         normalizeDigits(
           value.trim()
-        )
+        );
 
-      return normalized === ''
+      return normalized ===
+        ""
         ? undefined
-        : normalized
+        : normalized;
     },
 
     z
       .string()
       .max(30)
       .optional()
-  )
+  );
+
+/*
+|--------------------------------------------------------------------------
+| Optional Address
+|--------------------------------------------------------------------------
+*/
 
 const OptionalAddressSchema =
   z.preprocess(
-    (value) => {
+    (
+      value
+    ) => {
       if (
-        value === undefined ||
-        value === null
+        value ===
+          undefined ||
+        value ===
+          null
       ) {
-        return undefined
+        return undefined;
       }
 
       if (
         typeof value ===
-        'string'
+        "string"
       ) {
         const trimmed =
-          value.trim()
+          value.trim();
 
-        return trimmed === ''
+        return trimmed ===
+          ""
           ? undefined
-          : trimmed
+          : trimmed;
       }
 
-      return value
+      return value;
     },
 
     z
       .string()
       .max(500)
       .optional()
-  )
+  );
+
+/*
+|--------------------------------------------------------------------------
+| Optional Birthday
+|--------------------------------------------------------------------------
+*/
 
 const OptionalBirthdaySchema =
   z.preprocess(
-    (value) => {
+    (
+      value
+    ) => {
       if (
-        value === undefined ||
-        value === null ||
-        value === ''
+        value ===
+          undefined ||
+        value ===
+          null ||
+        value ===
+          ""
       ) {
-        return undefined
+        return undefined;
       }
 
-      return value
+      return value;
     },
 
     z.coerce
       .date()
       .refine(
-        (date) =>
+        (
+          date
+        ) =>
           date.getTime() <=
           Date.now(),
         {
           message:
-            MESSAGES.notYetBorn[
+            MESSAGES
+              .notYetBorn[
               LANGUAGE
             ],
         }
       )
       .optional()
-  )
+  );
+
+/*
+|--------------------------------------------------------------------------
+| Optional Represent
+|--------------------------------------------------------------------------
+*/
 
 const OptionalRepresentSchema =
   z.preprocess(
-    (value) => {
+    (
+      value
+    ) => {
       if (
-        value === undefined ||
-        value === null ||
-        value === ''
+        value ===
+          undefined ||
+        value ===
+          null ||
+        value ===
+          ""
       ) {
-        return undefined
+        return undefined;
       }
 
-      return value
+      if (
+        typeof value ===
+        "string"
+      ) {
+        const trimmed =
+          value.trim();
+
+        return trimmed ===
+          ""
+          ? undefined
+          : trimmed;
+      }
+
+      return value;
     },
 
     z
       .string()
-      .trim()
       .max(200)
       .optional()
-  )
+  );
 
+/*
+|--------------------------------------------------------------------------
+| Clearable National ID
+|--------------------------------------------------------------------------
+|
+| در PATCH:
+|
+| undefined = فیلد دست نخورَد
+| null      = فیلد حذف شود
+|--------------------------------------------------------------------------
+*/
 
 const ClearableNationalIdSchema =
   z.preprocess(
-    (value) => {
+    (
+      value
+    ) => {
       if (
-        value === undefined
+        value ===
+        undefined
       ) {
-        return undefined
+        return undefined;
       }
 
       if (
-        value === null
+        value ===
+        null
       ) {
-        return null
+        return null;
       }
 
       if (
         typeof value !==
-        'string'
+        "string"
       ) {
-        return value
+        return value;
       }
 
       const normalized =
         normalizeDigits(
           value.trim()
-        )
+        );
 
-      return normalized === ''
+      return normalized ===
+        ""
         ? null
-        : normalized
+        : normalized;
     },
 
     z
@@ -262,38 +391,49 @@ const ClearableNationalIdSchema =
           ),
       ])
       .optional()
-  )
+  );
+
+/*
+|--------------------------------------------------------------------------
+| Clearable Home Number
+|--------------------------------------------------------------------------
+*/
 
 const ClearableHomeNumberSchema =
   z.preprocess(
-    (value) => {
+    (
+      value
+    ) => {
       if (
-        value === undefined
+        value ===
+        undefined
       ) {
-        return undefined
+        return undefined;
       }
 
       if (
-        value === null
+        value ===
+        null
       ) {
-        return null
+        return null;
       }
 
       if (
         typeof value !==
-        'string'
+        "string"
       ) {
-        return value
+        return value;
       }
 
       const normalized =
         normalizeDigits(
           value.trim()
-        )
+        );
 
-      return normalized === ''
+      return normalized ===
+        ""
         ? null
-        : normalized
+        : normalized;
     },
 
     z
@@ -305,36 +445,47 @@ const ClearableHomeNumberSchema =
           .max(30),
       ])
       .optional()
-  )
+  );
+
+/*
+|--------------------------------------------------------------------------
+| Clearable Address
+|--------------------------------------------------------------------------
+*/
 
 const ClearableAddressSchema =
   z.preprocess(
-    (value) => {
+    (
+      value
+    ) => {
       if (
-        value === undefined
+        value ===
+        undefined
       ) {
-        return undefined
+        return undefined;
       }
 
       if (
-        value === null
+        value ===
+        null
       ) {
-        return null
+        return null;
       }
 
       if (
         typeof value ===
-        'string'
+        "string"
       ) {
         const trimmed =
-          value.trim()
+          value.trim();
 
-        return trimmed === ''
+        return trimmed ===
+          ""
           ? null
-          : trimmed
+          : trimmed;
       }
 
-      return value
+      return value;
     },
 
     z
@@ -346,36 +497,47 @@ const ClearableAddressSchema =
           .max(500),
       ])
       .optional()
-  )
+  );
+
+/*
+|--------------------------------------------------------------------------
+| Clearable Represent
+|--------------------------------------------------------------------------
+*/
 
 const ClearableRepresentSchema =
   z.preprocess(
-    (value) => {
+    (
+      value
+    ) => {
       if (
-        value === undefined
+        value ===
+        undefined
       ) {
-        return undefined
+        return undefined;
       }
 
       if (
-        value === null
+        value ===
+        null
       ) {
-        return null
+        return null;
       }
 
       if (
         typeof value ===
-        'string'
+        "string"
       ) {
         const trimmed =
-          value.trim()
+          value.trim();
 
-        return trimmed === ''
+        return trimmed ===
+          ""
           ? null
-          : trimmed
+          : trimmed;
       }
 
-      return value
+      return value;
     },
 
     z
@@ -387,25 +549,36 @@ const ClearableRepresentSchema =
           .max(200),
       ])
       .optional()
-  )
+  );
+
+/*
+|--------------------------------------------------------------------------
+| Clearable Birthday
+|--------------------------------------------------------------------------
+*/
 
 const ClearableBirthdaySchema =
   z.preprocess(
-    (value) => {
+    (
+      value
+    ) => {
       if (
-        value === undefined
+        value ===
+        undefined
       ) {
-        return undefined
+        return undefined;
       }
 
       if (
-        value === null ||
-        value === ''
+        value ===
+          null ||
+        value ===
+          ""
       ) {
-        return null
+        return null;
       }
 
-      return value
+      return value;
     },
 
     z
@@ -415,39 +588,54 @@ const ClearableBirthdaySchema =
         z.coerce
           .date()
           .refine(
-            (date) =>
+            (
+              date
+            ) =>
               date.getTime() <=
               Date.now(),
             {
               message:
-                MESSAGES.notYetBorn[
+                MESSAGES
+                  .notYetBorn[
                   LANGUAGE
                 ],
             }
           ),
       ])
       .optional()
-  )
+  );
 
-
+/*
+|--------------------------------------------------------------------------
+| Mongo Object ID
+|--------------------------------------------------------------------------
+*/
 
 export const MongoIdSchema =
   z
     .string()
     .trim()
     .refine(
-      (value) =>
+      (
+        value
+      ) =>
         Types.ObjectId.isValid(
           value
         ),
       {
         message:
-          MESSAGES.invalidObjectId[
+          MESSAGES
+            .invalidObjectId[
             LANGUAGE
           ],
       }
-    )
+    );
 
+/*
+|--------------------------------------------------------------------------
+| Create Client
+|--------------------------------------------------------------------------
+*/
 
 const ClientBodySchema =
   z
@@ -473,12 +661,16 @@ const ClientBodySchema =
       represent:
         OptionalRepresentSchema,
     })
-    .strict()
+    .strict();
 
 export const CreateClientSchema =
-  ClientBodySchema
+  ClientBodySchema;
 
-
+/*
+|--------------------------------------------------------------------------
+| Update Client
+|--------------------------------------------------------------------------
+*/
 
 export const UpdateClientSchema =
   z
@@ -488,7 +680,8 @@ export const UpdateClientSchema =
           .optional(),
 
       phone:
-        PhoneSchema.optional(),
+        PhoneSchema
+          .optional(),
 
       nationalId:
         ClearableNationalIdSchema,
@@ -514,22 +707,28 @@ export const UpdateClientSchema =
         if (
           Object.keys(
             data
-          ).length === 0
+          ).length ===
+          0
         ) {
           context.addIssue({
             code:
-              'custom',
+              "custom",
 
             message:
-              MESSAGES.noClientFieldFound[
+              MESSAGES
+                .noClientFieldFound[
                 LANGUAGE
               ],
-          })
+          });
         }
       }
-    )
+    );
 
-
+/*
+|--------------------------------------------------------------------------
+| Client Params
+|--------------------------------------------------------------------------
+*/
 
 export const ParamClientIdSchema =
   z
@@ -537,7 +736,13 @@ export const ParamClientIdSchema =
       clientId:
         MongoIdSchema,
     })
-    .strict()
+    .strict();
+
+/*
+|--------------------------------------------------------------------------
+| Lookup Client By Phone
+|--------------------------------------------------------------------------
+*/
 
 export const ClientPhoneQuerySchema =
   z
@@ -545,8 +750,13 @@ export const ClientPhoneQuerySchema =
       phone:
         PhoneSchema,
     })
-    .strict()
+    .strict();
 
+/*
+|--------------------------------------------------------------------------
+| List Clients
+|--------------------------------------------------------------------------
+*/
 
 export const ListClientsQuerySchema =
   z
@@ -571,6 +781,6 @@ export const ListClientsQuerySchema =
           .int()
           .min(1)
           .max(100)
-          .default(10),
+          .default(20),
     })
-    .strict()
+    .strict();

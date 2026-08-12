@@ -1,12 +1,23 @@
-import type { ClientSession, UpdateQuery } from "mongoose";
+import type {
+  ClientSession,
+  UpdateQuery,
+} from "mongoose";
 
-import { env } from "../config/env";
+import {
+  env,
+} from "../config/env";
 
-import { PAYMENT_METHODS } from "../constants/casePayment.constants";
+import {
+  PAYMENT_METHODS,
+} from "../constants/casePayment.constants";
 
-import { MESSAGES } from "../constants/messages.constants";
+import {
+  MESSAGES,
+} from "../constants/messages.constants";
 
-import { HttpException } from "../exceptions/httpException";
+import {
+  HttpException,
+} from "../exceptions/httpException";
 
 import type {
   CasePayment,
@@ -15,273 +26,438 @@ import type {
   CreateCasePaymentInput,
 } from "../interfaces/casePayment.interface";
 
-import { CasePaymentRepository } from "../repositories/casePayment.repository";
+import {
+  CasePaymentRepository,
+} from "../repositories/casePayment.repository";
 
-const LANGUAGE = env.LANGUAGE;
+const LANGUAGE =
+  env.LANGUAGE;
 
 export class CasePaymentService {
-  constructor(private readonly repository = new CasePaymentRepository()) {}
+  constructor(
+    private readonly repository =
+      new CasePaymentRepository()
+  ) {}
 
-  // ---------------- Helpers ----------------
+ 
 
-  private normalizeOptionalString(value?: string | null): string | undefined {
-    return value?.trim() || undefined;
+  private normalizeOptionalString(
+    value?:
+      | string
+      | null
+  ): string | undefined {
+    return (
+      value?.trim() ||
+      undefined
+    );
   }
 
-  private ensurePaymentMethodValid(payment: CasePaymentInput): void {
+  private ensurePaymentMethodValid(
+    payment:
+      CasePaymentInput
+  ): void {
     if (
-      payment.method === PAYMENT_METHODS.NON_CASH &&
-      !this.normalizeOptionalString(payment.description)
+      payment.method ===
+        PAYMENT_METHODS.NON_CASH &&
+      !this.normalizeOptionalString(
+        payment.description
+      )
     ) {
       throw new HttpException(
         400,
 
-        MESSAGES.nonCashPaymentDescriptionRequired[LANGUAGE],
+        MESSAGES
+          .nonCashPaymentDescriptionRequired[
+          LANGUAGE
+        ],
 
-        "NON_CASH_PAYMENT_DESCRIPTION_REQUIRED",
+        "NON_CASH_PAYMENT_DESCRIPTION_REQUIRED"
       );
     }
   }
 
   private ensurePaymentsWithinAssignedAmount(
-    payments: ReadonlyArray<{
-      amount: number;
-    }>,
-    assignedAmount: number,
-  ): void {
-    const total = payments.reduce(
-      (currentTotal, payment) => currentTotal + payment.amount,
-      0,
-    );
+    payments:
+      ReadonlyArray<{
+        amount:
+          number;
+      }>,
 
-    if (total > assignedAmount) {
+    assignedAmount:
+      number
+  ): void {
+    const total =
+      payments.reduce(
+        (
+          currentTotal,
+          payment
+        ) =>
+          currentTotal +
+          payment.amount,
+
+        0
+      );
+
+    if (
+      total >
+      assignedAmount
+    ) {
       throw new HttpException(
         400,
 
-        MESSAGES.paymentTotalExceedsAssignedAmount[LANGUAGE],
+        MESSAGES
+          .paymentTotalExceedsAssignedAmount[
+          LANGUAGE
+        ],
 
-        "PAYMENT_TOTAL_EXCEEDS_ASSIGNED_AMOUNT",
+        "PAYMENT_TOTAL_EXCEEDS_ASSIGNED_AMOUNT"
       );
     }
   }
 
   private buildPaymentUpdate(
-    payment: CasePaymentInput,
+    payment:
+      CasePaymentInput
   ): UpdateQuery<CasePayment> {
-    const setFields: Record<string, unknown> = {
-      method: payment.method,
+    const setFields:
+      Record<
+        string,
+        unknown
+      > = {
+        method:
+          payment.method,
 
-      amount: payment.amount,
+        amount:
+          payment.amount,
 
-      isPaid: payment.isPaid,
-    };
+        isPaid:
+          payment.isPaid,
+      };
 
-    const unsetFields: Record<string, 1> = {};
+    const unsetFields:
+      Record<
+        string,
+        1
+      > = {};
 
-    const description = this.normalizeOptionalString(payment.description);
+    const description =
+      this.normalizeOptionalString(
+        payment.description
+      );
 
     if (description) {
-      setFields.description = description;
+      setFields.description =
+        description;
     } else {
-      unsetFields.description = 1;
+      unsetFields.description =
+        1;
     }
 
-    if (payment.dueDate) {
-      setFields.dueDate = payment.dueDate;
+    if (
+      payment.dueDate
+    ) {
+      setFields.dueDate =
+        payment.dueDate;
     } else {
-      unsetFields.dueDate = 1;
+      unsetFields.dueDate =
+        1;
     }
 
-    const update: UpdateQuery<CasePayment> = {
-      $set: setFields,
-    };
+    const update:
+      UpdateQuery<CasePayment> = {
+        $set:
+          setFields,
+      };
 
-    if (Object.keys(unsetFields).length > 0) {
-      update.$unset = unsetFields;
+    if (
+      Object.keys(
+        unsetFields
+      ).length >
+      0
+    ) {
+      update.$unset =
+        unsetFields;
     }
 
     return update;
   }
 
-  // ---------------- Sync ----------------
-
+ 
   public async syncCasePayments(
-    lawyerId: string,
-    caseId: string,
-    clients: CasePaymentSyncClient[],
-    session: ClientSession,
+    lawyerId:
+      string,
+
+    caseId:
+      string,
+
+    clients:
+      CasePaymentSyncClient[],
+
+    session:
+      ClientSession
   ): Promise<void> {
-    const existingPayments = await this.repository.findByCaseIdForLawyer(
-      lawyerId,
-      caseId,
-      session,
-    );
-
-    const existingById = new Map(
-      existingPayments.map((payment) => [payment._id.toString(), payment]),
-    );
-
-    /*
-     * Every existing payment that should
-     * survive the synchronization is added here.
-     */
-    const retainedPaymentIds = new Set<string>();
-
-    /*
-     * Protects against submitting the same
-     * existing payment twice.
-     */
-    const submittedPaymentIds = new Set<string>();
-
-    for (const client of clients) {
-      const existingClientPayments = existingPayments.filter(
-        (payment) => payment.clientId.toString() === client.clientId,
-      );
-
-      /*
-       * payments omitted:
-       *
-       * PATCH semantics = don't modify them.
-       *
-       * But we still validate them against
-       * the possibly changed assignedAmount.
-       */
-      if (client.payments === undefined) {
-        this.ensurePaymentsWithinAssignedAmount(
-          existingClientPayments,
-          client.assignedAmount,
+    const existingPayments =
+      await this.repository
+        .findByCaseIdForLawyer(
+          lawyerId,
+          caseId,
+          session
         );
 
-        for (const payment of existingClientPayments) {
-          retainedPaymentIds.add(payment._id.toString());
+    const existingById =
+      new Map(
+        existingPayments.map(
+          (payment) => [
+            payment._id.toString(),
+            payment,
+          ]
+        )
+      );
+
+   
+    const retainedPaymentIds =
+      new Set<string>();
+
+    
+    const submittedPaymentIds =
+      new Set<string>();
+
+    for (
+      const client of
+      clients
+    ) {
+      const existingClientPayments =
+        existingPayments.filter(
+          (payment) =>
+            payment.clientId.toString() ===
+            client.clientId
+        );
+
+  
+      if (
+        client.payments ===
+        undefined
+      ) {
+        this.ensurePaymentsWithinAssignedAmount(
+          existingClientPayments,
+          client.assignedAmount
+        );
+
+        for (
+          const payment of
+          existingClientPayments
+        ) {
+          retainedPaymentIds.add(
+            payment._id.toString()
+          );
         }
 
         continue;
       }
 
-      /*
-       * payments supplied:
-       *
-       * They represent the desired final
-       * payment list for this client.
-       */
+     
       this.ensurePaymentsWithinAssignedAmount(
         client.payments,
-        client.assignedAmount,
+        client.assignedAmount
       );
 
-      for (const payment of client.payments) {
-        this.ensurePaymentMethodValid(payment);
+      for (
+        const payment of
+        client.payments
+      ) {
+        this.ensurePaymentMethodValid(
+          payment
+        );
 
-        // ---------------- Existing Payment ----------------
+       
 
-        if (payment.paymentId) {
-          if (submittedPaymentIds.has(payment.paymentId)) {
+        if (
+          payment.paymentId
+        ) {
+          if (
+            submittedPaymentIds.has(
+              payment.paymentId
+            )
+          ) {
             throw new HttpException(
               400,
 
-              MESSAGES.duplicatePaymentInRequest[LANGUAGE],
+              MESSAGES
+                .duplicatePaymentInRequest[
+                LANGUAGE
+              ],
 
-              "DUPLICATE_PAYMENT_IN_REQUEST",
+              "DUPLICATE_PAYMENT_IN_REQUEST"
             );
           }
 
-          submittedPaymentIds.add(payment.paymentId);
+          submittedPaymentIds.add(
+            payment.paymentId
+          );
 
-          const existingPayment = existingById.get(payment.paymentId);
+          const existingPayment =
+            existingById.get(
+              payment.paymentId
+            );
 
-          /*
-           * It must belong to this exact
-           * case + client.
-           */
           if (
             !existingPayment ||
-            existingPayment.clientId.toString() !== client.clientId
+            existingPayment.clientId.toString() !==
+              client.clientId
           ) {
             throw new HttpException(
               404,
 
-              MESSAGES.paymentNotFound[LANGUAGE],
+              MESSAGES
+                .paymentNotFound[
+                LANGUAGE
+              ],
 
-              "PAYMENT_NOT_FOUND",
+              "PAYMENT_NOT_FOUND"
             );
           }
 
           const updated =
-            await this.repository.updateByIdForCaseClientForLawyer(
-              lawyerId,
-              caseId,
-              client.clientId,
-              payment.paymentId,
-              this.buildPaymentUpdate(payment),
-              session,
-            );
+            await this.repository
+              .updateByIdForCaseClientForLawyer(
+                lawyerId,
+                caseId,
+                client.clientId,
+                payment.paymentId,
+                this.buildPaymentUpdate(
+                  payment
+                ),
+                session
+              );
 
           if (!updated) {
             throw new HttpException(
               404,
 
-              MESSAGES.paymentNotFound[LANGUAGE],
+              MESSAGES
+                .paymentNotFound[
+                LANGUAGE
+              ],
 
-              "PAYMENT_NOT_FOUND",
+              "PAYMENT_NOT_FOUND"
             );
           }
 
-          retainedPaymentIds.add(payment.paymentId);
+          retainedPaymentIds.add(
+            payment.paymentId
+          );
 
           continue;
         }
 
-        // ---------------- New Payment ----------------
+       
 
         const {
-          paymentId: _paymentId,
+          paymentId:
+            _paymentId,
 
           ...paymentData
-        } = payment;
+        } =
+          payment;
 
-        const createData: CreateCasePaymentInput = {
-          ...paymentData,
+        const createData:
+          CreateCasePaymentInput = {
+            ...paymentData,
 
-          description: this.normalizeOptionalString(paymentData.description),
-        };
+            description:
+              this.normalizeOptionalString(
+                paymentData.description
+              ),
+          };
 
         await this.repository.create(
           lawyerId,
           caseId,
           client.clientId,
           createData,
-          session,
+          session
         );
       }
     }
 
-    /*
-     * Anything that existed before but wasn't
-     * retained has disappeared from the form.
-     *
-     * That means:
-     *
-     * - payment removed from a client
-     * - payments: []
-     * - client removed from the case
-     *
-     * All of those are deliberate deletions.
-     */
-    const paymentIdsToDelete = existingPayments
-      .filter((payment) => !retainedPaymentIds.has(payment._id.toString()))
-      .map((payment) => payment._id.toString());
+  
+    const paymentIdsToDelete =
+      existingPayments
+        .filter(
+          (payment) =>
+            !retainedPaymentIds.has(
+              payment._id.toString()
+            )
+        )
+        .map(
+          (payment) =>
+            payment._id.toString()
+        );
 
-    await this.repository.deleteManyByIdsForCaseForLawyer(
-      lawyerId,
-      caseId,
-      paymentIdsToDelete,
-      session,
-    );
+    await this.repository
+      .deleteManyByIdsForCaseForLawyer(
+        lawyerId,
+        caseId,
+        paymentIdsToDelete,
+        session
+      );
   }
 
-  // ---------------- read ----------------
-  public async getCasePayments(lawyerId: string, caseId: string) {
-    return this.repository.findByCaseIdForLawyer(lawyerId, caseId);
+ 
+
+  public getCasePayments(
+    lawyerId:
+      string,
+
+    caseId:
+      string,
+
+    session?:
+      ClientSession
+  ) {
+    return this.repository
+      .findByCaseIdForLawyer(
+        lawyerId,
+        caseId,
+        session
+      );
+  }
+
+  public getCasesPayments(
+    lawyerId:
+      string,
+
+    caseIds:
+      string[],
+
+    session?:
+      ClientSession
+  ) {
+    return this.repository
+      .findByCaseIdsForLawyer(
+        lawyerId,
+        caseIds,
+        session
+      );
+  }
+
+  
+
+  public deleteCasePayments(
+    lawyerId:
+      string,
+
+    caseId:
+      string,
+
+    session?:
+      ClientSession
+  ) {
+    return this.repository
+      .deleteByCaseIdForLawyer(
+        lawyerId,
+        caseId,
+        session
+      );
   }
 }

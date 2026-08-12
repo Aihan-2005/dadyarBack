@@ -1,10 +1,19 @@
-import type { ClientSession, UpdateQuery } from "mongoose";
+import type {
+  ClientSession,
+  UpdateQuery,
+} from "mongoose";
 
-import { env } from "../config/env";
+import {
+  env,
+} from "../config/env";
 
-import { MESSAGES } from "../constants/messages.constants";
+import {
+  MESSAGES,
+} from "../constants/messages.constants";
 
-import { HttpException } from "../exceptions/httpException";
+import {
+  HttpException,
+} from "../exceptions/httpException";
 
 import type {
   CaseExpense,
@@ -12,194 +21,329 @@ import type {
   CreateCaseExpenseInput,
 } from "../interfaces/caseExpense.interface";
 
-import { CaseExpenseRepository } from "../repositories/caseExpense.repository";
+import {
+  CaseExpenseRepository,
+} from "../repositories/caseExpense.repository";
 
-const LANGUAGE = env.LANGUAGE;
+const LANGUAGE =
+  env.LANGUAGE;
 
 export class CaseExpenseService {
-  constructor(private readonly repository = new CaseExpenseRepository()) {}
+  constructor(
+    private readonly repository =
+      new CaseExpenseRepository()
+  ) {}
 
-  // ---------------- Helpers ----------------
-
-  private normalizeOptionalString(value?: string | null): string | undefined {
-    return value?.trim() || undefined;
+ 
+  private normalizeOptionalString(
+    value?:
+      | string
+      | null
+  ): string | undefined {
+    return (
+      value?.trim() ||
+      undefined
+    );
   }
 
   private buildExpenseUpdate(
-    expense: CaseExpenseInput,
+    expense:
+      CaseExpenseInput
   ): UpdateQuery<CaseExpense> {
-    const setFields: Record<string, unknown> = {
-      title: expense.title.trim(),
+    const setFields:
+      Record<
+        string,
+        unknown
+      > = {
+        title:
+          expense.title.trim(),
 
-      amount: expense.amount,
+        amount:
+          expense.amount,
 
-      isPaid: expense.isPaid,
-    };
+        isPaid:
+          expense.isPaid,
+      };
 
-    const unsetFields: Record<string, 1> = {};
+    const unsetFields:
+      Record<
+        string,
+        1
+      > = {};
 
-    // ---------------- Description ----------------
-
-    const description = this.normalizeOptionalString(expense.description);
+    const description =
+      this.normalizeOptionalString(
+        expense.description
+      );
 
     if (description) {
-      setFields.description = description;
+      setFields.description =
+        description;
     } else {
-      unsetFields.description = 1;
+      unsetFields.description =
+        1;
     }
 
-    // ---------------- Expense Date ----------------
-
-    if (expense.expenseDate) {
-      setFields.expenseDate = expense.expenseDate;
+    if (
+      expense.expenseDate
+    ) {
+      setFields.expenseDate =
+        expense.expenseDate;
     } else {
-      unsetFields.expenseDate = 1;
+      unsetFields.expenseDate =
+        1;
     }
 
-    // ---------------- Build Query ----------------
+    const update:
+      UpdateQuery<CaseExpense> = {
+        $set:
+          setFields,
+      };
 
-    const update: UpdateQuery<CaseExpense> = {
-      $set: setFields,
-    };
-
-    if (Object.keys(unsetFields).length > 0) {
-      update.$unset = unsetFields;
+    if (
+      Object.keys(
+        unsetFields
+      ).length >
+      0
+    ) {
+      update.$unset =
+        unsetFields;
     }
 
     return update;
   }
 
-  // ---------------- Read ----------------
-
+ 
   public getCaseExpenses(
-    lawyerId: string,
-    caseId: string,
-    session?: ClientSession,
+    lawyerId:
+      string,
+
+    caseId:
+      string,
+
+    session?:
+      ClientSession
   ) {
-    return this.repository.findByCaseIdForLawyer(lawyerId, caseId, session);
+    return this.repository
+      .findByCaseIdForLawyer(
+        lawyerId,
+        caseId,
+        session
+      );
   }
 
-  // ---------------- Sync ----------------
+  public getCasesExpenses(
+    lawyerId:
+      string,
+
+    caseIds:
+      string[],
+
+    session?:
+      ClientSession
+  ) {
+    return this.repository
+      .findByCaseIdsForLawyer(
+        lawyerId,
+        caseIds,
+        session
+      );
+  }
+
+ 
 
   public async syncCaseExpenses(
-    lawyerId: string,
-    caseId: string,
-    expenses: CaseExpenseInput[],
-    session: ClientSession,
+    lawyerId:
+      string,
+
+    caseId:
+      string,
+
+    expenses:
+      CaseExpenseInput[],
+
+    session:
+      ClientSession
   ): Promise<void> {
-    const existingExpenses = await this.repository.findByCaseIdForLawyer(
-      lawyerId,
-      caseId,
-      session,
-    );
+    const existingExpenses =
+      await this.repository
+        .findByCaseIdForLawyer(
+          lawyerId,
+          caseId,
+          session
+        );
 
-    /*
-     * Allows us to quickly determine whether
-     * a submitted expenseId actually belongs
-     * to this lawyer + case.
-     */
-    const existingById = new Map(
-      existingExpenses.map((expense) => [expense._id.toString(), expense]),
-    );
+    const existingById =
+      new Map(
+        existingExpenses.map(
+          (expense) => [
+            expense._id.toString(),
+            expense,
+          ]
+        )
+      );
 
-    /*
-     * IDs which are present in the submitted
-     * desired final state.
-     */
-    const retainedExpenseIds = new Set<string>();
+    const retainedExpenseIds =
+      new Set<string>();
 
-    /*
-     * Prevent submitting the same existing
-     * expense twice in one request.
-     */
-    const submittedExpenseIds = new Set<string>();
+    const submittedExpenseIds =
+      new Set<string>();
 
-    for (const expense of expenses) {
-      // ---------------- Existing Expense ----------------
+    for (
+      const expense of
+      expenses
+    ) {
+ 
 
-      if (expense.expenseId) {
-        if (submittedExpenseIds.has(expense.expenseId)) {
+      if (
+        expense.expenseId
+      ) {
+        if (
+          submittedExpenseIds.has(
+            expense.expenseId
+          )
+        ) {
           throw new HttpException(
             400,
 
-            MESSAGES.duplicateExpenseInRequest[LANGUAGE],
+            MESSAGES
+              .duplicateExpenseInRequest[
+              LANGUAGE
+            ],
 
-            "DUPLICATE_EXPENSE_IN_REQUEST",
+            "DUPLICATE_EXPENSE_IN_REQUEST"
           );
         }
 
-        submittedExpenseIds.add(expense.expenseId);
+        submittedExpenseIds.add(
+          expense.expenseId
+        );
 
-        const existingExpense = existingById.get(expense.expenseId);
+        const existingExpense =
+          existingById.get(
+            expense.expenseId
+          );
 
-        /*
-         * An expense ID from another case or
-         * another lawyer must never be accepted.
-         */
-        if (!existingExpense) {
+        if (
+          !existingExpense
+        ) {
           throw new HttpException(
             404,
 
-            MESSAGES.expenseNotFound[LANGUAGE],
+            MESSAGES
+              .expenseNotFound[
+              LANGUAGE
+            ],
 
-            "EXPENSE_NOT_FOUND",
+            "EXPENSE_NOT_FOUND"
           );
         }
 
-        const updated = await this.repository.updateByIdForCaseForLawyer(
-          lawyerId,
-          caseId,
-          expense.expenseId,
-          this.buildExpenseUpdate(expense),
-          session,
-        );
+        const updated =
+          await this.repository
+            .updateByIdForCaseForLawyer(
+              lawyerId,
+              caseId,
+              expense.expenseId,
+              this.buildExpenseUpdate(
+                expense
+              ),
+              session
+            );
 
         if (!updated) {
           throw new HttpException(
             404,
 
-            MESSAGES.expenseNotFound[LANGUAGE],
+            MESSAGES
+              .expenseNotFound[
+              LANGUAGE
+            ],
 
-            "EXPENSE_NOT_FOUND",
+            "EXPENSE_NOT_FOUND"
           );
         }
 
-        retainedExpenseIds.add(expense.expenseId);
+        retainedExpenseIds.add(
+          expense.expenseId
+        );
 
         continue;
       }
 
-      // ---------------- New Expense ----------------
+    
 
-      const { expenseId: _expenseId, ...expenseData } = expense;
+      const {
+        expenseId:
+          _expenseId,
 
-      const createData: CreateCaseExpenseInput = {
-        ...expenseData,
+        ...expenseData
+      } =
+        expense;
 
-        title: expenseData.title.trim(),
+      const createData:
+        CreateCaseExpenseInput = {
+          ...expenseData,
 
-        description: this.normalizeOptionalString(expenseData.description),
-      };
+          title:
+            expenseData
+              .title
+              .trim(),
 
-      await this.repository.create(lawyerId, caseId, createData, session);
+          description:
+            this.normalizeOptionalString(
+              expenseData.description
+            ),
+        };
+
+      await this.repository.create(
+        lawyerId,
+        caseId,
+        createData,
+        session
+      );
     }
 
-    // ---------------- Delete Removed Expenses ----------------
+   
+    const expenseIdsToDelete =
+      existingExpenses
+        .filter(
+          (expense) =>
+            !retainedExpenseIds.has(
+              expense._id.toString()
+            )
+        )
+        .map(
+          (expense) =>
+            expense._id.toString()
+        );
 
-    /*
-     * Any expense which existed before but
-     * was not present in the submitted array
-     * has been removed by the user.
-     */
-    const expenseIdsToDelete = existingExpenses
-      .filter((expense) => !retainedExpenseIds.has(expense._id.toString()))
-      .map((expense) => expense._id.toString());
+    await this.repository
+      .deleteManyByIdsForCaseForLawyer(
+        lawyerId,
+        caseId,
+        expenseIdsToDelete,
+        session
+      );
+  }
 
-    await this.repository.deleteManyByIdsForCaseForLawyer(
-      lawyerId,
-      caseId,
-      expenseIdsToDelete,
-      session,
-    );
+
+
+  public deleteCaseExpenses(
+    lawyerId:
+      string,
+
+    caseId:
+      string,
+
+    session?:
+      ClientSession
+  ) {
+    return this.repository
+      .deleteByCaseIdForLawyer(
+        lawyerId,
+        caseId,
+        session
+      );
   }
 }
