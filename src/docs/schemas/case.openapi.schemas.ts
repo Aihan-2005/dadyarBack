@@ -1,8 +1,16 @@
-import { z } from "zod";
+import {
+  z,
+} from "zod";
 
-import { openApiRegistry } from "../openapi.registry";
+import {
+  openApiRegistry,
+} from "../openapi.registry";
 
-import { CaseStateSchema, CourtSchema } from "../../validators/case.validator";
+import {
+  CasePaymentTypeSchema,
+  CaseStateSchema,
+  CourtSchema,
+} from "../../validators/case.validator";
 
 import {
   ApiErrorSchema,
@@ -11,248 +19,424 @@ import {
   PaginationSchema,
 } from "./common.openapi";
 
-// ========================================================
-// Payment
-// ========================================================
 
-export const CasePaymentResponseSchema = openApiRegistry.register(
-  "CasePaymentResponse",
-  z.object({
-    paymentId: ObjectIdResponseSchema,
 
-    method: z.enum(["CASH", "NON_CASH"]),
+export const CasePaymentResponseSchema =
+  openApiRegistry.register(
+    "CasePaymentResponse",
 
-    amount: z.number(),
+    z.object({
+      paymentId:
+        ObjectIdResponseSchema,
 
-    description: z.string().optional(),
+      method:
+        z.enum([
+          "CASH",
+          "NON_CASH",
+        ]),
 
-    dueDate: DateTimeResponseSchema.optional(),
+      amount:
+        z.number(),
 
-    isPaid: z.boolean(),
-  }),
-);
+      description:
+        z
+          .string()
+          .optional(),
 
-// ========================================================
-// Expense
-// ========================================================
+      dueDate:
+        DateTimeResponseSchema
+          .optional(),
 
-export const CaseExpenseResponseSchema = openApiRegistry.register(
-  "CaseExpenseResponse",
-  z.object({
-    expenseId: ObjectIdResponseSchema,
+      isPaid:
+        z.boolean(),
 
-    title: z.string(),
+      createdAt:
+        DateTimeResponseSchema
+          .optional(),
 
-    amount: z.number(),
+      updatedAt:
+        DateTimeResponseSchema
+          .optional(),
+    })
+  );
 
-    description: z.string().optional(),
 
-    expenseDate: DateTimeResponseSchema.optional(),
 
-    isPaid: z.boolean(),
-  }),
-);
+export const CaseExpenseResponseSchema =
+  openApiRegistry.register(
+    "CaseExpenseResponse",
 
-// ========================================================
-// Client inside CaseDetails
-// ========================================================
+    z.object({
+      expenseId:
+        ObjectIdResponseSchema,
 
-export const CaseClientResponseSchema = openApiRegistry.register(
-  "CaseClientResponse",
-  z.object({
-    clientId: ObjectIdResponseSchema,
+      title:
+        z.string(),
 
-    fullName: z.string(),
+      amount:
+        z.number(),
 
-    phone: z.string(),
+      description:
+        z
+          .string()
+          .optional(),
 
-    nationalId: z.string().optional(),
+      expenseDate:
+        DateTimeResponseSchema
+          .optional(),
 
-    assignedAmount: z.number(),
+      isPaid:
+        z.boolean(),
 
-    role: z.string().optional(),
+      createdAt:
+        DateTimeResponseSchema
+          .optional(),
 
-    represent: z.string().optional(),
+      updatedAt:
+        DateTimeResponseSchema
+          .optional(),
+    })
+  );
 
-    payments: z.array(CasePaymentResponseSchema),
-  }),
-);
 
-// ========================================================
-// Embedded case records
-// ========================================================
 
-export const OpposingPartyResponseSchema = openApiRegistry.register(
-  "OpposingPartyResponse",
-  z.object({
-    _id: ObjectIdResponseSchema,
+export const CaseClientResponseSchema =
+  openApiRegistry.register(
+    "CaseClientResponse",
 
-    fullName: z.string(),
+    z.object({
+      clientId:
+        ObjectIdResponseSchema,
 
-    phone: z.string().optional(),
+      fullName:
+        z.string(),
 
-    nationalId: z.string().optional(),
+      phone:
+        z.string(),
 
-    description: z.string().optional(),
-  }),
-);
+      nationalId:
+        z
+          .string()
+          .optional(),
 
-export const LawyerContactResponseSchema = openApiRegistry.register(
-  "LawyerContactResponse",
-  z.object({
-    _id: ObjectIdResponseSchema,
+      assignedAmount:
+        z.number(),
+
+      role:
+        z
+          .string()
+          .optional(),
+
+      represent:
+        z
+          .string()
+          .optional(),
+
+      payments:
+        z.array(
+          CasePaymentResponseSchema
+        ),
+    })
+  );
+
+
+export const CaseBranchHistoryResponseSchema =
+  openApiRegistry.register(
+    "CaseBranchHistoryResponse",
+
+    z.object({
+      province:
+        z
+          .string()
+          .optional(),
+
+      city:
+        z
+          .string()
+          .optional(),
 
-    fullName: z.string(),
+      branchNumber:
+        z
+          .string()
+          .optional(),
 
-    phone: z.string(),
+      archiveNumberBranch:
+        z
+          .string()
+          .optional(),
+
+      date:
+        DateTimeResponseSchema
+          .optional(),
+
+      isActive:
+        z.boolean(),
+    })
+  );
+
+
+
+export const OpposingPartyResponseSchema =
+  openApiRegistry.register(
+    "OpposingPartyResponse",
 
-    barLicenseNumber: z.string().optional(),
+    z.object({
+      _id:
+        ObjectIdResponseSchema,
 
-    licenseExpiresAt: DateTimeResponseSchema.optional(),
+      fullName:
+        z.string(),
 
-    licensePlaceOfIssue: z.string().optional(),
-  }),
-);
+      phone:
+        z
+          .string()
+          .optional(),
 
-export const RelatedPersonResponseSchema = openApiRegistry.register(
-  "RelatedPersonResponse",
-  z.object({
-    _id: ObjectIdResponseSchema,
+      nationalId:
+        z
+          .string()
+          .optional(),
 
-    fullName: z.string(),
+      role:
+        z
+          .string()
+          .optional(),
 
-    phone: z.string(),
+      birthDate:
+        DateTimeResponseSchema
+          .optional(),
 
-    description: z.string().optional(),
-  }),
-);
+      description:
+        z
+          .string()
+          .optional(),
+    })
+  );
 
-// ========================================================
-// Detailed Case
-// ========================================================
 
-export const CaseDetailsSchema = openApiRegistry.register(
-  "CaseDetails",
-  z.object({
-    _id: ObjectIdResponseSchema,
+export const LawyerContactResponseSchema =
+  openApiRegistry.register(
+    "LawyerContactResponse",
 
-    lawyerId: ObjectIdResponseSchema,
+    z.object({
+      _id:
+        ObjectIdResponseSchema,
 
-    title: z.string(),
+      fullName:
+        z.string(),
 
-    caseNumber: z.string(),
+      phone:
+        z.string(),
 
-    state: CaseStateSchema,
+      barLicenseNumber:
+        z
+          .string()
+          .optional(),
+
+      licenseExpiresAt:
+        DateTimeResponseSchema
+          .optional(),
+
+      licensePlaceOfIssue:
+        z
+          .string()
+          .optional(),
+    })
+  );
+
+
+
+export const RelatedPersonResponseSchema =
+  openApiRegistry.register(
+    "RelatedPersonResponse",
+
+    z.object({
+      _id:
+        ObjectIdResponseSchema,
+
+      fullName:
+        z.string(),
+
+      phone:
+        z.string(),
+
+      nationalId:
+        z
+          .string()
+          .optional(),
+
+      role:
+        z
+          .string()
+          .optional(),
+
+      description:
+        z
+          .string()
+          .optional(),
+    })
+  );
+
+
+
+export const CaseDetailsSchema =
+  openApiRegistry.register(
+    "CaseDetails",
+
+    z.object({
+      _id:
+        ObjectIdResponseSchema,
 
-    court: CourtSchema.optional(),
+      title:
+        z.string(),
 
-    value: z.number(),
+      caseNumber:
+        z.string(),
 
-    clients: z.array(CaseClientResponseSchema),
+      state:
+        CaseStateSchema,
 
-    expenses: z.array(CaseExpenseResponseSchema),
+      description:
+        z
+          .string()
+          .optional(),
 
-    opposingParties: z.array(OpposingPartyResponseSchema),
+      paymentType:
+        CasePaymentTypeSchema
+          .optional(),
+
+      nonCashDescription:
+        z
+          .string()
+          .optional(),
+
+      court:
+        CourtSchema
+          .optional(),
 
-    assistantLawyers: z.array(LawyerContactResponseSchema),
+      branchHistory:
+        z
+          .array(
+            CaseBranchHistoryResponseSchema
+          )
+          .optional(),
 
-    opposingLawyers: z.array(LawyerContactResponseSchema),
+      value:
+        z.number(),
 
-    relatedPeople: z.array(RelatedPersonResponseSchema),
+      clients:
+        z.array(
+          CaseClientResponseSchema
+        ),
 
-    createdAt: DateTimeResponseSchema,
+      expenses:
+        z.array(
+          CaseExpenseResponseSchema
+        ),
+
+      opposingParties:
+        z.array(
+          OpposingPartyResponseSchema
+        ),
 
-    updatedAt: DateTimeResponseSchema,
+      assistantLawyers:
+        z.array(
+          LawyerContactResponseSchema
+        ),
 
-    __v: z.number().int().optional(),
-  }),
-);
+      opposingLawyers:
+        z.array(
+          LawyerContactResponseSchema
+        ),
 
-// ========================================================
-// CaseDetails success envelope
-// ========================================================
+      relatedPeople:
+        z.array(
+          RelatedPersonResponseSchema
+        ),
 
-export const CaseDetailsSuccessSchema = openApiRegistry.register(
-  "CaseDetailsSuccess",
-  z.object({
-    success: z.literal(true),
+      createdAt:
+        DateTimeResponseSchema,
 
-    data: CaseDetailsSchema,
-  }),
-);
+      updatedAt:
+        DateTimeResponseSchema,
 
-// ========================================================
-// GET /cases list representation
-// ========================================================
+      __v:
+        z
+          .number()
+          .int()
+          .optional(),
+    })
+  );
 
-const CaseListClientSchema = z.object({
-  _id: ObjectIdResponseSchema,
 
-  fullName: z.string(),
 
-  phone: z.string(),
-});
+export const CaseDetailsSuccessSchema =
+  openApiRegistry.register(
+    "CaseDetailsSuccess",
 
-const CaseListClientAssignmentSchema = z.object({
-  clientId: CaseListClientSchema,
+    z.object({
+      success:
+        z.literal(
+          true
+        ),
 
-  assignedAmount: z.number(),
+      data:
+        CaseDetailsSchema,
+    })
+  );
 
-  role: z.string().optional(),
 
-  represent: z.string().optional(),
-});
 
-export const CaseListItemSchema = openApiRegistry.register(
-  "CaseListItem",
-  z.object({
-    _id: ObjectIdResponseSchema,
+export const CaseListItemSchema =
+  CaseDetailsSchema;
 
-    lawyerId: ObjectIdResponseSchema,
+export const CaseListSuccessSchema =
+  openApiRegistry.register(
+    "CaseListSuccess",
 
-    title: z.string(),
+    z.object({
+      success:
+        z.literal(
+          true
+        ),
 
-    caseNumber: z.string(),
+      data:
+        z.array(
+          CaseListItemSchema
+        ),
 
-    state: CaseStateSchema,
+      pagination:
+        PaginationSchema,
+    })
+  );
 
-    court: CourtSchema.optional(),
 
-    value: z.number(),
 
-    clientAssignments: z.array(CaseListClientAssignmentSchema),
+export const CaseDeleteSuccessSchema =
+  openApiRegistry.register(
+    "CaseDeleteSuccess",
 
-    opposingParties: z.array(OpposingPartyResponseSchema),
+    z.object({
+      success:
+        z.literal(
+          true
+        ),
 
-    assistantLawyers: z.array(LawyerContactResponseSchema),
+      data:
+        z.object({
+          caseId:
+            ObjectIdResponseSchema,
 
-    opposingLawyers: z.array(LawyerContactResponseSchema),
+          deleted:
+            z.literal(
+              true
+            ),
+        }),
+    })
+  );
 
-    relatedPeople: z.array(RelatedPersonResponseSchema),
 
-    createdAt: DateTimeResponseSchema,
 
-    updatedAt: DateTimeResponseSchema,
-
-    __v: z.number().int().optional(),
-  }),
-);
-
-// ========================================================
-// GET /cases success envelope
-// ========================================================
-
-export const CaseListSuccessSchema = openApiRegistry.register(
-  "CaseListSuccess",
-  z.object({
-    success: z.literal(true),
-
-    data: z.array(CaseListItemSchema),
-
-    pagination: PaginationSchema,
-  }),
-);
-
-// Re-exporting this from here is convenient
-// for case.openapi.ts.
-export { ApiErrorSchema };
+export {
+  ApiErrorSchema,
+};

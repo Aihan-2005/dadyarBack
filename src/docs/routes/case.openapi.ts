@@ -2,6 +2,7 @@ import { openApiRegistry } from "../openapi.registry";
 
 import {
   ApiErrorSchema,
+  CaseDeleteSuccessSchema,
   CaseDetailsSuccessSchema,
   CaseListSuccessSchema,
 } from "../schemas/case.openapi.schemas";
@@ -103,29 +104,78 @@ openApiRegistry.registerPath({
   description: `
 Creates a new case for the authenticated lawyer.
 
+The authenticated lawyer is resolved exclusively from the access token.
+The request body must not contain lawyerId or other lawyer-account fields.
+
 ### Clients
 
 Clients are submitted through \`clients[]\`.
 
-The backend resolves clients using the authenticated lawyer and the client's phone number.
+There are two supported client modes.
 
-The sum of all client \`assignedAmount\` values must equal the case \`value\`.
+#### Existing client
+
+If the client already exists in the authenticated lawyer's client database:
+
+\`\`\`json
+{
+  "clientId": "MongoObjectId",
+  "assignedAmount": 5000000,
+  "role": "خواهان"
+}
+\`\`\`
+
+The backend verifies that the client belongs to the authenticated lawyer.
+
+#### New or manually entered client
+
+A client can also be resolved using a phone number:
+
+\`\`\`json
+{
+  "fullName": "علی رضایی",
+  "phone": "09121234567",
+  "nationalId": "1234567890",
+  "assignedAmount": 5000000
+}
+\`\`\`
+
+If a client with that phone already exists for the authenticated lawyer,
+the existing client is reused.
+
+Otherwise, a new client is created.
+
+A client is never duplicated inside the same case.
+
+The sum of all client \`assignedAmount\` values must exactly equal the case \`value\`.
 
 ### Payments
 
-Payments are submitted inside \`clients[].payments[]\`.
+Payments belong to a specific case client and are submitted inside:
 
-- Payments without a \`paymentId\` are created.
-- NON_CASH payments require a description.
-- A client's total scheduled payments cannot exceed that client's assigned amount.
+\`clients[].payments[]\`
+
+Supported methods:
+
+- CASH
+- NON_CASH
+
+Rules:
+
+- payments without \`paymentId\` are created
+- NON_CASH payments require a description
+- a client's scheduled payment total cannot exceed that client's assigned amount
 
 ### Expenses
 
-Case expenses are submitted through the top-level \`expenses[]\` array.
+Case expenses are submitted using the top-level \`expenses[]\` array.
 
-Payments and expenses are stored separately from the Case document.
+### Transaction
 
-Case creation, clients, payments, and expenses are processed transactionally.
+Case creation, optional client creation, assignments, payments, and expenses
+are executed inside a MongoDB transaction.
+
+If one operation fails, the transaction is rolled back.
 `,
 
   security: [
@@ -185,9 +235,31 @@ openApiRegistry.registerPath({
   description: `
 Returns the authenticated lawyer's cases using database-level pagination.
 
-The optional \`search\` value searches case title, case number, court province, and court city.
+The optional \`search\` value searches:
 
-This endpoint returns a lighter list representation and does not include case payments or expenses.
+- case title
+- case number
+- court province
+- court city
+
+The endpoint returns the same normalized case representation used by
+the case-details endpoint.
+
+Each returned case includes:
+
+- resolved clients
+- each client's assigned attorney-fee amount
+- each client's payments
+- case expenses
+- opposing parties
+- assistant lawyers
+- opposing lawyers
+- related people
+
+Payments and expenses are batch-loaded for all cases in the current page,
+avoiding an N+1 query pattern.
+
+The response never exposes the case owner's lawyerId.
 `,
 
   security: [
@@ -355,6 +427,81 @@ The update operation is transactional.
     409: conflictResponse,
 
     500: serverErrorResponse,
+  },
+});
+
+// --------------------------------------------------------
+// DELETE /cases/{caseId}
+// --------------------------------------------------------
+
+openApiRegistry.registerPath({
+  method: "delete",
+
+  path: "/cases/{caseId}",
+
+  operationId:
+    "deleteCase",
+
+  tags: [
+    "Cases",
+  ],
+
+  summary:
+    "Delete a case",
+
+  description: `
+Deletes a case owned by the authenticated lawyer.
+
+The operation is transactional.
+
+The following case-owned resources are deleted:
+
+- the Case document
+- all CasePayment documents belonging to the case
+- all CaseExpense documents belonging to the case
+
+Client documents are NOT deleted.
+
+Clients are independent lawyer-owned entities and may be connected
+to other cases.
+`,
+
+  security: [
+    {
+      bearerAuth:
+        [],
+    },
+  ],
+
+  request: {
+    params:
+      ParamCaseIdSchema,
+  },
+
+  responses: {
+    200: {
+      description:
+        "Case deleted successfully.",
+
+      content: {
+        "application/json": {
+          schema:
+            CaseDeleteSuccessSchema,
+        },
+      },
+    },
+
+    400:
+      badRequestResponse,
+
+    401:
+      unauthorizedResponse,
+
+    404:
+      notFoundResponse,
+
+    500:
+      serverErrorResponse,
   },
 });
 
