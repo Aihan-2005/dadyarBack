@@ -283,6 +283,10 @@ export const MESSAGES = {
 
   duplicateExpenseInRequest: {
     en: "The same expense cannot be submitted more than once",
-    fa: "یک هزینه نمی‌تواند بیش از یک بار ارسال شود",
+    fa: "یک هزینه نمی‌تواند بیش از یک بار ارسال شود"},
+    
+notificationNotFound: {
+    en: "Notification was not found",
+    fa: "اعلان یافت نشد",
   },
 };

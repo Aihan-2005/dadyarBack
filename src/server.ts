@@ -12,6 +12,7 @@ import { FinancialReportRoute } from "./routes/financialReport.route";
 import { env } from "./config/env";
 import { ApiDocsRoute } from "./routes/apiDocs.route";
 import { Route } from "./interfaces/routes.interface";
+import NotificationRoute from "./routes/notification.route";
 
 let isShuttingDown = false;
 
@@ -74,6 +75,7 @@ async function bootstrap(): Promise<void> {
       new CaseRoute(),
       new ClientRoute(),
       new FinancialReportRoute(),
+      new NotificationRoute(),
     ];
 
     if (env.ENABLE_API_DOCS) {
