@@ -285,4 +285,29 @@ export const MESSAGES = {
     en: "The same expense cannot be submitted more than once",
     fa: "یک هزینه نمی‌تواند بیش از یک بار ارسال شود",
   },
+  otpInvalidOrExpired: {
+    en: "The verification code is invalid or expired.",
+    fa: "کد تأیید نامعتبر است یا منقضی شده است.",
+  },
+
+  otpAttemptsExceeded: {
+    en: "Too many verification attempts. Request a new code.",
+    fa: "تعداد تلاش‌های تأیید بیش از حد مجاز است. کد جدیدی درخواست کنید.",
+  },
+
+  otpResendCooldown: {
+    en: "Please wait before requesting another verification code.",
+    fa: "لطفاً برای درخواست مجدد کد تأیید کمی صبر کنید.",
+  },
+
+  otpDeliveryFailed: {
+    en: "Unable to send the verification code.",
+    fa: "ارسال کد تأیید با مشکل مواجه شد.",
+  },
+
+  invalidOtpFormat: {
+    en: "Verification code must be exactly 6 digits.",
+
+    fa: "کد تأیید باید دقیقاً ۶ رقم باشد.",
+  },
 };

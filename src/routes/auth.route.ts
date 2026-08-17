@@ -8,6 +8,8 @@ import requireAuth from "../middlewares/auth.middleware";
 
 import {
   loginRateLimiter,
+  otpLoginRateLimiter,
+  otpRequestRateLimiter,
   refreshRateLimiter,
   signupRateLimiter,
 } from "../middlewares/authRateLimit.middleware";
@@ -37,6 +39,22 @@ class AuthRoute implements Route {
     this.router.post("/signup", signupRateLimiter, this.authController.signup);
 
     this.router.post("/login", loginRateLimiter, this.authController.login);
+
+    this.router.post(
+      "/otp/request",
+
+      otpRequestRateLimiter,
+
+      this.authController.requestOtpLogin,
+    );
+
+    this.router.post(
+      "/otp/login",
+
+      otpLoginRateLimiter,
+
+      this.authController.otpLogin,
+    );
 
     this.router.post(
       "/refresh",

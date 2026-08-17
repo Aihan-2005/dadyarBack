@@ -205,6 +205,30 @@ export const AuthSessionSuccessSchema = openApiRegistry.register(
 );
 
 // ========================================================
+// OTP Login
+// ========================================================
+
+export const OtpRequestDataSchema = openApiRegistry.register(
+  "OtpRequestData",
+
+  z.object({
+    expiresIn: z.number().int().positive(),
+
+    resendAfter: z.number().int().nonnegative(),
+  }),
+);
+
+export const OtpRequestSuccessSchema = openApiRegistry.register(
+  "OtpRequestSuccess",
+
+  z.object({
+    success: z.literal(true),
+
+    data: OtpRequestDataSchema,
+  }),
+);
+
+// ========================================================
 // Refresh
 // ========================================================
 

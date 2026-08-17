@@ -27,12 +27,25 @@ import { LawyerRepository } from "../repositories/lawyer.repository";
 
 import { TokenService } from "./token.service";
 
+import { OTP_PURPOSES } from "../constants/otp.constants";
+
+import type {
+  OtpLoginInput,
+  RequestOtpLoginInput,
+} from "../interfaces/auth.interface";
+
+import { OtpService } from "./otp.service";
+
 const LANGUAGE = env.LANGUAGE;
 
 export class AuthService {
   private readonly tokenService = new TokenService();
 
-  constructor(private readonly repo: LawyerRepository) {}
+  constructor(
+    private readonly repo: LawyerRepository,
+
+    private readonly otpService: OtpService = new OtpService(),
+  ) {}
 
   private normalizeEmail(email?: string): string | undefined {
     return email?.trim().toLowerCase();
@@ -123,6 +136,94 @@ export class AuthService {
       phone: this.normalizePhone(input.phone),
 
       password: hashedPassword,
+    };
+  }
+
+  private getOtpRequestMetadata() {
+    return {
+      expiresIn: env.OTP_TTL_SECONDS,
+
+      resendAfter: env.OTP_RESEND_COOLDOWN_SECONDS,
+    };
+  }
+
+  public async requestOtpLogin(input: RequestOtpLoginInput) {
+    const phone = this.normalizePhone(input.phone)!;
+
+    const account = await this.repo.findByPhone(phone);
+
+    if (!account) {
+      return this.getOtpRequestMetadata();
+    }
+
+    const role = resolveLawyerRole(account.role);
+
+    const status = resolveLawyerStatus(account.status);
+
+    if (
+      role !== LAWYER_ROLES.LAWYER ||
+      status === LAWYER_STATUSES.SUSPENDED ||
+      status === LAWYER_STATUSES.REJECTED
+    ) {
+      return this.getOtpRequestMetadata();
+    }
+
+    return this.otpService.createOtp({
+      phone,
+
+      purpose: OTP_PURPOSES.OTP_LOGIN,
+    });
+  }
+
+  public async loginWithOtp(input: OtpLoginInput) {
+    const phone = this.normalizePhone(input.phone)!;
+
+    await this.otpService.verifyOtp({
+      phone,
+
+      purpose: OTP_PURPOSES.OTP_LOGIN,
+
+      code: input.code,
+    });
+
+    const authUser = await this.repo.findByPhone(phone);
+
+    if (!authUser) {
+      throw new HttpException(
+        401,
+        MESSAGES.invalidCredentials[LANGUAGE],
+        "INVALID_CREDENTIALS",
+      );
+    }
+
+    const role = resolveLawyerRole(authUser.role);
+
+    const status = resolveLawyerStatus(authUser.status);
+
+    this.assertAccountCanAuthenticate(role, status);
+
+    const userId = authUser._id.toString();
+
+    const lastLoginAt = new Date();
+
+    await this.repo.updateLastLogin(userId, lastLoginAt);
+
+    const tokenPair = await this.tokenService.issueTokenPair(userId);
+
+    const user = toPublicLawyerDTO({
+      ...authUser,
+
+      role,
+
+      status,
+
+      lastLoginAt,
+    });
+
+    return {
+      user,
+
+      ...tokenPair,
     };
   }
 

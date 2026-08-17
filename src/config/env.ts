@@ -88,7 +88,20 @@ const envSchema = z.object({
   COOKIE_SECURE: BooleanFromEnvironment.optional(),
 
   ENABLE_API_DOCS: BooleanFromEnvironment.default(false),
+
   LANGUAGE: z.enum(["en", "fa"]).default("fa"),
+
+  SMSIR_API_KEY: z.string().trim().min(1).optional(),
+
+  OTP_TTL_SECONDS: z.coerce.number().int().positive().default(120),
+
+  OTP_MAX_ATTEMPTS: z.coerce.number().int().positive().max(20).default(5),
+
+  OTP_HMAC_SECRET: z.string().min(32),
+
+  SMSIR_OTP_TEMPLATE_ID: z.coerce.number().int().positive().optional(),
+
+  OTP_RESEND_COOLDOWN_SECONDS: z.coerce.number().int().positive().default(60),
 });
 
 class Env {
@@ -121,6 +134,18 @@ class Env {
   public readonly ENABLE_API_DOCS: boolean;
 
   public readonly LANGUAGE: Language;
+
+  public readonly SMSIR_API_KEY: string | undefined;
+
+  public readonly OTP_TTL_SECONDS: number;
+
+  public readonly OTP_MAX_ATTEMPTS: number;
+
+  public readonly OTP_HMAC_SECRET: string;
+
+  public readonly SMSIR_OTP_TEMPLATE_ID: number | undefined;
+
+  public readonly OTP_RESEND_COOLDOWN_SECONDS: number;
 
   constructor(processEnv = process.env) {
     const parsed = envSchema.safeParse(processEnv);
@@ -164,6 +189,18 @@ class Env {
     this.ENABLE_API_DOCS = data.ENABLE_API_DOCS;
 
     this.LANGUAGE = data.LANGUAGE;
+
+    this.SMSIR_API_KEY = data.SMSIR_API_KEY;
+
+    this.OTP_TTL_SECONDS = data.OTP_TTL_SECONDS;
+
+    this.OTP_MAX_ATTEMPTS = data.OTP_MAX_ATTEMPTS;
+
+    this.OTP_HMAC_SECRET = data.OTP_HMAC_SECRET;
+
+    this.SMSIR_OTP_TEMPLATE_ID = data.SMSIR_OTP_TEMPLATE_ID;
+
+    this.OTP_RESEND_COOLDOWN_SECONDS = data.OTP_RESEND_COOLDOWN_SECONDS;
   }
 }
 
