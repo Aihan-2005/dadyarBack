@@ -30,6 +30,7 @@ import { TokenService } from "./token.service";
 import { OTP_PURPOSES } from "../constants/otp.constants";
 
 import type {
+  ChangePasswordInput,
   OtpLoginInput,
   RequestOtpLoginInput,
 } from "../interfaces/auth.interface";
@@ -144,6 +145,37 @@ export class AuthService {
       expiresIn: env.OTP_TTL_SECONDS,
 
       resendAfter: env.OTP_RESEND_COOLDOWN_SECONDS,
+    };
+  }
+
+  private async getPasswordChangeAccount(lawyerId: string) {
+    const lawyer = await this.repo.findById(lawyerId);
+
+    if (!lawyer) {
+      throw new HttpException(
+        404,
+        MESSAGES.noUserWithId[LANGUAGE],
+        "USER_NOT_FOUND",
+      );
+    }
+
+    const role = resolveLawyerRole(lawyer.role);
+
+    const status = resolveLawyerStatus(lawyer.status);
+
+    this.assertAccountCanAuthenticate(role, status);
+
+    if (!lawyer.phone) {
+      throw new HttpException(
+        400,
+        MESSAGES.phoneRequiredForPasswordChange[LANGUAGE],
+        "PHONE_REQUIRED_FOR_PASSWORD_CHANGE",
+      );
+    }
+
+    return {
+      lawyer,
+      phone: this.normalizePhone(lawyer.phone)!,
     };
   }
 
@@ -350,5 +382,43 @@ export class AuthService {
     }
 
     return toPublicLawyerDTO(lawyer);
+  }
+
+  public async requestPasswordChange(lawyerId: string) {
+    const { phone } = await this.getPasswordChangeAccount(lawyerId);
+
+    return this.otpService.createOtp({
+      phone,
+
+      purpose: OTP_PURPOSES.PASSWORD_CHANGE,
+    });
+  }
+
+  public async changePassword(lawyerId: string, input: ChangePasswordInput) {
+    const { phone } = await this.getPasswordChangeAccount(lawyerId);
+
+    await this.otpService.verifyOtp({
+      phone,
+
+      purpose: OTP_PURPOSES.PASSWORD_CHANGE,
+
+      code: input.code,
+    });
+
+    const hashedPassword = await this.hashPassword(input.newPassword);
+
+    const result = await this.repo.updatePasswordById(lawyerId, hashedPassword);
+
+    if (result.matchedCount === 0) {
+      throw new HttpException(
+        404,
+        MESSAGES.noUserWithId[LANGUAGE],
+        "USER_NOT_FOUND",
+      );
+    }
+
+    await this.tokenService.revokeAllUserSessions(lawyerId);
+
+    return this.tokenService.issueTokenPair(lawyerId);
   }
 }

@@ -206,4 +206,7 @@ export class TokenService {
       throw error;
     }
   }
+  public async revokeAllUserSessions(userId: string): Promise<void> {
+    await this.repo.deleteAllByUserId(userId);
+  }
 }

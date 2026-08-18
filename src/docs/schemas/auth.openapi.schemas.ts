@@ -282,4 +282,30 @@ export const MeSuccessSchema = openApiRegistry.register(
   }),
 );
 
+// ========================================================
+// Password Change
+// ========================================================
+
+export const PasswordChangeDataSchema = openApiRegistry.register(
+  "PasswordChangeData",
+
+  z.object({
+    message: z.string(),
+
+    accessToken: z.string(),
+
+    accessTokenExpiresIn: z.number().int().positive(),
+  }),
+);
+
+export const PasswordChangeSuccessSchema = openApiRegistry.register(
+  "PasswordChangeSuccess",
+
+  z.object({
+    success: z.literal(true),
+
+    data: PasswordChangeDataSchema,
+  }),
+);
+
 export { ApiErrorSchema };

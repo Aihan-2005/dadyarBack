@@ -310,4 +310,16 @@ export const MESSAGES = {
 
     fa: "کد تأیید باید دقیقاً ۶ رقم باشد.",
   },
+
+  phoneRequiredForPasswordChange: {
+    en: "A phone number is required to change the password.",
+
+    fa: "برای تغییر رمز عبور، ثبت شماره همراه الزامی است.",
+  },
+
+  passwordChangedSuccessfully: {
+    en: "Password changed successfully.",
+
+    fa: "رمز عبور با موفقیت تغییر کرد.",
+  },
 };

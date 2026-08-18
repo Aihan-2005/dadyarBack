@@ -9,6 +9,7 @@ import { HttpException } from "../exceptions/httpException";
 import { AuthService } from "../services/auth.service";
 
 import {
+  ChangePasswordSchema,
   LoginSchema,
   OtpLoginSchema,
   RequestOtpLoginSchema,
@@ -272,6 +273,77 @@ export class AuthController {
 
         data: {
           user,
+        },
+      });
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  public requestPasswordChange = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<Response | void> => {
+    try {
+      const lawyerId = req.user?.id;
+
+      if (!lawyerId) {
+        throw new HttpException(
+          401,
+          MESSAGES.unauthorized[LANGUAGE],
+          "UNAUTHORIZED",
+        );
+      }
+
+      const result = await this.authService.requestPasswordChange(lawyerId);
+
+      this.disableCaching(res);
+
+      return res.status(200).json({
+        success: true,
+
+        data: result,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  public changePassword = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<Response | void> => {
+    try {
+      const lawyerId = req.user?.id;
+
+      if (!lawyerId) {
+        throw new HttpException(
+          401,
+          MESSAGES.unauthorized[LANGUAGE],
+          "UNAUTHORIZED",
+        );
+      }
+
+      const input = await ChangePasswordSchema.parseAsync(req.body ?? {});
+
+      const { accessToken, refreshToken, accessTokenExpiresIn } =
+        await this.authService.changePassword(lawyerId, input);
+
+      this.disableCaching(res);
+
+      this.setRefreshCookie(res, refreshToken);
+
+      return res.status(200).json({
+        success: true,
+
+        data: {
+          message: MESSAGES.passwordChangedSuccessfully[LANGUAGE],
+
+          accessToken,
+
+          accessTokenExpiresIn,
         },
       });
     } catch (error) {

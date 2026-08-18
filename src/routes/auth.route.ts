@@ -10,6 +10,8 @@ import {
   loginRateLimiter,
   otpLoginRateLimiter,
   otpRequestRateLimiter,
+  passwordChangeRateLimiter,
+  passwordChangeRequestRateLimiter,
   refreshRateLimiter,
   signupRateLimiter,
 } from "../middlewares/authRateLimit.middleware";
@@ -65,6 +67,20 @@ class AuthRoute implements Route {
     this.router.post("/logout", this.authController.logout);
 
     this.router.get("/me", requireAuth, this.authController.me);
+
+    this.router.post(
+      "/password/change/request",
+      requireAuth,
+      passwordChangeRequestRateLimiter,
+      this.authController.requestPasswordChange,
+    );
+
+    this.router.patch(
+      "/password",
+      requireAuth,
+      passwordChangeRateLimiter,
+      this.authController.changePassword,
+    );
   }
 }
 

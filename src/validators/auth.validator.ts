@@ -122,3 +122,11 @@ export const OtpLoginSchema = z
     code: OtpCodeSchema,
   })
   .strict();
+
+export const ChangePasswordSchema = z
+  .object({
+    code: OtpCodeSchema,
+
+    newPassword: PasswordSchema,
+  })
+  .strict();

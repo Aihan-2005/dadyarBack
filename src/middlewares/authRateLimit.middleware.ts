@@ -83,3 +83,29 @@ export const otpLoginRateLimiter = rateLimit({
   handler: sendRateLimitResponse,
 });
 
+// NOTE: seperate from the above rate limter because we don't want limit an ip from changing the password just because he logged in
+export const passwordChangeRequestRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+
+  max: 5,
+
+  standardHeaders: true,
+
+  legacyHeaders: false,
+
+  handler: sendRateLimitResponse,
+});
+
+export const passwordChangeRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+
+  max: 10,
+
+  standardHeaders: true,
+
+  legacyHeaders: false,
+
+  skipSuccessfulRequests: true,
+
+  handler: sendRateLimitResponse,
+});
