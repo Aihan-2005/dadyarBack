@@ -5,10 +5,18 @@ import {
   AuthSessionSuccessSchema,
   LogoutSuccessSchema,
   MeSuccessSchema,
+  OtpRequestSuccessSchema,
+  PasswordChangeSuccessSchema,
   RefreshTokenSuccessSchema,
 } from "../schemas/auth.openapi.schemas";
 
-import { LoginSchema, SignupSchema } from "../../validators/auth.validator";
+import {
+  ChangePasswordSchema,
+  LoginSchema,
+  OtpLoginSchema,
+  RequestOtpLoginSchema,
+  SignupSchema,
+} from "../../validators/auth.validator";
 
 // ========================================================
 // Shared Responses
@@ -77,6 +85,16 @@ const notFoundResponse = {
 
 const serverErrorResponse = {
   description: "Unexpected server error.",
+
+  content: {
+    "application/json": {
+      schema: ApiErrorSchema,
+    },
+  },
+};
+
+const badGatewayResponse = {
+  description: "The SMS provider could not deliver the verification code.",
 
   content: {
     "application/json": {
@@ -297,6 +315,226 @@ Successful login requests are excluded from the failed-login rate-limit count.
 });
 
 // ========================================================
+// POST /auth/otp/request
+// ========================================================
+
+openApiRegistry.registerPath({
+  method: "post",
+
+  path: "/auth/otp/request",
+
+  operationId: "requestOtpLogin",
+
+  tags: ["Authentication"],
+
+  summary: "Request OTP login code",
+
+  description: `
+Requests a one-time verification code for passwordless login.
+
+The user submits their registered Iranian mobile number.
+
+### Phone format
+
+The phone number must use:
+
+\`09xxxxxxxxx\`
+
+Persian and Arabic digits are normalized by the backend.
+
+### Account privacy
+
+This endpoint intentionally does not reveal whether a phone number belongs to an account.
+
+A generic successful response may therefore be returned even when:
+
+- the phone number is not registered
+- the account is not eligible to authenticate
+
+An SMS is only sent when the account exists and is eligible for authentication.
+
+### OTP lifetime
+
+The response contains:
+
+- \`expiresIn\`: how many seconds the OTP remains valid
+- \`resendAfter\`: how many seconds must pass before another OTP can be requested
+
+Requesting another OTP after the cooldown creates a new code and invalidates the previous code.
+
+### Rate limits
+
+This endpoint is protected by:
+
+- HTTP/IP rate limiting
+- per-phone OTP resend cooldown
+
+The OTP itself is also protected by a maximum verification-attempt limit.
+`,
+
+  request: {
+    body: {
+      required: true,
+
+      content: {
+        "application/json": {
+          schema: RequestOtpLoginSchema,
+        },
+      },
+    },
+  },
+
+  responses: {
+    200: {
+      description:
+        "OTP request processed. This response does not confirm whether the account exists.",
+
+      headers: noCacheHeaders,
+
+      content: {
+        "application/json": {
+          schema: OtpRequestSuccessSchema,
+        },
+      },
+    },
+
+    400: badRequestResponse,
+
+    429: {
+      description:
+        "OTP resend cooldown or request rate limit has been exceeded.",
+
+      content: {
+        "application/json": {
+          schema: ApiErrorSchema,
+        },
+      },
+    },
+
+    502: badGatewayResponse,
+
+    500: serverErrorResponse,
+  },
+});
+
+// ========================================================
+// POST /auth/otp/login
+// ========================================================
+
+openApiRegistry.registerPath({
+  method: "post",
+
+  path: "/auth/otp/login",
+
+  operationId: "loginWithOtp",
+
+  tags: ["Authentication"],
+
+  summary: "Login using OTP",
+
+  description: `
+Authenticates a lawyer using their phone number and a previously requested one-time verification code.
+
+### OTP
+
+The verification code contains exactly 6 digits.
+
+Persian and Arabic digits are normalized by the backend.
+
+The OTP must:
+
+- belong to the submitted phone number
+- have been created for OTP login
+- not be expired
+- not have exceeded the allowed verification attempts
+
+### One-time use
+
+A successfully verified OTP is consumed immediately.
+
+The same code cannot be used to create another authentication session.
+
+Requesting a newer OTP also makes the previous OTP unusable.
+
+### Failed verification
+
+Incorrect OTP submissions increase the verification-attempt counter.
+
+After the maximum number of attempts is reached, the OTP is invalidated and the user must request another code.
+
+### Successful authentication
+
+Successful OTP authentication creates exactly the same session as password login.
+
+The JSON response contains:
+
+- the public lawyer profile
+- an access token
+- the access-token lifetime
+
+The refresh token is stored in the HttpOnly \`dadyar_refresh_token\` cookie and is not returned in JSON.
+
+### Account restrictions
+
+Suspended and rejected accounts cannot authenticate even if a valid OTP was previously created.
+`,
+
+  request: {
+    body: {
+      required: true,
+
+      content: {
+        "application/json": {
+          schema: OtpLoginSchema,
+        },
+      },
+    },
+  },
+
+  responses: {
+    200: {
+      description: "OTP authentication successful.",
+
+      headers: authCookieHeaders,
+
+      content: {
+        "application/json": {
+          schema: AuthSessionSuccessSchema,
+        },
+      },
+    },
+
+    400: {
+      description:
+        "Invalid request, invalid OTP, expired OTP, or consumed OTP.",
+
+      content: {
+        "application/json": {
+          schema: ApiErrorSchema,
+        },
+      },
+    },
+
+    401: unauthorizedResponse,
+
+    403: forbiddenResponse,
+
+    429: {
+      description:
+        "OTP verification attempts or authentication rate limit exceeded.",
+
+      content: {
+        "application/json": {
+          schema: ApiErrorSchema,
+        },
+      },
+    },
+
+    500: serverErrorResponse,
+  },
+});
+
+// ========================================================
 // POST /auth/refresh
 // ========================================================
 
@@ -474,6 +712,248 @@ Suspended or rejected accounts are denied even if they still possess an otherwis
     403: forbiddenResponse,
 
     404: notFoundResponse,
+
+    500: serverErrorResponse,
+  },
+});
+
+// ========================================================
+// POST /auth/password/change/request
+// ========================================================
+
+openApiRegistry.registerPath({
+  method: "post",
+
+  path: "/auth/password/change/request",
+
+  operationId: "requestPasswordChange",
+
+  tags: ["Authentication"],
+
+  summary: "Request password-change OTP",
+
+  description: `
+Sends a one-time verification code to the authenticated lawyer's registered phone number.
+
+This endpoint requires a valid access token.
+
+### Important
+
+The client does **not** send a phone number.
+
+The backend determines the account from the access token and sends the OTP to the phone number currently registered on that account.
+
+This prevents a user from requesting a password-change code for an arbitrary phone number.
+
+### OTP purpose
+
+The generated OTP is created specifically for:
+
+\`PASSWORD_CHANGE\`
+
+It cannot be used for OTP login or another OTP-protected operation.
+
+### Requirements
+
+The authenticated account must have a phone number.
+
+If the account has no phone number, the request is rejected.
+
+### Response
+
+The response contains:
+
+- \`expiresIn\`: how long the OTP remains valid
+- \`resendAfter\`: how long the user must wait before requesting another code
+
+### Security
+
+This endpoint is protected by:
+
+- access-token authentication
+- HTTP rate limiting
+- per-phone OTP resend cooldown
+`,
+
+  security: [
+    {
+      bearerAuth: [],
+    },
+  ],
+
+  responses: {
+    200: {
+      description: "Password-change OTP sent successfully.",
+
+      headers: noCacheHeaders,
+
+      content: {
+        "application/json": {
+          schema: OtpRequestSuccessSchema,
+        },
+      },
+    },
+
+    400: {
+      description:
+        "The authenticated account does not have a phone number or the request is otherwise invalid.",
+
+      content: {
+        "application/json": {
+          schema: ApiErrorSchema,
+        },
+      },
+    },
+
+    401: unauthorizedResponse,
+
+    403: forbiddenResponse,
+
+    404: notFoundResponse,
+
+    429: {
+      description:
+        "OTP resend cooldown or password-change request rate limit exceeded.",
+
+      content: {
+        "application/json": {
+          schema: ApiErrorSchema,
+        },
+      },
+    },
+
+    502: badGatewayResponse,
+
+    500: serverErrorResponse,
+  },
+});
+
+// ========================================================
+// PATCH /auth/password
+// ========================================================
+
+openApiRegistry.registerPath({
+  method: "patch",
+
+  path: "/auth/password",
+
+  operationId: "changePassword",
+
+  tags: ["Authentication"],
+
+  summary: "Change password using OTP",
+
+  description: `
+Changes the authenticated lawyer's password after verifying a password-change OTP.
+
+This endpoint requires a valid access token.
+
+### Request
+
+The client submits:
+
+- \`code\`: the 6-digit verification code
+- \`newPassword\`: the new account password
+
+The client does **not** submit:
+
+- phone number
+- OTP purpose
+- user ID
+
+Those values are derived by the backend from the authenticated account.
+
+### OTP verification
+
+The submitted code must:
+
+- belong to the authenticated user's registered phone number
+- have been generated for \`PASSWORD_CHANGE\`
+- not be expired
+- not have exceeded the allowed verification attempts
+- not have already been consumed
+
+A successfully verified OTP is consumed immediately and cannot be reused.
+
+### Password
+
+The new password follows the same password requirements used during signup.
+
+### Session security
+
+After the password is changed:
+
+1. all existing refresh-token sessions belonging to the user are revoked
+2. a fresh access token is generated
+3. a fresh refresh token is generated
+4. the new refresh token is stored in the HttpOnly refresh cookie
+
+Previously issued access tokens may remain valid until their normal short expiration time.
+
+### Current session
+
+The current client remains authenticated because a new token pair is returned after the password change.
+`,
+
+  security: [
+    {
+      bearerAuth: [],
+    },
+  ],
+
+  request: {
+    body: {
+      required: true,
+
+      content: {
+        "application/json": {
+          schema: ChangePasswordSchema,
+        },
+      },
+    },
+  },
+
+  responses: {
+    200: {
+      description:
+        "Password changed successfully and a fresh authentication session was issued.",
+
+      headers: authCookieHeaders,
+
+      content: {
+        "application/json": {
+          schema: PasswordChangeSuccessSchema,
+        },
+      },
+    },
+
+    400: {
+      description:
+        "Invalid request, invalid OTP, expired OTP, or missing account phone number.",
+
+      content: {
+        "application/json": {
+          schema: ApiErrorSchema,
+        },
+      },
+    },
+
+    401: unauthorizedResponse,
+
+    403: forbiddenResponse,
+
+    404: notFoundResponse,
+
+    429: {
+      description:
+        "OTP verification attempts or password-change rate limit exceeded.",
+
+      content: {
+        "application/json": {
+          schema: ApiErrorSchema,
+        },
+      },
+    },
 
     500: serverErrorResponse,
   },

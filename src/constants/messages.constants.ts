@@ -289,4 +289,41 @@ notificationNotFound: {
     en: "Notification was not found",
     fa: "اعلان یافت نشد",
   },
+  otpInvalidOrExpired: {
+    en: "The verification code is invalid or expired.",
+    fa: "کد تأیید نامعتبر است یا منقضی شده است.",
+  },
+
+  otpAttemptsExceeded: {
+    en: "Too many verification attempts. Request a new code.",
+    fa: "تعداد تلاش‌های تأیید بیش از حد مجاز است. کد جدیدی درخواست کنید.",
+  },
+
+  otpResendCooldown: {
+    en: "Please wait before requesting another verification code.",
+    fa: "لطفاً برای درخواست مجدد کد تأیید کمی صبر کنید.",
+  },
+
+  otpDeliveryFailed: {
+    en: "Unable to send the verification code.",
+    fa: "ارسال کد تأیید با مشکل مواجه شد.",
+  },
+
+  invalidOtpFormat: {
+    en: "Verification code must be exactly 6 digits.",
+
+    fa: "کد تأیید باید دقیقاً ۶ رقم باشد.",
+  },
+
+  phoneRequiredForPasswordChange: {
+    en: "A phone number is required to change the password.",
+
+    fa: "برای تغییر رمز عبور، ثبت شماره همراه الزامی است.",
+  },
+
+  passwordChangedSuccessfully: {
+    en: "Password changed successfully.",
+
+    fa: "رمز عبور با موفقیت تغییر کرد.",
+  },
 };

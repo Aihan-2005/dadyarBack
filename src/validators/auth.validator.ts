@@ -95,3 +95,38 @@ export const LoginSchema = z
       });
     }
   });
+
+const OtpCodeSchema = z.preprocess(
+  (value) => {
+    if (typeof value === "string") {
+      return normalizeDigits(value.trim());
+    }
+
+    return value;
+  },
+  z.string().regex(/^\d{6}$/, {
+    message: MESSAGES.invalidOtpFormat[LANGUAGE],
+  }),
+);
+
+export const RequestOtpLoginSchema = z
+  .object({
+    phone: PhoneSchema,
+  })
+  .strict();
+
+export const OtpLoginSchema = z
+  .object({
+    phone: PhoneSchema,
+
+    code: OtpCodeSchema,
+  })
+  .strict();
+
+export const ChangePasswordSchema = z
+  .object({
+    code: OtpCodeSchema,
+
+    newPassword: PasswordSchema,
+  })
+  .strict();

@@ -1,6 +1,4 @@
-import type {
-  UpdateQuery,
-} from "mongoose";
+import type { ClientSession, UpdateQuery } from "mongoose";
 
 import {
   DEFAULT_LAWYER_ROLE,
@@ -23,27 +21,15 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
     super(LawyerModel);
   }
 
-  public findByEmail(
-    email: string,
-  ) {
-    return this.model
-      .findOne({ email })
-      .lean<LawyerRecord>()
-      .exec();
+  public findByEmail(email: string) {
+    return this.model.findOne({ email }).lean<LawyerRecord>().exec();
   }
 
-  public findByPhone(
-    phone: string,
-  ) {
-    return this.model
-      .findOne({ phone })
-      .lean<LawyerRecord>()
-      .exec();
+  public findByPhone(phone: string) {
+    return this.model.findOne({ phone }).lean<LawyerRecord>().exec();
   }
 
-  public findByLicenseNumber(
-    licenseNumber: string,
-  ) {
+  public findByLicenseNumber(licenseNumber: string) {
     return this.model
       .findOne({
         licenseNumber,
@@ -52,34 +38,19 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
       .exec();
   }
 
-  public findById(
-    id: string,
-  ) {
-    return this.model
-      .findById(
-        this.toObjectId(id),
-      )
-      .lean<LawyerRecord>()
-      .exec();
+  public findById(id: string) {
+    return this.model.findById(this.toObjectId(id)).lean<LawyerRecord>().exec();
   }
 
-  public findAccessContextById(
-    id: string,
-  ) {
+  public findAccessContextById(id: string) {
     return this.model
-      .findById(
-        this.toObjectId(id),
-      )
-      .select(
-        "_id role status",
-      )
+      .findById(this.toObjectId(id))
+      .select("_id role status")
       .lean<LawyerAccessContext>()
       .exec();
   }
 
-  public findAuthByEmail(
-    email: string,
-  ) {
+  public findAuthByEmail(email: string) {
     return this.model
       .findOne({ email })
       .select("+password")
@@ -87,9 +58,7 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
       .exec();
   }
 
-  public findAuthByPhone(
-    phone: string,
-  ) {
+  public findAuthByPhone(phone: string) {
     return this.model
       .findOne({ phone })
       .select("+password")
@@ -97,17 +66,13 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
       .exec();
   }
 
-  public create(
-    data: CreateLawyerInput,
-  ) {
+  public create(data: CreateLawyerInput) {
     return this.model.create({
       ...data,
 
-      role:
-        DEFAULT_LAWYER_ROLE,
+      role: DEFAULT_LAWYER_ROLE,
 
-      status:
-        DEFAULT_LAWYER_STATUS,
+      status: DEFAULT_LAWYER_STATUS,
 
       emailVerifiedAt: null,
       phoneVerifiedAt: null,
@@ -126,15 +91,11 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
     });
   }
 
-  public updateLastLogin(
-    id: string,
-    lastLoginAt: Date,
-  ) {
+  public updateLastLogin(id: string, lastLoginAt: Date) {
     return this.model
       .updateOne(
         {
-          _id:
-            this.toObjectId(id),
+          _id: this.toObjectId(id),
         },
 
         {
@@ -146,20 +107,35 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
       .exec();
   }
 
-  public updateProfileById(
+  public updateProfileById(id: string, update: UpdateQuery<Lawyer>) {
+    return this.model
+      .findByIdAndUpdate(this.toObjectId(id), update, {
+        new: true,
+        runValidators: true,
+      })
+      .lean<LawyerRecord>()
+      .exec();
+  }
+
+  public updatePasswordById(
     id: string,
-    update: UpdateQuery<Lawyer>,
+    password: string,
+    session?: ClientSession,
   ) {
     return this.model
-      .findByIdAndUpdate(
-        this.toObjectId(id),
-        update,
+      .updateOne(
         {
-          new: true,
-          runValidators: true,
+          _id: this.toObjectId(id),
+        },
+        {
+          $set: {
+            password,
+          },
+        },
+        {
+          session,
         },
       )
-      .lean<LawyerRecord>()
       .exec();
   }
 }

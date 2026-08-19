@@ -27,12 +27,27 @@ import { LawyerRepository } from "../repositories/lawyer.repository";
 
 import { TokenService } from "./token.service";
 
+import { OTP_PURPOSES } from "../constants/otp.constants";
+
+import type {
+  ChangePasswordInput,
+  OtpLoginInput,
+  RequestOtpLoginInput,
+} from "../interfaces/auth.interface";
+
+import { OtpService } from "./otp.service";
+import mongoose from "mongoose";
+
 const LANGUAGE = env.LANGUAGE;
 
 export class AuthService {
   private readonly tokenService = new TokenService();
 
-  constructor(private readonly repo: LawyerRepository) {}
+  constructor(
+    private readonly repo: LawyerRepository,
+
+    private readonly otpService: OtpService = new OtpService(),
+  ) {}
 
   private normalizeEmail(email?: string): string | undefined {
     return email?.trim().toLowerCase();
@@ -123,6 +138,119 @@ export class AuthService {
       phone: this.normalizePhone(input.phone),
 
       password: hashedPassword,
+    };
+  }
+
+  private async getPasswordChangeAccount(lawyerId: string) {
+    const lawyer = await this.repo.findById(lawyerId);
+
+    if (!lawyer) {
+      throw new HttpException(
+        404,
+        MESSAGES.noUserWithId[LANGUAGE],
+        "USER_NOT_FOUND",
+      );
+    }
+
+    const role = resolveLawyerRole(lawyer.role);
+
+    const status = resolveLawyerStatus(lawyer.status);
+
+    this.assertAccountCanAuthenticate(role, status);
+
+    if (!lawyer.phone) {
+      throw new HttpException(
+        400,
+        MESSAGES.phoneRequiredForPasswordChange[LANGUAGE],
+        "PHONE_REQUIRED_FOR_PASSWORD_CHANGE",
+      );
+    }
+
+    return {
+      lawyer,
+      phone: this.normalizePhone(lawyer.phone)!,
+    };
+  }
+
+  public async requestOtpLogin(input: RequestOtpLoginInput) {
+    const phone = this.normalizePhone(input.phone)!;
+
+    const account = await this.repo.findByPhone(phone);
+
+    let canReceiveOtp = false;
+
+    if (account) {
+      const role = resolveLawyerRole(account.role);
+
+      const status = resolveLawyerStatus(account.status);
+
+      canReceiveOtp =
+        role === LAWYER_ROLES.LAWYER &&
+        status !== LAWYER_STATUSES.SUSPENDED &&
+        status !== LAWYER_STATUSES.REJECTED;
+    }
+
+    return this.otpService.createOtp(
+      {
+        phone,
+
+        purpose: OTP_PURPOSES.OTP_LOGIN,
+      },
+      {
+        deliver: canReceiveOtp,
+      },
+    );
+  }
+
+  public async loginWithOtp(input: OtpLoginInput) {
+    const phone = this.normalizePhone(input.phone)!;
+
+    await this.otpService.verifyOtp({
+      phone,
+
+      purpose: OTP_PURPOSES.OTP_LOGIN,
+
+      code: input.code,
+    });
+
+    const authUser = await this.repo.findByPhone(phone);
+
+    if (!authUser) {
+      throw new HttpException(
+        401,
+        MESSAGES.invalidCredentials[LANGUAGE],
+        "INVALID_CREDENTIALS",
+      );
+    }
+
+    const role = resolveLawyerRole(authUser.role);
+
+    const status = resolveLawyerStatus(authUser.status);
+
+    this.assertAccountCanAuthenticate(role, status);
+
+    const userId = authUser._id.toString();
+
+    const lastLoginAt = new Date();
+
+    await this.repo.updateLastLogin(userId, lastLoginAt);
+
+    const tokenPair = await this.tokenService.issueTokenPair(userId);
+
+    const user = toPublicLawyerDTO({
+      ...authUser,
+
+      role,
+
+      status,
+
+      lastLoginAt,
+    });
+
+    return {
+      user,
+
+      ...tokenPair,
     };
   }
 
@@ -249,5 +377,69 @@ export class AuthService {
     }
 
     return toPublicLawyerDTO(lawyer);
+  }
+
+  public async requestPasswordChange(lawyerId: string) {
+    const { phone } = await this.getPasswordChangeAccount(lawyerId);
+
+    return this.otpService.createOtp({
+      phone,
+
+      purpose: OTP_PURPOSES.PASSWORD_CHANGE,
+    });
+  }
+
+  public async changePassword(lawyerId: string, input: ChangePasswordInput) {
+    const { phone } = await this.getPasswordChangeAccount(lawyerId);
+
+    await this.otpService.verifyOtp({
+      phone,
+
+      purpose: OTP_PURPOSES.PASSWORD_CHANGE,
+
+      code: input.code,
+    });
+
+    const hashedPassword = await this.hashPassword(input.newPassword);
+
+    const session = await mongoose.startSession();
+
+    try {
+      let tokenPair: Awaited<
+        ReturnType<TokenService["issueTokenPair"]>
+      > | null = null;
+
+      await session.withTransaction(async () => {
+        const result = await this.repo.updatePasswordById(
+          lawyerId,
+          hashedPassword,
+          session,
+        );
+
+        if (result.matchedCount === 0) {
+          throw new HttpException(
+            404,
+            MESSAGES.noUserWithId[LANGUAGE],
+            "USER_NOT_FOUND",
+          );
+        }
+
+        await this.tokenService.revokeAllUserSessions(lawyerId, session);
+
+        tokenPair = await this.tokenService.issueTokenPair(lawyerId, session);
+      });
+
+      if (!tokenPair) {
+        throw new HttpException(
+          500,
+          MESSAGES.serverError[LANGUAGE],
+          "PASSWORD_CHANGE_FAILED",
+        );
+      }
+
+      return tokenPair;
+    } finally {
+      await session.endSession();
+    }
   }
 }

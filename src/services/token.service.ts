@@ -2,6 +2,8 @@ import { randomUUID } from "crypto";
 
 import type { Request } from "express";
 
+import type { ClientSession } from "mongoose";
+
 import jwt, { type JwtPayload } from "jsonwebtoken";
 
 import { env } from "../config/env";
@@ -75,7 +77,10 @@ export class TokenService {
     );
   }
 
-  public async generateRefreshToken(userId: string): Promise<string> {
+  public async generateRefreshToken(
+    userId: string,
+    session?: ClientSession,
+  ): Promise<string> {
     const jti = randomUUID();
 
     const refreshTokenTTLSeconds = env.REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60;
@@ -100,15 +105,18 @@ export class TokenService {
       },
     );
 
-    await this.repo.create(userId, jti, expiresAt);
+    await this.repo.create(userId, jti, expiresAt, session);
 
     return refreshToken;
   }
 
-  public async issueTokenPair(userId: string): Promise<TokenPair> {
+  public async issueTokenPair(
+    userId: string,
+    session?: ClientSession,
+  ): Promise<TokenPair> {
     const accessToken = this.generateAccessToken(userId);
 
-    const refreshToken = await this.generateRefreshToken(userId);
+    const refreshToken = await this.generateRefreshToken(userId, session);
 
     return {
       accessToken,
@@ -205,5 +213,11 @@ export class TokenService {
 
       throw error;
     }
+  }
+  public async revokeAllUserSessions(
+    userId: string,
+    session?: ClientSession,
+  ): Promise<void> {
+    await this.repo.deleteAllByUserId(userId, session);
   }
 }

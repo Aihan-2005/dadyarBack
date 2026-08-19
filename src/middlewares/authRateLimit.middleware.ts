@@ -1,92 +1,111 @@
-import type {
-  Request,
-  Response,
-} from "express";
+import type { Request, Response } from "express";
 
-import {
-  rateLimit,
-} from "express-rate-limit";
+import { rateLimit } from "express-rate-limit";
 
-import {
-  env,
-} from "../config/env";
+import { env } from "../config/env";
 
 const rateLimitMessage =
   env.LANGUAGE === "fa"
     ? "تعداد درخواست‌ها بیش از حد مجاز است؛ کمی بعد دوباره تلاش کنید"
     : "Too many requests; please try again later";
 
-function sendRateLimitResponse(
-  _req: Request,
-  res: Response,
-) {
-  return res
-    .status(429)
-    .json({
-      success: false,
+function sendRateLimitResponse(_req: Request, res: Response) {
+  return res.status(429).json({
+    success: false,
 
-      code:
-        "TOO_MANY_REQUESTS",
+    code: "TOO_MANY_REQUESTS",
 
-      message:
-        rateLimitMessage,
-    });
+    message: rateLimitMessage,
+  });
 }
 
+export const loginRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
 
-export const loginRateLimiter =
-  rateLimit({
-    windowMs:
-      15 * 60 * 1000,
+  max: 10,
 
-    max:
-      10,
+  standardHeaders: true,
 
-    standardHeaders:
-      true,
+  legacyHeaders: false,
 
-    legacyHeaders:
-      false,
+  skipSuccessfulRequests: true,
 
-    skipSuccessfulRequests:
-      true,
+  handler: sendRateLimitResponse,
+});
 
-    handler:
-      sendRateLimitResponse,
-  });
+export const signupRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
 
-export const signupRateLimiter =
-  rateLimit({
-    windowMs:
-      60 * 60 * 1000,
+  max: 5,
 
-    max:
-      5,
+  standardHeaders: true,
 
-    standardHeaders:
-      true,
+  legacyHeaders: false,
 
-    legacyHeaders:
-      false,
+  handler: sendRateLimitResponse,
+});
 
-    handler:
-      sendRateLimitResponse,
-  });
+export const refreshRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
 
-export const refreshRateLimiter =
-  rateLimit({
-    windowMs:
-      15 * 60 * 1000,
+  max: 30,
 
-    max:
-      30,
+  standardHeaders: true,
 
-    standardHeaders:
-      true,
+  legacyHeaders: false,
 
-    legacyHeaders:
-      false,
+  handler: sendRateLimitResponse,
+});
 
-    handler:
-      sendRateLimitResponse,
-  });
+export const otpRequestRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+
+  max: 10,
+
+  standardHeaders: true,
+
+  legacyHeaders: false,
+
+  handler: sendRateLimitResponse,
+});
+
+export const otpLoginRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+
+  max: 20,
+
+  standardHeaders: true,
+
+  legacyHeaders: false,
+
+  skipSuccessfulRequests: true,
+
+  handler: sendRateLimitResponse,
+});
+
+// NOTE: seperate from the above rate limter because we don't want limit an ip from changing the password just because he logged in
+export const passwordChangeRequestRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+
+  max: 5,
+
+  standardHeaders: true,
+
+  legacyHeaders: false,
+
+  handler: sendRateLimitResponse,
+});
+
+export const passwordChangeRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+
+  max: 10,
+
+  standardHeaders: true,
+
+  legacyHeaders: false,
+
+  skipSuccessfulRequests: true,
+
+  handler: sendRateLimitResponse,
+});
