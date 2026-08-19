@@ -1,786 +1,483 @@
-import {
-  Types,
-} from "mongoose";
+import { Buffer } from "node:buffer";
 
-import {
-  z,
-} from "zod";
+import { Types } from "mongoose";
+import { z } from "zod";
 
-import {
-  env,
-} from "../config/env";
+import { env } from "../config/env";
+import { MESSAGES } from "../constants/messages.constants";
 
-import {
-  MESSAGES,
-} from "../constants/messages.constants";
+const LANGUAGE = env.LANGUAGE;
 
-const LANGUAGE =
-  env.LANGUAGE;
+ 
 
-/*
-|--------------------------------------------------------------------------
-| Helpers
-|--------------------------------------------------------------------------
-*/
-
-function normalizeDigits(
-  value:
-    string
-): string {
-  const persianDigits =
-    "۰۱۲۳۴۵۶۷۸۹";
-
-  const arabicDigits =
-    "٠١٢٣٤٥٦٧٨٩";
+function normalizeDigits(value: string): string {
+  const persianDigits = "۰۱۲۳۴۵۶۷۸۹";
+  const arabicDigits = "٠١٢٣٤٥٦٧٨٩";
 
   return value
-    .replace(
-      /[۰-۹]/g,
-      (
-        character
-      ) =>
-        String(
-          persianDigits.indexOf(
-            character
-          )
-        )
+    .replace(/[۰-۹]/g, (character) =>
+      String(persianDigits.indexOf(character)),
     )
-    .replace(
-      /[٠-٩]/g,
-      (
-        character
-      ) =>
-        String(
-          arabicDigits.indexOf(
-            character
-          )
-        )
+    .replace(/[٠-٩]/g, (character) =>
+      String(arabicDigits.indexOf(character)),
     );
 }
 
-/*
-|--------------------------------------------------------------------------
-| Required Full Name
-|--------------------------------------------------------------------------
-*/
+function optionalTrimmedString(value: unknown): unknown {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
 
-const RequiredFullNameSchema =
-  z
-    .string()
-    .trim()
-    .min(1)
-    .max(200);
+  if (typeof value !== "string") {
+    return value;
+  }
 
-/*
-|--------------------------------------------------------------------------
-| Phone
-|--------------------------------------------------------------------------
-*/
+  const trimmed = value.trim();
 
-const PhoneSchema =
-  z.preprocess(
-    (
-      value
-    ) => {
-      if (
-        typeof value ===
-        "string"
-      ) {
-        return normalizeDigits(
-          value.trim()
-        );
-      }
+  return trimmed === "" ? undefined : trimmed;
+}
 
+function clearableTrimmedString(value: unknown): unknown {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (value === null) {
+    return null;
+  }
+
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  const trimmed = value.trim();
+
+  return trimmed === "" ? null : trimmed;
+}
+
+ 
+const RequiredFullNameSchema = z.string().trim().min(1).max(200);
+
+ 
+
+const PhoneSchema = z.preprocess(
+  (value) => {
+    if (typeof value !== "string") {
       return value;
-    },
+    }
 
-    z
-      .string()
-      .regex(
-        /^09\d{9}$/,
-        {
-          message:
-            MESSAGES
-              .invalidPhoneFormat[
-              LANGUAGE
-            ],
-        }
-      )
-  );
+    return normalizeDigits(value.trim());
+  },
 
-/*
-|--------------------------------------------------------------------------
-| Optional National ID
-|--------------------------------------------------------------------------
-|
-| این Schema توسط case.validator.ts هم استفاده می‌شود.
-|--------------------------------------------------------------------------
-*/
+  z.string().regex(/^09\d{9}$/, {
+    message: MESSAGES.invalidPhoneFormat[LANGUAGE],
+  }),
+);
 
-export const OptionalNationalIdSchema =
-  z.preprocess(
-    (
-      value
-    ) => {
-      if (
-        value ===
-          undefined ||
-        value ===
-          null
-      ) {
-        return undefined;
-      }
+ 
+export const OptionalNationalIdSchema = z.preprocess(
+  (value) => {
+    if (value === undefined || value === null) {
+      return undefined;
+    }
 
-      if (
-        typeof value !==
-        "string"
-      ) {
-        return value;
-      }
-
-      const normalized =
-        normalizeDigits(
-          value.trim()
-        );
-
-      return normalized ===
-        ""
-        ? undefined
-        : normalized;
-    },
-
-    z
-      .string()
-      .regex(
-        /^\d{10}$/
-      )
-      .optional()
-  );
-
-/*
-|--------------------------------------------------------------------------
-| Optional Home Number
-|--------------------------------------------------------------------------
-*/
-
-const OptionalHomeNumberSchema =
-  z.preprocess(
-    (
-      value
-    ) => {
-      if (
-        value ===
-          undefined ||
-        value ===
-          null
-      ) {
-        return undefined;
-      }
-
-      if (
-        typeof value !==
-        "string"
-      ) {
-        return value;
-      }
-
-      const normalized =
-        normalizeDigits(
-          value.trim()
-        );
-
-      return normalized ===
-        ""
-        ? undefined
-        : normalized;
-    },
-
-    z
-      .string()
-      .max(30)
-      .optional()
-  );
-
-/*
-|--------------------------------------------------------------------------
-| Optional Address
-|--------------------------------------------------------------------------
-*/
-
-const OptionalAddressSchema =
-  z.preprocess(
-    (
-      value
-    ) => {
-      if (
-        value ===
-          undefined ||
-        value ===
-          null
-      ) {
-        return undefined;
-      }
-
-      if (
-        typeof value ===
-        "string"
-      ) {
-        const trimmed =
-          value.trim();
-
-        return trimmed ===
-          ""
-          ? undefined
-          : trimmed;
-      }
-
+    if (typeof value !== "string") {
       return value;
-    },
+    }
 
-    z
-      .string()
-      .max(500)
-      .optional()
-  );
+    const normalized = normalizeDigits(value.trim());
 
-/*
-|--------------------------------------------------------------------------
-| Optional Birthday
-|--------------------------------------------------------------------------
-*/
+    return normalized === "" ? undefined : normalized;
+  },
 
-const OptionalBirthdaySchema =
-  z.preprocess(
-    (
-      value
-    ) => {
-      if (
-        value ===
-          undefined ||
-        value ===
-          null ||
-        value ===
-          ""
-      ) {
-        return undefined;
-      }
+  z.string().regex(/^\d{10}$/).optional(),
+);
 
+ 
+
+const OptionalHomeNumberSchema = z.preprocess(
+  (value) => {
+    if (value === undefined || value === null) {
+      return undefined;
+    }
+
+    if (typeof value !== "string") {
       return value;
-    },
+    }
 
-    z.coerce
-      .date()
-      .refine(
-        (
-          date
-        ) =>
-          date.getTime() <=
-          Date.now(),
-        {
-          message:
-            MESSAGES
-              .notYetBorn[
-              LANGUAGE
-            ],
-        }
-      )
-      .optional()
-  );
+    const normalized = normalizeDigits(value.trim());
 
-/*
-|--------------------------------------------------------------------------
-| Optional Represent
-|--------------------------------------------------------------------------
-*/
+    return normalized === "" ? undefined : normalized;
+  },
 
-const OptionalRepresentSchema =
-  z.preprocess(
-    (
-      value
-    ) => {
-      if (
-        value ===
-          undefined ||
-        value ===
-          null ||
-        value ===
-          ""
-      ) {
-        return undefined;
-      }
+  z.string().max(30).optional(),
+);
 
-      if (
-        typeof value ===
-        "string"
-      ) {
-        const trimmed =
-          value.trim();
+ 
+const OptionalBirthdaySchema = z.preprocess(
+  (value) => {
+    if (
+      value === undefined ||
+      value === null ||
+      value === ""
+    ) {
+      return undefined;
+    }
 
-        return trimmed ===
-          ""
-          ? undefined
-          : trimmed;
-      }
+    return value;
+  },
 
-      return value;
-    },
-
-    z
-      .string()
-      .max(200)
-      .optional()
-  );
-
-/*
-|--------------------------------------------------------------------------
-| Clearable National ID
-|--------------------------------------------------------------------------
-|
-| در PATCH:
-|
-| undefined = فیلد دست نخورَد
-| null      = فیلد حذف شود
-|--------------------------------------------------------------------------
-*/
-
-const ClearableNationalIdSchema =
-  z.preprocess(
-    (
-      value
-    ) => {
-      if (
-        value ===
-        undefined
-      ) {
-        return undefined;
-      }
-
-      if (
-        value ===
-        null
-      ) {
-        return null;
-      }
-
-      if (
-        typeof value !==
-        "string"
-      ) {
-        return value;
-      }
-
-      const normalized =
-        normalizeDigits(
-          value.trim()
-        );
-
-      return normalized ===
-        ""
-        ? null
-        : normalized;
-    },
-
-    z
-      .union([
-        z.null(),
-
-        z
-          .string()
-          .regex(
-            /^\d{10}$/
-          ),
-      ])
-      .optional()
-  );
-
-/*
-|--------------------------------------------------------------------------
-| Clearable Home Number
-|--------------------------------------------------------------------------
-*/
-
-const ClearableHomeNumberSchema =
-  z.preprocess(
-    (
-      value
-    ) => {
-      if (
-        value ===
-        undefined
-      ) {
-        return undefined;
-      }
-
-      if (
-        value ===
-        null
-      ) {
-        return null;
-      }
-
-      if (
-        typeof value !==
-        "string"
-      ) {
-        return value;
-      }
-
-      const normalized =
-        normalizeDigits(
-          value.trim()
-        );
-
-      return normalized ===
-        ""
-        ? null
-        : normalized;
-    },
-
-    z
-      .union([
-        z.null(),
-
-        z
-          .string()
-          .max(30),
-      ])
-      .optional()
-  );
-
-/*
-|--------------------------------------------------------------------------
-| Clearable Address
-|--------------------------------------------------------------------------
-*/
-
-const ClearableAddressSchema =
-  z.preprocess(
-    (
-      value
-    ) => {
-      if (
-        value ===
-        undefined
-      ) {
-        return undefined;
-      }
-
-      if (
-        value ===
-        null
-      ) {
-        return null;
-      }
-
-      if (
-        typeof value ===
-        "string"
-      ) {
-        const trimmed =
-          value.trim();
-
-        return trimmed ===
-          ""
-          ? null
-          : trimmed;
-      }
-
-      return value;
-    },
-
-    z
-      .union([
-        z.null(),
-
-        z
-          .string()
-          .max(500),
-      ])
-      .optional()
-  );
-
-/*
-|--------------------------------------------------------------------------
-| Clearable Represent
-|--------------------------------------------------------------------------
-*/
-
-const ClearableRepresentSchema =
-  z.preprocess(
-    (
-      value
-    ) => {
-      if (
-        value ===
-        undefined
-      ) {
-        return undefined;
-      }
-
-      if (
-        value ===
-        null
-      ) {
-        return null;
-      }
-
-      if (
-        typeof value ===
-        "string"
-      ) {
-        const trimmed =
-          value.trim();
-
-        return trimmed ===
-          ""
-          ? null
-          : trimmed;
-      }
-
-      return value;
-    },
-
-    z
-      .union([
-        z.null(),
-
-        z
-          .string()
-          .max(200),
-      ])
-      .optional()
-  );
-
-/*
-|--------------------------------------------------------------------------
-| Clearable Birthday
-|--------------------------------------------------------------------------
-*/
-
-const ClearableBirthdaySchema =
-  z.preprocess(
-    (
-      value
-    ) => {
-      if (
-        value ===
-        undefined
-      ) {
-        return undefined;
-      }
-
-      if (
-        value ===
-          null ||
-        value ===
-          ""
-      ) {
-        return null;
-      }
-
-      return value;
-    },
-
-    z
-      .union([
-        z.null(),
-
-        z.coerce
-          .date()
-          .refine(
-            (
-              date
-            ) =>
-              date.getTime() <=
-              Date.now(),
-            {
-              message:
-                MESSAGES
-                  .notYetBorn[
-                  LANGUAGE
-                ],
-            }
-          ),
-      ])
-      .optional()
-  );
-
-/*
-|--------------------------------------------------------------------------
-| Mongo Object ID
-|--------------------------------------------------------------------------
-*/
-
-export const MongoIdSchema =
-  z
-    .string()
-    .trim()
+  z.coerce
+    .date()
     .refine(
-      (
-        value
-      ) =>
-        Types.ObjectId.isValid(
-          value
-        ),
+      (date) =>
+        date.getTime() <=
+        Date.now(),
       {
         message:
-          MESSAGES
-            .invalidObjectId[
+          MESSAGES.notYetBorn[
             LANGUAGE
           ],
-      }
-    );
+      },
+    )
+    .optional(),
+);
 
-/*
-|--------------------------------------------------------------------------
-| Create Client
-|--------------------------------------------------------------------------
-*/
+ 
 
-const ClientBodySchema =
+const OptionalAddressSchema = z.preprocess(
+  optionalTrimmedString,
+
+  z.string().max(500).optional(),
+);
+
+const OptionalRepresentSchema = z.preprocess(
+  optionalTrimmedString,
+
+  z.string().max(200).optional(),
+);
+
+const OptionalDescriptionSchema = z.preprocess(
+  optionalTrimmedString,
+
+  z.string().max(1000).optional(),
+);
+
+ 
+
+const OptionalPersonalPasswordSchema = z.preprocess(
+  optionalTrimmedString,
+
   z
-    .object({
-      fullName:
-        RequiredFullNameSchema,
-
-      phone:
-        PhoneSchema,
-
-      nationalId:
-        OptionalNationalIdSchema,
-
-      homeNumber:
-        OptionalHomeNumberSchema,
-
-      birthday:
-        OptionalBirthdaySchema,
-
-      homeAddress:
-        OptionalAddressSchema,
-
-      represent:
-        OptionalRepresentSchema,
+    .string()
+    .min(6, {
+      message:
+        "Personal password must be at least 6 characters.",
     })
-    .strict();
+    .max(64, {
+      message:
+        "Personal password cannot exceed 64 characters.",
+    })
+    .refine(
+      (value) =>
+        Buffer.byteLength(
+          value,
+          "utf8",
+        ) <= 72,
+      {
+        message:
+          "Personal password cannot exceed bcrypt's 72-byte UTF-8 limit.",
+      },
+    )
+    .optional(),
+);
 
-export const CreateClientSchema =
-  ClientBodySchema;
+ 
 
-/*
-|--------------------------------------------------------------------------
-| Update Client
-|--------------------------------------------------------------------------
-*/
+const ClearableNationalIdSchema = z.preprocess(
+  (value) => {
+    if (value === undefined) {
+      return undefined;
+    }
 
-export const UpdateClientSchema =
+    if (value === null) {
+      return null;
+    }
+
+    if (typeof value !== "string") {
+      return value;
+    }
+
+    const normalized = normalizeDigits(value.trim());
+
+    return normalized === "" ? null : normalized;
+  },
+
   z
-    .object({
-      fullName:
-        RequiredFullNameSchema
-          .optional(),
+    .union([
+      z.null(),
+      z.string().regex(/^\d{10}$/),
+    ])
+    .optional(),
+);
 
-      phone:
-        PhoneSchema
-          .optional(),
+ 
 
-      nationalId:
-        ClearableNationalIdSchema,
+const ClearableHomeNumberSchema = z.preprocess(
+  (value) => {
+    if (value === undefined) {
+      return undefined;
+    }
 
-      homeNumber:
-        ClearableHomeNumberSchema,
+    if (value === null) {
+      return null;
+    }
 
-      birthday:
-        ClearableBirthdaySchema,
+    if (typeof value !== "string") {
+      return value;
+    }
 
-      homeAddress:
-        ClearableAddressSchema,
+    const normalized = normalizeDigits(value.trim());
 
-      represent:
-        ClearableRepresentSchema,
-    })
-    .strict()
-    .superRefine(
-      (
-        data,
-        context
-      ) => {
-        if (
-          Object.keys(
-            data
-          ).length ===
-          0
-        ) {
-          context.addIssue({
-            code:
-              "custom",
+    return normalized === "" ? null : normalized;
+  },
 
+  z
+    .union([
+      z.null(),
+      z.string().max(30),
+    ])
+    .optional(),
+);
+
+ 
+const ClearableBirthdaySchema = z.preprocess(
+  (value) => {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    if (
+      value === null ||
+      value === ""
+    ) {
+      return null;
+    }
+
+    return value;
+  },
+
+  z
+    .union([
+      z.null(),
+
+      z.coerce
+        .date()
+        .refine(
+          (date) =>
+            date.getTime() <=
+            Date.now(),
+          {
             message:
-              MESSAGES
-                .noClientFieldFound[
+              MESSAGES.notYetBorn[
                 LANGUAGE
               ],
-          });
-        }
+          },
+        ),
+    ])
+    .optional(),
+);
+
+ 
+const ClearableAddressSchema = z.preprocess(
+  clearableTrimmedString,
+
+  z
+    .union([
+      z.null(),
+      z.string().max(500),
+    ])
+    .optional(),
+);
+
+const ClearableRepresentSchema = z.preprocess(
+  clearableTrimmedString,
+
+  z
+    .union([
+      z.null(),
+      z.string().max(200),
+    ])
+    .optional(),
+);
+
+const ClearableDescriptionSchema = z.preprocess(
+  clearableTrimmedString,
+
+  z
+    .union([
+      z.null(),
+      z.string().max(1000),
+    ])
+    .optional(),
+);
+ 
+
+export const MongoIdSchema = z
+  .string()
+  .trim()
+  .refine(
+    (value) =>
+      Types.ObjectId.isValid(
+        value,
+      ),
+    {
+      message:
+        MESSAGES.invalidObjectId[
+          LANGUAGE
+        ],
+    },
+  );
+
+ 
+
+export const CreateClientSchema = z
+  .object({
+    fullName:
+      RequiredFullNameSchema,
+
+    phone:
+      PhoneSchema,
+
+    nationalId:
+      OptionalNationalIdSchema,
+
+    homeNumber:
+      OptionalHomeNumberSchema,
+
+    birthday:
+      OptionalBirthdaySchema,
+
+    homeAddress:
+      OptionalAddressSchema,
+
+    represent:
+      OptionalRepresentSchema,
+
+    description:
+      OptionalDescriptionSchema,
+
+    
+    personalPassword:
+      OptionalPersonalPasswordSchema,
+  })
+  .strict();
+
+ 
+
+export const UpdateClientSchema = z
+  .object({
+    fullName:
+      RequiredFullNameSchema
+        .optional(),
+
+    phone:
+      PhoneSchema
+        .optional(),
+
+    nationalId:
+      ClearableNationalIdSchema,
+
+    homeNumber:
+      ClearableHomeNumberSchema,
+
+    birthday:
+      ClearableBirthdaySchema,
+
+    homeAddress:
+      ClearableAddressSchema,
+
+    represent:
+      ClearableRepresentSchema,
+
+    description:
+      ClearableDescriptionSchema,
+
+   
+    personalPassword:
+      OptionalPersonalPasswordSchema,
+  })
+  .strict()
+  .superRefine(
+    (
+      data,
+      context,
+    ) => {
+      const hasAtLeastOneEffectiveField =
+        Object.values(
+          data,
+        ).some(
+          (value) =>
+            value !==
+            undefined,
+        );
+
+      if (
+        !hasAtLeastOneEffectiveField
+      ) {
+        context.addIssue({
+          code:
+            "custom",
+
+          message:
+            MESSAGES.noClientFieldFound[
+              LANGUAGE
+            ],
+        });
       }
-    );
+    },
+  );
 
-/*
-|--------------------------------------------------------------------------
-| Client Params
-|--------------------------------------------------------------------------
-*/
+ 
 
-export const ParamClientIdSchema =
-  z
-    .object({
-      clientId:
-        MongoIdSchema,
-    })
-    .strict();
+export const ParamClientIdSchema = z
+  .object({
+    clientId:
+      MongoIdSchema,
+  })
+  .strict();
+ 
 
-/*
-|--------------------------------------------------------------------------
-| Lookup Client By Phone
-|--------------------------------------------------------------------------
-*/
+export const ClientPhoneQuerySchema = z
+  .object({
+    phone:
+      PhoneSchema,
+  })
+  .strict();
 
-export const ClientPhoneQuerySchema =
-  z
-    .object({
-      phone:
-        PhoneSchema,
-    })
-    .strict();
+ 
+export const ListClientsQuerySchema = z
+  .object({
+    search:
+      z
+        .string()
+        .trim()
+        .max(100)
+        .optional(),
 
-/*
-|--------------------------------------------------------------------------
-| List Clients
-|--------------------------------------------------------------------------
-*/
+    page:
+      z.coerce
+        .number()
+        .int()
+        .min(1)
+        .default(1),
 
-export const ListClientsQuerySchema =
-  z
-    .object({
-      search:
-        z
-          .string()
-          .trim()
-          .max(100)
-          .optional(),
-
-      page:
-        z.coerce
-          .number()
-          .int()
-          .min(1)
-          .default(1),
-
-      limit:
-        z.coerce
-          .number()
-          .int()
-          .min(1)
-          .max(100)
-          .default(20),
-    })
-    .strict();
+    limit:
+      z.coerce
+        .number()
+        .int()
+        .min(1)
+        .max(100)
+        .default(20),
+  })
+  .strict();

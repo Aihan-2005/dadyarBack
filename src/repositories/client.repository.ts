@@ -1,66 +1,109 @@
-import type { QueryFilter, UpdateQuery, ClientSession } from "mongoose";
+import type {
+  ClientSession,
+  QueryFilter,
+  UpdateQuery,
+} from "mongoose";
 
 import type {
   Client,
-  ClientCreatePayload,
   ClientRecord,
+  CreateClientRecordInput,
   FindClientsOptions,
 } from "../interfaces/client.interface";
 
 import ClientModel from "../models/client.model";
 
-import { BaseRepository } from "./base.repository";
+import {
+  BaseRepository,
+} from "./base.repository";
 
 export class ClientRepository extends BaseRepository<Client> {
   constructor() {
-    super(ClientModel);
+    super(
+      ClientModel,
+    );
   }
 
-  // ---------------- Helpers ----------------
+ 
 
-  private escapeRegex(value: string) {
-    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  private escapeRegex(
+    value:
+      string,
+  ) {
+    return value.replace(
+      /[.*+?^${}()|[\]\\]/g,
+
+      "\\$&",
+    );
   }
 
   private buildSearchQuery(
-    lawyerId: string,
-    search?: string,
+    lawyerId:
+      string,
+
+    search?:
+      string,
   ): QueryFilter<Client> {
-    const query: QueryFilter<Client> = {
-      lawyerId: this.toObjectId(lawyerId),
-    };
+    const query:
+      QueryFilter<Client> = {
+        lawyerId:
+          this.toObjectId(
+            lawyerId,
+          ),
+      };
 
-    const normalizedSearch = search?.trim();
+    const normalizedSearch =
+      search?.trim();
 
-    if (!normalizedSearch) {
+    if (
+      !normalizedSearch
+    ) {
       return query;
     }
 
-    const safeSearch = this.escapeRegex(normalizedSearch);
+    const safeSearch =
+      this.escapeRegex(
+        normalizedSearch,
+      );
 
     query.$or = [
       {
         fullName: {
-          $regex: safeSearch,
-          $options: "i",
+          $regex:
+            safeSearch,
+
+          $options:
+            "i",
         },
       },
+
       {
         phone: {
-          $regex: safeSearch,
-          $options: "i",
+          $regex:
+            safeSearch,
+
+          $options:
+            "i",
         },
       },
+
       {
         nationalId: {
-          $regex: safeSearch,
-          $options: "i",
+          $regex:
+            safeSearch,
+
+          $options:
+            "i",
         },
       },
+
       {
         homeNumber: {
-          $regex: safeSearch,
-          $options: "i",
+          $regex:
+            safeSearch,
+
+          $options:
+            "i",
         },
       },
     ];
@@ -68,124 +111,281 @@ export class ClientRepository extends BaseRepository<Client> {
     return query;
   }
 
-  // ---------------- Finding Methods ----------------
+ 
 
-  public findByIdForLawyer(lawyerId: string, clientId: string) {
+  public findByIdForLawyer(
+    lawyerId:
+      string,
+
+    clientId:
+      string,
+  ) {
     return this.model
       .findOne({
-        _id: this.toObjectId(clientId),
+        _id:
+          this.toObjectId(
+            clientId,
+          ),
 
-        lawyerId: this.toObjectId(lawyerId),
+        lawyerId:
+          this.toObjectId(
+            lawyerId,
+          ),
       })
+
+      .select(
+        "-personalPasswordHash",
+      )
+
+      .lean<ClientRecord>()
+
+      .exec();
+  }
+
+   
+
+  public findByPhone(
+    lawyerId:
+      string,
+
+    phone:
+      string,
+
+    session?:
+      ClientSession,
+  ) {
+    const query =
+      this.model
+        .findOne({
+          lawyerId:
+            this.toObjectId(
+              lawyerId,
+            ),
+
+          phone,
+        })
+
+        .select(
+          "-personalPasswordHash",
+        );
+
+    if (
+      session
+    ) {
+      query.session(
+        session,
+      );
+    }
+
+    return query
       .lean<ClientRecord>()
       .exec();
   }
 
-  public findByPhone(lawyerId: string, phone: string, session?: ClientSession) {
-    const query = this.model.findOne({
-      lawyerId: this.toObjectId(lawyerId),
-
-      phone,
-    });
-
-    if (session) {
-      query.session(session);
-    }
-
-    return query.lean<ClientRecord>().exec();
-  }
+ 
 
   public findByNationalId(
-    lawyerId: string,
-    nationalId: string,
-    session?: ClientSession,
+    lawyerId:
+      string,
+
+    nationalId:
+      string,
+
+    session?:
+      ClientSession,
   ) {
-    const query = this.model.findOne({
-      lawyerId: this.toObjectId(lawyerId),
+    const query =
+      this.model
+        .findOne({
+          lawyerId:
+            this.toObjectId(
+              lawyerId,
+            ),
 
-      nationalId,
-    });
+          nationalId,
+        })
 
-    if (session) {
-      query.session(session);
+        .select(
+          "-personalPasswordHash",
+        );
+
+    if (
+      session
+    ) {
+      query.session(
+        session,
+      );
     }
 
-    return query.lean<ClientRecord>().exec();
-  }
-
-  public findByLawyerId(lawyerId: string, options: FindClientsOptions = {}) {
-    const page = options.page ?? 1;
-
-    const limit = options.limit ?? 10;
-
-    const skip = (page - 1) * limit;
-
-    const query = this.buildSearchQuery(lawyerId, options.search);
-
-    return this.model
-      .find(query)
-      .sort({
-        updatedAt: -1,
-      })
-      .skip(skip)
-      .limit(limit)
-      .lean<ClientRecord[]>()
+    return query
+      .lean<ClientRecord>()
       .exec();
   }
 
-  public countByLawyerId(lawyerId: string, options: FindClientsOptions = {}) {
-    const query = this.buildSearchQuery(lawyerId, options.search);
+ 
 
-    return this.model.countDocuments(query).exec();
+  public findByLawyerId(
+    lawyerId:
+      string,
+
+    options:
+      FindClientsOptions = {},
+  ) {
+    const page =
+      options.page ??
+      1;
+
+    const limit =
+      options.limit ??
+      10;
+
+    const skip =
+      (
+        page -
+        1
+      ) *
+      limit;
+
+    const query =
+      this.buildSearchQuery(
+        lawyerId,
+
+        options.search,
+      );
+
+    return this.model
+      .find(
+        query,
+      )
+
+      .select(
+        "-personalPasswordHash",
+      )
+
+      .sort({
+        updatedAt:
+          -1,
+      })
+
+      .skip(
+        skip,
+      )
+
+      .limit(
+        limit,
+      )
+
+      .lean<ClientRecord[]>()
+
+      .exec();
   }
 
-  // ---------------- Create Method ----------------
+  
+
+  public countByLawyerId(
+    lawyerId:
+      string,
+
+    options:
+      FindClientsOptions = {},
+  ) {
+    const query =
+      this.buildSearchQuery(
+        lawyerId,
+
+        options.search,
+      );
+
+    return this.model
+      .countDocuments(
+        query,
+      )
+      .exec();
+  }
+
+  
 
   public async create(
-    lawyerId: string,
-    data: ClientCreatePayload,
-    session?: ClientSession,
-  ) {
-    const [created] = await this.model.create(
-      [
+    lawyerId:
+      string,
+
+    data:
+      CreateClientRecordInput,
+
+    session?:
+      ClientSession,
+  ): Promise<ClientRecord> {
+    const [
+      created,
+    ] =
+      await this.model.create(
+        [
+          {
+            ...data,
+
+            lawyerId:
+              this.toObjectId(
+                lawyerId,
+              ),
+          },
+        ],
+
         {
-          ...data,
-
-          lawyerId: this.toObjectId(lawyerId),
+          session,
         },
-      ],
-      {
-        session,
-      },
-    );
+      );
 
-    return created;
+   
+    return created.toObject() as unknown as ClientRecord;
   }
 
-  // ---------------- Update Method ----------------
-
+ 
   public updateByIdForLawyer(
-    lawyerId: string,
-    clientId: string,
-    update: UpdateQuery<Client>,
-    session?: ClientSession,
+    lawyerId:
+      string,
+
+    clientId:
+      string,
+
+    update:
+      UpdateQuery<Client>,
+
+    session?:
+      ClientSession,
   ) {
     return this.model
       .findOneAndUpdate(
         {
-          _id: this.toObjectId(clientId),
+          _id:
+            this.toObjectId(
+              clientId,
+            ),
 
-          lawyerId: this.toObjectId(lawyerId),
+          lawyerId:
+            this.toObjectId(
+              lawyerId,
+            ),
         },
-        update,
-        {
-          new: true,
 
-          runValidators: true,
+        update,
+
+        {
+          new:
+            true,
+
+          runValidators:
+            true,
+
           session,
         },
       )
+
+      .select(
+        "-personalPasswordHash",
+      )
+
       .lean<ClientRecord>()
+
       .exec();
   }
 }

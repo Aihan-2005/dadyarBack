@@ -1,13 +1,21 @@
+import bcrypt from "bcrypt";
+
 import type {
   ClientSession,
   UpdateQuery,
-} from 'mongoose'
+} from "mongoose";
 
-import { env } from '../config/env'
+import {
+  env,
+} from "../config/env";
 
-import { MESSAGES } from '../constants/messages.constants'
+import {
+  MESSAGES,
+} from "../constants/messages.constants";
 
-import { HttpException } from '../exceptions/httpException'
+import {
+  HttpException,
+} from "../exceptions/httpException";
 
 import type {
   Client,
@@ -16,62 +24,87 @@ import type {
   FindClientsOptions,
   ManualCaseClientInput,
   UpdateClientInput,
-} from '../interfaces/client.interface'
+} from "../interfaces/client.interface";
 
-import { ClientRepository } from '../repositories/client.repository'
+import {
+  ClientRepository,
+} from "../repositories/client.repository";
 
 const LANGUAGE =
-  env.LANGUAGE
+  env.LANGUAGE;
+
+const PERSONAL_PASSWORD_BCRYPT_ROUNDS =
+  12;
 
 export class ClientService {
   private readonly repo =
-    new ClientRepository()
+    new ClientRepository();
 
   
 
   private normalizeRequiredString(
-    value: string
+    value:
+      string,
   ): string {
-    return value.trim()
+    return value.trim();
   }
 
   private normalizeOptionalString(
     value?:
       | string
-      | null
+      | null,
   ): string | undefined {
     return (
       value?.trim() ||
       undefined
-    )
+    );
   }
 
   private normalizePhone(
-    phone: string
+    phone:
+      string,
   ): string {
-    return phone.trim()
+    return phone.trim();
   }
 
   private normalizeNationalId(
     nationalId?:
       | string
-      | null
+      | null,
   ): string | undefined {
     return (
       nationalId?.trim() ||
       undefined
-    )
+    );
   }
 
+ 
+  private hashPersonalPassword(
+    password:
+      string,
+  ): Promise<string> {
+    return bcrypt.hash(
+      password,
+
+      PERSONAL_PASSWORD_BCRYPT_ROUNDS,
+    );
+  }
+
+  
+
   private sameClient(
-    recordId: unknown,
-    clientId: string
+    recordId:
+      unknown,
+
+    clientId:
+      string,
   ): boolean {
     return (
       String(
-        recordId
-      ) === clientId
-    )
+        recordId,
+      ) ===
+      clientId
+    );
   }
 
   private ensureNotEmptyObject(
@@ -79,13 +112,19 @@ export class ClientService {
       Record<
         string,
         unknown
-      >
+      >,
   ): void {
+    const hasAtLeastOneEffectiveField =
+      Object.values(
+        data,
+      ).some(
+        (value) =>
+          value !==
+          undefined,
+      );
+
     if (
-      Object.keys(
-        data
-      ).length ===
-      0
+      !hasAtLeastOneEffectiveField
     ) {
       throw new HttpException(
         400,
@@ -94,22 +133,28 @@ export class ClientService {
           LANGUAGE
         ],
 
-        'NO_CLIENT_FIELDS'
-      )
+        "NO_CLIENT_FIELDS",
+      );
     }
   }
 
   private async ensureClientBelongsToLawyer(
-    lawyerId: string,
-    clientId: string
-  ) {
+    lawyerId:
+      string,
+
+    clientId:
+      string,
+  ): Promise<ClientRecord> {
     const client =
       await this.repo.findByIdForLawyer(
         lawyerId,
-        clientId
-      )
 
-    if (!client) {
+        clientId,
+      );
+
+    if (
+      !client
+    ) {
       throw new HttpException(
         404,
 
@@ -117,20 +162,28 @@ export class ClientService {
           LANGUAGE
         ],
 
-        'CLIENT_NOT_FOUND'
-      )
+        "CLIENT_NOT_FOUND",
+      );
     }
 
-    return client
+    return client;
   }
 
   private async ensureUniqueClientIdentity(
-    lawyerId: string,
-    phone: string,
-    nationalId?: string,
-    ignoredClientId?: string,
+    lawyerId:
+      string,
+
+    phone:
+      string,
+
+    nationalId?:
+      string,
+
+    ignoredClientId?:
+      string,
+
     session?:
-      ClientSession
+      ClientSession,
   ): Promise<void> {
     const [
       phoneOwner,
@@ -139,20 +192,24 @@ export class ClientService {
       await Promise.all([
         this.repo.findByPhone(
           lawyerId,
+
           phone,
-          session
+
+          session,
         ),
 
         nationalId
           ? this.repo.findByNationalId(
               lawyerId,
+
               nationalId,
-              session
+
+              session,
             )
           : Promise.resolve(
-              null
+              null,
             ),
-      ])
+      ]);
 
     if (
       phoneOwner &&
@@ -160,7 +217,8 @@ export class ClientService {
         !ignoredClientId ||
         !this.sameClient(
           phoneOwner._id,
-          ignoredClientId
+
+          ignoredClientId,
         )
       )
     ) {
@@ -171,8 +229,8 @@ export class ClientService {
           LANGUAGE
         ],
 
-        'CLIENT_PHONE_ALREADY_EXISTS'
-      )
+        "CLIENT_PHONE_ALREADY_EXISTS",
+      );
     }
 
     if (
@@ -181,7 +239,8 @@ export class ClientService {
         !ignoredClientId ||
         !this.sameClient(
           nationalIdOwner._id,
-          ignoredClientId
+
+          ignoredClientId,
         )
       )
     ) {
@@ -192,54 +251,69 @@ export class ClientService {
           LANGUAGE
         ],
 
-        'CLIENT_NATIONAL_ID_ALREADY_EXISTS'
-      )
+        "CLIENT_NATIONAL_ID_ALREADY_EXISTS",
+      );
     }
   }
 
- 
+  
 
   public async createClient(
-    lawyerId: string,
+    lawyerId:
+      string,
+
     input:
-      ClientCreatePayload
-  ) {
+      ClientCreatePayload,
+  ): Promise<ClientRecord> {
     const phone =
       this.normalizePhone(
-        input.phone
-      )
+        input.phone,
+      );
 
     const nationalId =
       this.normalizeNationalId(
-        input.nationalId
-      )
+        input.nationalId,
+      );
 
     await this.ensureUniqueClientIdentity(
       lawyerId,
+
       phone,
-      nationalId
-    )
+
+      nationalId,
+    );
+
+ 
+
+    const personalPasswordHash =
+      input.personalPassword
+        ? await this.hashPersonalPassword(
+            input.personalPassword,
+          )
+        : undefined;
 
     return this.repo.create(
       lawyerId,
+
       {
         fullName:
           this.normalizeRequiredString(
-            input.fullName
+            input.fullName,
           ),
 
         phone,
 
         nationalId,
 
+       
         homeNumber:
           this.normalizeOptionalString(
-            input.homeNumber
+            input.homeNumber,
           ),
 
         represent:
           this.normalizeOptionalString(
-            input.represent
+            input.represent,
           ),
 
         birthday:
@@ -247,57 +321,77 @@ export class ClientService {
 
         homeAddress:
           this.normalizeOptionalString(
-            input.homeAddress
+            input.homeAddress,
           ),
-      }
-    )
+
+        description:
+          this.normalizeOptionalString(
+            input.description,
+          ),
+
+        personalPasswordHash,
+      },
+    );
   }
 
   
 
   public async getClientById(
-    lawyerId: string,
-    clientId: string
-  ) {
+    lawyerId:
+      string,
+
+    clientId:
+      string,
+  ): Promise<ClientRecord> {
     return this.ensureClientBelongsToLawyer(
       lawyerId,
-      clientId
-    )
+
+      clientId,
+    );
   }
 
   public async findClientByPhone(
-    lawyerId: string,
-    phone: string
+    lawyerId:
+      string,
+
+    phone:
+      string,
   ) {
     return this.repo.findByPhone(
       lawyerId,
+
       this.normalizePhone(
-        phone
-      )
-    )
+        phone,
+      ),
+    );
   }
 
   public async listClients(
-    lawyerId: string,
+    lawyerId:
+      string,
+
     options:
-      FindClientsOptions = {}
+      FindClientsOptions = {},
   ) {
     const page =
       Math.max(
         options.page ??
           1,
-        1
-      )
+
+        1,
+      );
 
     const limit =
       Math.min(
         Math.max(
           options.limit ??
             10,
-          1
+
+          1,
         ),
-        100
-      )
+
+        100,
+      );
 
     const safeOptions:
       FindClientsOptions = {
@@ -309,7 +403,7 @@ export class ClientService {
         page,
 
         limit,
-      }
+      };
 
     const [
       items,
@@ -318,14 +412,16 @@ export class ClientService {
       await Promise.all([
         this.repo.findByLawyerId(
           lawyerId,
-          safeOptions
+
+          safeOptions,
         ),
 
         this.repo.countByLawyerId(
           lawyerId,
-          safeOptions
+
+          safeOptions,
         ),
-      ])
+      ]);
 
     return {
       items,
@@ -340,57 +436,62 @@ export class ClientService {
         totalPages:
           Math.ceil(
             total /
-              limit
+              limit,
           ),
       },
-    }
+    };
   }
 
- 
+  
 
   public async updateClient(
-    lawyerId: string,
-    clientId: string,
+    lawyerId:
+      string,
+
+    clientId:
+      string,
+
     input:
-      UpdateClientInput
-  ) {
+      UpdateClientInput,
+  ): Promise<ClientRecord> {
     this.ensureNotEmptyObject(
-      input
-    )
+      input,
+    );
 
     const current =
       await this.ensureClientBelongsToLawyer(
         lawyerId,
-        clientId
-      )
+
+        clientId,
+      );
 
     const phone =
       input.phone !==
       undefined
         ? this.normalizePhone(
-            input.phone
+            input.phone,
           )
-        : current.phone
+        : current.phone;
 
     const nationalId =
       input.nationalId !==
       undefined
         ? this.normalizeNationalId(
-            input.nationalId
+            input.nationalId,
           )
         : this.normalizeNationalId(
-            current.nationalId
-          )
+            current.nationalId,
+          );
 
     const phoneChanged =
       phone !==
-      current.phone
+      current.phone;
 
     const nationalIdChanged =
       nationalId !==
       this.normalizeNationalId(
-        current.nationalId
-      )
+        current.nationalId,
+      );
 
     if (
       phoneChanged ||
@@ -398,23 +499,28 @@ export class ClientService {
     ) {
       await this.ensureUniqueClientIdentity(
         lawyerId,
+
         phone,
+
         nationalId,
-        clientId
-      )
+
+        clientId,
+      );
     }
 
     const setFields:
       Record<
         string,
         unknown
-      > = {}
+      > = {};
 
     const unsetFields:
       Record<
         string,
         1
-      > = {}
+      > = {};
+
+    
 
     if (
       input.fullName !==
@@ -422,19 +528,25 @@ export class ClientService {
     ) {
       setFields.fullName =
         this.normalizeRequiredString(
-          input.fullName
-        )
+          input.fullName,
+        );
     }
+
+    
 
     if (
       input.phone !==
       undefined
     ) {
       setFields.phone =
-        phone
+        phone;
     }
 
-   
+    /*
+    |--------------------------------------------------------------------------
+    | Represent
+    |--------------------------------------------------------------------------
+    */
 
     if (
       input.represent !==
@@ -442,34 +554,37 @@ export class ClientService {
     ) {
       const represent =
         this.normalizeOptionalString(
-          input.represent
-        )
+          input.represent,
+        );
 
-      if (represent) {
+      if (
+        represent
+      ) {
         setFields.represent =
-          represent
+          represent;
       } else {
         unsetFields.represent =
-          1
+          1;
       }
     }
 
-  
+    
 
     if (
       input.nationalId !==
       undefined
     ) {
-      if (nationalId) {
+      if (
+        nationalId
+      ) {
         setFields.nationalId =
-          nationalId
+          nationalId;
       } else {
         unsetFields.nationalId =
-          1
+          1;
       }
     }
-
-    
+ 
 
     if (
       input.homeNumber !==
@@ -477,19 +592,21 @@ export class ClientService {
     ) {
       const homeNumber =
         this.normalizeOptionalString(
-          input.homeNumber
-        )
+          input.homeNumber,
+        );
 
-      if (homeNumber) {
+      if (
+        homeNumber
+      ) {
         setFields.homeNumber =
-          homeNumber
+          homeNumber;
       } else {
         unsetFields.homeNumber =
-          1
+          1;
       }
     }
 
-  
+     
 
     if (
       input.birthday !==
@@ -499,14 +616,13 @@ export class ClientService {
         input.birthday
       ) {
         setFields.birthday =
-          input.birthday
+          input.birthday;
       } else {
         unsetFields.birthday =
-          1
+          1;
       }
     }
-
-    
+ 
 
     if (
       input.homeAddress !==
@@ -514,47 +630,89 @@ export class ClientService {
     ) {
       const homeAddress =
         this.normalizeOptionalString(
-          input.homeAddress
-        )
+          input.homeAddress,
+        );
 
-      if (homeAddress) {
+      if (
+        homeAddress
+      ) {
         setFields.homeAddress =
-          homeAddress
+          homeAddress;
       } else {
         unsetFields.homeAddress =
-          1
+          1;
       }
     }
 
+    
+
+    if (
+      input.description !==
+      undefined
+    ) {
+      const description =
+        this.normalizeOptionalString(
+          input.description,
+        );
+
+      if (
+        description
+      ) {
+        setFields.description =
+          description;
+      } else {
+        unsetFields.description =
+          1;
+      }
+    }
+ 
+    if (
+      input.personalPassword !==
+      undefined
+    ) {
+      setFields.personalPasswordHash =
+        await this.hashPersonalPassword(
+          input.personalPassword,
+        );
+    }
+
+     
+
     const update:
-      UpdateQuery<Client> = {}
+      UpdateQuery<Client> = {};
 
     if (
       Object.keys(
-        setFields
-      ).length > 0
+        setFields,
+      ).length >
+      0
     ) {
       update.$set =
-        setFields
+        setFields;
     }
 
     if (
       Object.keys(
-        unsetFields
-      ).length > 0
+        unsetFields,
+      ).length >
+      0
     ) {
       update.$unset =
-        unsetFields
+        unsetFields;
     }
 
     const updated =
       await this.repo.updateByIdForLawyer(
         lawyerId,
-        clientId,
-        update
-      )
 
-    if (!updated) {
+        clientId,
+
+        update,
+      );
+
+    if (
+      !updated
+    ) {
       throw new HttpException(
         404,
 
@@ -562,45 +720,52 @@ export class ClientService {
           LANGUAGE
         ],
 
-        'CLIENT_NOT_FOUND'
-      )
+        "CLIENT_NOT_FOUND",
+      );
     }
 
-    return updated
+    return updated;
   }
 
-  
+ 
 
   public async resolveClientForCase(
-    lawyerId: string,
+    lawyerId:
+      string,
+
     input:
       ManualCaseClientInput,
+
     session:
-      ClientSession
+      ClientSession,
   ): Promise<ClientRecord> {
     const phone =
       this.normalizePhone(
-        input.phone
-      )
+        input.phone,
+      );
 
     const nationalId =
       this.normalizeNationalId(
-        input.nationalId
-      )
+        input.nationalId,
+      );
 
     const represent =
       this.normalizeOptionalString(
-        input.represent
-      )
+        input.represent,
+      );
 
     const existing =
       await this.repo.findByPhone(
         lawyerId,
-        phone,
-        session
-      )
 
-    if (existing) {
+        phone,
+
+        session,
+      );
+
+    if (
+      existing
+    ) {
       if (
         nationalId &&
         existing.nationalId &&
@@ -614,8 +779,8 @@ export class ClientService {
             LANGUAGE
           ],
 
-          'CLIENT_DATA_CONFLICT'
-        )
+          "CLIENT_DATA_CONFLICT",
+        );
       }
 
       if (
@@ -637,29 +802,34 @@ export class ClientService {
                   represent:
                     1,
                 },
-              }
+              };
 
         const updated =
           await this.repo.updateByIdForLawyer(
             lawyerId,
+
             existing._id.toString(),
+
             update,
-            session
-          )
+
+            session,
+          );
 
         return (
           updated ??
           existing
-        )
+        );
       }
 
-      return existing
+      return existing;
     }
 
     const fullName =
-      input.fullName?.trim()
+      input.fullName?.trim();
 
-    if (!fullName) {
+    if (
+      !fullName
+    ) {
       throw new HttpException(
         400,
 
@@ -667,17 +837,21 @@ export class ClientService {
           LANGUAGE
         ],
 
-        'CLIENT_FULL_NAME_REQUIRED'
-      )
+        "CLIENT_FULL_NAME_REQUIRED",
+      );
     }
 
-    if (nationalId) {
+    if (
+      nationalId
+    ) {
       const nationalIdOwner =
         await this.repo.findByNationalId(
           lawyerId,
+
           nationalId,
-          session
-        )
+
+          session,
+        );
 
       if (
         nationalIdOwner
@@ -689,13 +863,15 @@ export class ClientService {
             LANGUAGE
           ],
 
-          'CLIENT_NATIONAL_ID_ALREADY_EXISTS'
-        )
+          "CLIENT_NATIONAL_ID_ALREADY_EXISTS",
+        );
       }
     }
 
+    
     return this.repo.create(
       lawyerId,
+
       {
         fullName,
 
@@ -705,7 +881,8 @@ export class ClientService {
 
         represent,
       },
-      session
-    )
+
+      session,
+    );
   }
 }
