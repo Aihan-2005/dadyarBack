@@ -2,6 +2,8 @@ import { randomUUID } from "crypto";
 
 import type { Request } from "express";
 
+import type { ClientSession } from "mongoose";
+
 import jwt, { type JwtPayload } from "jsonwebtoken";
 
 import { env } from "../config/env";
@@ -19,7 +21,6 @@ import type {
 } from "../interfaces/token.interface";
 
 import { RefreshTokenRepository } from "../repositories/refreshToken.repository";
-import { ClientSession } from "mongoose";
 
 export class TokenService {
   private readonly repo = new RefreshTokenRepository();

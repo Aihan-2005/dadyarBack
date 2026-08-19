@@ -1,4 +1,4 @@
-import { ClientSession } from "mongoose";
+import type { ClientSession } from "mongoose";
 import type {
   RefreshToken,
   RefreshTokenRecord,
@@ -43,6 +43,10 @@ export class RefreshTokenRepository extends BaseRepository<RefreshToken> {
         session,
       },
     );
+
+    if (!createdRefreshToken) {
+      throw new Error("Unable to create refresh token");
+    }
     return createdRefreshToken;
   }
 
@@ -76,4 +80,3 @@ export class RefreshTokenRepository extends BaseRepository<RefreshToken> {
       .exec();
   }
 }
-
