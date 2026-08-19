@@ -59,6 +59,8 @@ const envSchema = z.object({
 
   MONGO_URI: z.string().min(1),
 
+  REDIS_URL: z.string().trim().min(1),
+
   JWT_ACC_SECRET: z.string().min(32),
 
   JWT_REF_SECRET: z.string().min(32),
@@ -108,6 +110,8 @@ class Env {
   public readonly PORT: number;
 
   public readonly MONGO_URI: string;
+
+  public readonly REDIS_URL: string;
 
   public readonly JWT_ACC_SECRET: string;
 
@@ -163,6 +167,8 @@ class Env {
     this.PORT = data.PORT;
 
     this.MONGO_URI = data.MONGO_URI;
+
+    this.REDIS_URL = data.REDIS_URL;
 
     this.JWT_ACC_SECRET = data.JWT_ACC_SECRET;
 

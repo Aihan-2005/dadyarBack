@@ -16,11 +16,7 @@ import type {
 
 import type { OtpStore } from "../stores/otp/otp.store";
 
-import { InMemoryOtpStore } from "../stores/otp/inMemoryOtp.store";
-
 import type { OtpCooldownStore } from "../stores/otp/otpCooldown.store";
-
-import { InMemoryOtpCooldownStore } from "../stores/otp/inMemoryOtpCooldown.store";
 
 import { SmsService } from "./sms.service";
 
@@ -28,9 +24,9 @@ const LANGUAGE = env.LANGUAGE;
 
 export class OtpService {
   constructor(
-    private readonly otpStore: OtpStore = new InMemoryOtpStore(),
+    private readonly otpStore: OtpStore,
 
-    private readonly cooldownStore: OtpCooldownStore = new InMemoryOtpCooldownStore(),
+    private readonly cooldownStore: OtpCooldownStore,
 
     private readonly smsService: SmsService = new SmsService(),
   ) {}

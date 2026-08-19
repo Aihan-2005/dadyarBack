@@ -1,5 +1,13 @@
 import { Router } from "express";
 
+import { RedisDatabase } from "../config/redis";
+
+import { RedisOtpStore } from "../stores/otp/redisOtp.store";
+
+import { RedisOtpCooldownStore } from "../stores/otp/redisOtpCooldown.store";
+
+import { OtpService } from "../services/otp.service";
+
 import { AuthController } from "../controllers/auth.controller";
 
 import type { Route } from "../interfaces/routes.interface";
@@ -28,9 +36,17 @@ class AuthRoute implements Route {
   private readonly authController: AuthController;
 
   constructor() {
+    const redisDatabase = new RedisDatabase();
+
+    const otpStore = new RedisOtpStore(redisDatabase);
+
+    const otpCooldownStore = new RedisOtpCooldownStore(redisDatabase);
+
+    const otpService = new OtpService(otpStore, otpCooldownStore);
+
     const lawyerRepository = new LawyerRepository();
 
-    const authService = new AuthService(lawyerRepository);
+    const authService = new AuthService(lawyerRepository, otpService);
 
     this.authController = new AuthController(authService);
 
