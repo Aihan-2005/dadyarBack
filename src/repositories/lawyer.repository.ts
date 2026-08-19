@@ -1,4 +1,4 @@
-import type { UpdateQuery } from "mongoose";
+import type { ClientSession, UpdateQuery } from "mongoose";
 
 import {
   DEFAULT_LAWYER_ROLE,
@@ -117,7 +117,11 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
       .exec();
   }
 
-  public updatePasswordById(id: string, password: string) {
+  public updatePasswordById(
+    id: string,
+    password: string,
+    session?: ClientSession,
+  ) {
     return this.model
       .updateOne(
         {
@@ -128,8 +132,10 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
             password,
           },
         },
+        {
+          session,
+        },
       )
       .exec();
   }
 }
-

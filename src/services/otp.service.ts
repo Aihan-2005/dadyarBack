@@ -8,6 +8,7 @@ import { SmsProviderException } from "../exceptions/smsProvider.exception";
 
 import type {
   CreateOtpInput,
+  CreateOtpOptions,
   CreateOtpResult,
   VerifyOtpInput,
   VerifyOtpResult,
@@ -62,17 +63,18 @@ export class OtpService {
     return timingSafeEqual(first, second);
   }
 
-  public async createOtp(input: CreateOtpInput): Promise<CreateOtpResult> {
-    const templateId = env.SMSIR_OTP_TEMPLATE_ID;
+  private getRequestMetadata(): CreateOtpResult {
+    return {
+      expiresIn: env.OTP_TTL_SECONDS,
 
-    if (!templateId) {
-      throw new HttpException(
-        500,
-        MESSAGES.otpDeliveryFailed[LANGUAGE],
-        "OTP_DELIVERY_FAILED",
-      );
-    }
+      resendAfter: env.OTP_RESEND_COOLDOWN_SECONDS,
+    };
+  }
 
+  public async createOtp(
+    input: CreateOtpInput,
+    options: CreateOtpOptions = {},
+  ): Promise<CreateOtpResult> {
     const cooldownKey = this.buildCooldownKey(input.phone, input.purpose);
 
     const cooldownAcquired = await this.cooldownStore.tryAcquire(
@@ -91,6 +93,24 @@ export class OtpService {
         {
           retryAfter,
         },
+      );
+    }
+
+    const shouldDeliver = options.deliver ?? true;
+
+    if (!shouldDeliver) {
+      return this.getRequestMetadata();
+    }
+
+    const templateId = env.SMSIR_OTP_TEMPLATE_ID;
+
+    if (!templateId) {
+      await this.cooldownStore.release(cooldownKey);
+
+      throw new HttpException(
+        500,
+        MESSAGES.otpDeliveryFailed[LANGUAGE],
+        "OTP_DELIVERY_FAILED",
       );
     }
 
@@ -132,7 +152,11 @@ export class OtpService {
       await this.cooldownStore.release(cooldownKey);
 
       if (error instanceof SmsProviderException) {
-        console.error("SMS provider error:", error);
+        console.error("SMS provider error:", {
+          provider: error.provider,
+
+          message: error.message,
+        });
       }
 
       throw new HttpException(
@@ -142,11 +166,7 @@ export class OtpService {
       );
     }
 
-    return {
-      expiresIn: env.OTP_TTL_SECONDS,
-
-      resendAfter: env.OTP_RESEND_COOLDOWN_SECONDS,
-    };
+    return this.getRequestMetadata();
   }
 
   public async verifyOtp(input: VerifyOtpInput): Promise<VerifyOtpResult> {

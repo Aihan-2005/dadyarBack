@@ -22,7 +22,11 @@ export interface OtpIdentifier {
   purpose: OtpPurpose;
 }
 
-export interface CreateOtpInput extends OtpIdentifier {}
+export type CreateOtpInput = OtpIdentifier;
+
+export interface CreateOtpOptions {
+  deliver?: boolean;
+}
 
 export interface VerifyOtpInput extends OtpIdentifier {
   code: string;
