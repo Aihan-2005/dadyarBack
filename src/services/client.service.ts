@@ -144,12 +144,17 @@ export class ClientService {
 
     clientId:
       string,
+
+    session?:
+      ClientSession,
   ): Promise<ClientRecord> {
     const client =
       await this.repo.findByIdForLawyer(
         lawyerId,
 
         clientId,
+
+        session,
       );
 
     if (
@@ -342,11 +347,16 @@ export class ClientService {
 
     clientId:
       string,
+
+    session?:
+      ClientSession,
   ): Promise<ClientRecord> {
     return this.ensureClientBelongsToLawyer(
       lawyerId,
 
       clientId,
+
+      session,
     );
   }
 
@@ -542,12 +552,7 @@ export class ClientService {
         phone;
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Represent
-    |--------------------------------------------------------------------------
-    */
-
+   
     if (
       input.represent !==
       undefined
@@ -878,6 +883,9 @@ export class ClientService {
         phone,
 
         nationalId,
+
+        birthday:
+          input.birthDate,
 
         represent,
       },

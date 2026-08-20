@@ -18,13 +18,21 @@ export class FinancialReportService {
 
     const {
       totalCaseValue,
+      totalEstimatedNonCashValue,
+      nonCashCaseCount,
       totalPaidPayments,
       totalOverduePayments,
       totalExpenses,
       totalPaidExpenses,
     } = result;
 
-    const remainingReceivable = totalCaseValue - totalPaidPayments;
+    const totalTrackedValue =
+      totalCaseValue + totalEstimatedNonCashValue;
+
+    const remainingReceivable = Math.max(
+      totalCaseValue - totalPaidPayments,
+      0,
+    );
 
     const netReceived = totalPaidPayments - totalPaidExpenses;
 
@@ -33,6 +41,12 @@ export class FinancialReportService {
 
     return {
       totalCaseValue,
+
+      totalEstimatedNonCashValue,
+
+      totalTrackedValue,
+
+      nonCashCaseCount,
 
       totalPaidPayments,
 

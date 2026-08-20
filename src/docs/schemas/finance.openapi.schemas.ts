@@ -22,6 +22,12 @@ export const LawyerFinancialSummarySchema = openApiRegistry.register(
   z.object({
     totalCaseValue: z.number(),
 
+    totalEstimatedNonCashValue: z.number(),
+
+    totalTrackedValue: z.number(),
+
+    nonCashCaseCount: z.number().int(),
+
     totalPaidPayments: z.number(),
 
     totalOverduePayments: z.number(),
@@ -63,6 +69,10 @@ export const ClientFinancialSummarySchema = openApiRegistry.register(
     phone: z.string(),
 
     caseCount: z.number().int(),
+
+    nonCashCaseCount: z.number().int(),
+
+    relatedEstimatedNonCashValue: z.number(),
 
     assignedAmount: z.number(),
 
@@ -113,6 +123,12 @@ export const ClientCaseFinancialSummarySchema = openApiRegistry.register(
     state: CaseStateSchema,
 
     caseValue: z.number(),
+
+    paymentType: z.enum(["CASH", "NON_CASH", "BOTH"]),
+
+    estimatedNonCashValue: z.number(),
+
+    nonCashDescription: z.string().optional(),
 
     assignedAmount: z.number(),
 

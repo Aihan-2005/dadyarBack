@@ -78,6 +78,17 @@ const CourtSchema =
         maxlength:
           2000,
       },
+
+      archiveNumberBranch: {
+        type:
+          String,
+
+        trim:
+          true,
+
+        maxlength:
+          2000,
+      },
     },
 
     {
@@ -171,6 +182,11 @@ const CaseClientAssignmentSchema =
 
         min:
           0,
+      },
+
+      birthDate: {
+        type:
+          Date,
       },
 
       role: {
@@ -293,6 +309,22 @@ const LawyerContactSchema =
           true,
       },
 
+      nationalId: {
+        type:
+          String,
+
+        trim:
+          true,
+
+        maxlength:
+          10,
+      },
+
+      birthDate: {
+        type:
+          Date,
+      },
+
       barLicenseNumber: {
         type:
           String,
@@ -354,6 +386,11 @@ const RelatedPersonSchema =
 
         trim:
           true,
+      },
+
+      birthDate: {
+        type:
+          Date,
       },
 
       role: {
@@ -431,6 +468,17 @@ export const CaseSchema =
           true,
       },
 
+      archiveNumberOffice: {
+        type:
+          String,
+
+        trim:
+          true,
+
+        maxlength:
+          2000,
+      },
+
       state: {
         type:
           String,
@@ -476,6 +524,14 @@ export const CaseSchema =
 
         maxlength:
           2000,
+      },
+
+      estimatedPrice: {
+        type:
+          Number,
+
+        min:
+          0,
       },
 
       court: {
@@ -590,6 +646,43 @@ CaseSchema.index({
     1,
 
   state:
+    1,
+
+  updatedAt:
+    -1,
+});
+
+CaseSchema.index(
+  {
+    lawyerId:
+      1,
+
+    archiveNumberOffice:
+      1,
+  },
+  {
+    partialFilterExpression: {
+      archiveNumberOffice: {
+        $type:
+          "string",
+      },
+    },
+  }
+);
+
+CaseSchema.index({
+  lawyerId:
+    1,
+
+  "court.archiveNumberBranch":
+    1,
+});
+
+CaseSchema.index({
+  lawyerId:
+    1,
+
+  paymentType:
     1,
 
   updatedAt:

@@ -34,7 +34,6 @@ export class CaseExpenseService {
       new CaseExpenseRepository()
   ) {}
 
- 
   private normalizeOptionalString(
     value?:
       | string
@@ -113,7 +112,6 @@ export class CaseExpenseService {
     return update;
   }
 
- 
   public getCaseExpenses(
     lawyerId:
       string,
@@ -150,8 +148,15 @@ export class CaseExpenseService {
       );
   }
 
- 
-
+  /**
+   * Synchronizes all expenses of a case.
+   *
+   * - expenseId => update existing expense.
+   * - no id     => create a new expense.
+   * - existing id omitted from the submitted array => delete it.
+   *
+   * The whole request is validated before any write is executed.
+   */
   public async syncCaseExpenses(
     lawyerId:
       string,
@@ -189,56 +194,75 @@ export class CaseExpenseService {
     const submittedExpenseIds =
       new Set<string>();
 
+    /*
+     * Preflight validation.
+     */
     for (
       const expense of
       expenses
     ) {
- 
+      if (
+        !expense.expenseId
+      ) {
+        continue;
+      }
 
       if (
-        expense.expenseId
+        submittedExpenseIds.has(
+          expense.expenseId
+        )
       ) {
-        if (
-          submittedExpenseIds.has(
-            expense.expenseId
-          )
-        ) {
-          throw new HttpException(
-            400,
+        throw new HttpException(
+          400,
 
-            MESSAGES
-              .duplicateExpenseInRequest[
-              LANGUAGE
-            ],
+          MESSAGES
+            .duplicateExpenseInRequest[
+            LANGUAGE
+          ],
 
-            "DUPLICATE_EXPENSE_IN_REQUEST"
-          );
-        }
+          "DUPLICATE_EXPENSE_IN_REQUEST"
+        );
+      }
 
-        submittedExpenseIds.add(
+      submittedExpenseIds.add(
+        expense.expenseId
+      );
+
+      const existingExpense =
+        existingById.get(
           expense.expenseId
         );
 
-        const existingExpense =
-          existingById.get(
-            expense.expenseId
-          );
+      if (
+        !existingExpense
+      ) {
+        throw new HttpException(
+          404,
 
-        if (
-          !existingExpense
-        ) {
-          throw new HttpException(
-            404,
+          MESSAGES
+            .expenseNotFound[
+            LANGUAGE
+          ],
 
-            MESSAGES
-              .expenseNotFound[
-              LANGUAGE
-            ],
+          "EXPENSE_NOT_FOUND"
+        );
+      }
 
-            "EXPENSE_NOT_FOUND"
-          );
-        }
+      retainedExpenseIds.add(
+        expense.expenseId
+      );
+    }
 
+    /*
+     * Mutation pass.
+     */
+    for (
+      const expense of
+      expenses
+    ) {
+      if (
+        expense.expenseId
+      ) {
         const updated =
           await this.repository
             .updateByIdForCaseForLawyer(
@@ -264,14 +288,8 @@ export class CaseExpenseService {
           );
         }
 
-        retainedExpenseIds.add(
-          expense.expenseId
-        );
-
         continue;
       }
-
-    
 
       const {
         expenseId:
@@ -294,17 +312,17 @@ export class CaseExpenseService {
             this.normalizeOptionalString(
               expenseData.description
             ),
-        };
+      };
 
-      await this.repository.create(
-        lawyerId,
-        caseId,
-        createData,
-        session
-      );
+      await this.repository
+        .create(
+          lawyerId,
+          caseId,
+          createData,
+          session
+        );
     }
 
-   
     const expenseIdsToDelete =
       existingExpenses
         .filter(
@@ -326,8 +344,6 @@ export class CaseExpenseService {
         session
       );
   }
-
-
 
   public deleteCaseExpenses(
     lawyerId:

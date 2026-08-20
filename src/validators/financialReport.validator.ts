@@ -28,6 +28,10 @@ export const FinancialClientCasesQuerySchema = z
     page: z.coerce.number().int().min(1).default(1),
 
     limit: z.coerce.number().int().min(1).max(100).default(10),
+
+    paymentType: z
+      .enum(["CASH", "NON_CASH", "BOTH"])
+      .optional(),
   })
   .strict();
 

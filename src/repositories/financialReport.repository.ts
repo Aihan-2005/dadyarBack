@@ -36,6 +36,10 @@ export class FinancialReportRepository {
 
       CaseModel.aggregate<{
         totalCaseValue: number;
+
+        totalEstimatedNonCashValue: number;
+
+        nonCashCaseCount: number;
       }>([
         {
           $match: {
@@ -48,6 +52,36 @@ export class FinancialReportRepository {
 
             totalCaseValue: {
               $sum: "$value",
+            },
+
+            totalEstimatedNonCashValue: {
+              $sum: {
+                $cond: [
+                  {
+                    $in: ["$paymentType", ["NON_CASH", "BOTH"]],
+                  },
+
+                  {
+                    $ifNull: ["$estimatedPrice", 0],
+                  },
+
+                  0,
+                ],
+              },
+            },
+
+            nonCashCaseCount: {
+              $sum: {
+                $cond: [
+                  {
+                    $in: ["$paymentType", ["NON_CASH", "BOTH"]],
+                  },
+
+                  1,
+
+                  0,
+                ],
+              },
             },
           },
         },
@@ -136,6 +170,11 @@ export class FinancialReportRepository {
 
     return {
       totalCaseValue: caseResult[0]?.totalCaseValue ?? 0,
+
+      totalEstimatedNonCashValue:
+        caseResult[0]?.totalEstimatedNonCashValue ?? 0,
+
+      nonCashCaseCount: caseResult[0]?.nonCashCaseCount ?? 0,
 
       totalPaidPayments: paymentResult[0]?.totalPaidPayments ?? 0,
 
@@ -275,6 +314,36 @@ export class FinancialReportRepository {
                       assignedAmount: {
                         $sum: "$clientAssignments.assignedAmount",
                       },
+
+                      nonCashCaseCount: {
+                        $sum: {
+                          $cond: [
+                            {
+                              $in: ["$paymentType", ["NON_CASH", "BOTH"]],
+                            },
+
+                            1,
+
+                            0,
+                          ],
+                        },
+                      },
+
+                      relatedEstimatedNonCashValue: {
+                        $sum: {
+                          $cond: [
+                            {
+                              $in: ["$paymentType", ["NON_CASH", "BOTH"]],
+                            },
+
+                            {
+                              $ifNull: ["$estimatedPrice", 0],
+                            },
+
+                            0,
+                          ],
+                        },
+                      },
                     },
                   },
                 ],
@@ -379,6 +448,29 @@ export class FinancialReportRepository {
                   ],
                 },
 
+                nonCashCaseCount: {
+                  $ifNull: [
+                    {
+                      $arrayElemAt: ["$caseFinancial.nonCashCaseCount", 0],
+                    },
+
+                    0,
+                  ],
+                },
+
+                relatedEstimatedNonCashValue: {
+                  $ifNull: [
+                    {
+                      $arrayElemAt: [
+                        "$caseFinancial.relatedEstimatedNonCashValue",
+                        0,
+                      ],
+                    },
+
+                    0,
+                  ],
+                },
+
                 paidAmount: {
                   $ifNull: [
                     {
@@ -447,6 +539,10 @@ export class FinancialReportRepository {
 
                 caseCount: 1,
 
+                nonCashCaseCount: 1,
+
+                relatedEstimatedNonCashValue: 1,
+
                 assignedAmount: 1,
 
                 paidAmount: 1,
@@ -497,15 +593,21 @@ export class FinancialReportRepository {
 
     const now = new Date();
 
+    const caseMatch: Record<string, unknown> = {
+      lawyerId: lawyerObjectId,
+
+      "clientAssignments.clientId": clientObjectId,
+    };
+
+    if (options.paymentType) {
+      caseMatch.paymentType = options.paymentType;
+    }
+
     const [result] = await CaseModel.aggregate([
       // ---------------- Cases Belonging To Lawyer ----------------
 
       {
-        $match: {
-          lawyerId: lawyerObjectId,
-
-          "clientAssignments.clientId": clientObjectId,
-        },
+        $match: caseMatch,
       },
 
       // ---------------- Get Only This Client Assignment ----------------
@@ -714,6 +816,24 @@ export class FinancialReportRepository {
                 state: 1,
 
                 caseValue: "$value",
+
+                paymentType: 1,
+
+                estimatedNonCashValue: {
+                  $cond: [
+                    {
+                      $in: ["$paymentType", ["NON_CASH", "BOTH"]],
+                    },
+
+                    {
+                      $ifNull: ["$estimatedPrice", 0],
+                    },
+
+                    0,
+                  ],
+                },
+
+                nonCashDescription: 1,
 
                 assignedAmount: 1,
 

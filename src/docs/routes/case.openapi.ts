@@ -107,6 +107,14 @@ Creates a new case for the authenticated lawyer.
 The authenticated lawyer is resolved exclusively from the access token.
 The request body must not contain lawyerId or other lawyer-account fields.
 
+### Core case fields
+
+- \`caseNumber\` is the judicial case number and is required.
+- \`archiveNumberOffice\` is the lawyer-office archive number and is independent from \`caseNumber\`.
+- \`court.archiveNumberBranch\` stores the branch archive number.
+- \`paymentType\` supports CASH, NON_CASH, and BOTH.
+- \`estimatedPrice\` stores the approximate monetary value of non-cash consideration for reporting purposes.
+
 ### Clients
 
 Clients are submitted through \`clients[]\`.
@@ -121,7 +129,9 @@ If the client already exists in the authenticated lawyer's client database:
 {
   "clientId": "MongoObjectId",
   "assignedAmount": 5000000,
-  "role": "خواهان"
+  "birthDate": "2010-03-21T00:00:00.000Z",
+  "role": "خواهان",
+  "represent": "نماینده قانونی"
 }
 \`\`\`
 
@@ -136,7 +146,10 @@ A client can also be resolved using a phone number:
   "fullName": "علی رضایی",
   "phone": "09121234567",
   "nationalId": "1234567890",
-  "assignedAmount": 5000000
+  "birthDate": "2010-03-21T00:00:00.000Z",
+  "assignedAmount": 5000000,
+  "role": "خواهان",
+  "represent": "نماینده قانونی"
 }
 \`\`\`
 
@@ -163,8 +176,15 @@ Supported methods:
 Rules:
 
 - payments without \`paymentId\` are created
+- \`description\` may be used for CASH payment notes
 - NON_CASH payments require a description
 - a client's scheduled payment total cannot exceed that client's assigned amount
+
+### People and lawyers
+
+- opposing parties support \`nationalId\`, \`birthDate\`, \`role\`, and \`description\`
+- assistant lawyers and opposing lawyers support \`nationalId\` and \`birthDate\` in addition to license data
+- related people support \`nationalId\`, \`birthDate\`, \`role\`, and \`description\`
 
 ### Expenses
 
@@ -238,9 +258,16 @@ Returns the authenticated lawyer's cases using database-level pagination.
 The optional \`search\` value searches:
 
 - case title
-- case number
+- judicial case number
+- lawyer-office archive number
 - court province
 - court city
+- court branch
+- court branch archive number
+- branch-history archive numbers
+
+Persian/Arabic digits in the search term are normalized alongside the raw value,
+so numeric searches remain useful for case and archive numbers.
 
 The endpoint returns the same normalized case representation used by
 the case-details endpoint.
@@ -307,7 +334,7 @@ openApiRegistry.registerPath({
   summary: "Get case details",
 
   description:
-    "Returns the complete case including resolved clients, each client's payments, and case expenses.",
+    "Returns the complete case including office/branch archive numbers, estimated non-cash value, resolved client birth dates, payment notes, expenses, opposing parties, lawyers, and related people.",
 
   security: [
     {
@@ -359,6 +386,9 @@ openApiRegistry.registerPath({
 Partially updates a case.
 
 Only supplied fields are changed.
+
+Top-level fields such as \`archiveNumberOffice\`, \`estimatedPrice\`, court branch archive data,
+and the extended person/lawyer fields follow the same partial-update semantics.
 
 ### Clients and payments
 
@@ -579,7 +609,7 @@ openApiRegistry.registerPath({
   summary: "Update case court",
 
   description:
-    "Partially updates the court information associated with a case.",
+    "Partially updates court information including province, city, branch, branch code, and archiveNumberBranch.",
 
   security: [
     {

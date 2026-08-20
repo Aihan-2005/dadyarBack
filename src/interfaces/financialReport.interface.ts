@@ -16,6 +16,12 @@ export type FinancialClientReportQuery = z.infer<
 export type LawyerFinancialSummary = {
   totalCaseValue: number;
 
+  totalEstimatedNonCashValue: number;
+
+  totalTrackedValue: number;
+
+  nonCashCaseCount: number;
+
   totalPaidPayments: number;
 
   totalOverduePayments: number;
@@ -40,6 +46,10 @@ export type ClientFinancialSummary = {
 
   caseCount: number;
 
+  nonCashCaseCount: number;
+
+  relatedEstimatedNonCashValue: number;
+
   assignedAmount: number;
 
   paidAmount: number;
@@ -61,6 +71,12 @@ export type ClientCaseFinancialSummary = {
   state: string;
 
   caseValue: number;
+
+  paymentType: "CASH" | "NON_CASH" | "BOTH";
+
+  estimatedNonCashValue: number;
+
+  nonCashDescription?: string;
 
   assignedAmount: number;
 

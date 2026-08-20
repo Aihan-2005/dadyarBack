@@ -40,6 +40,67 @@ export class CaseRepository extends BaseRepository<Case> {
     );
   }
 
+  private normalizeDigits(
+    value:
+      string
+  ): string {
+    return value
+      .replace(
+        /[۰-۹]/g,
+        (digit) =>
+          String(
+            "۰۱۲۳۴۵۶۷۸۹"
+              .indexOf(
+                digit
+              )
+          )
+      )
+      .replace(
+        /[٠-٩]/g,
+        (digit) =>
+          String(
+            "٠١٢٣٤٥٦٧٨٩"
+              .indexOf(
+                digit
+              )
+          )
+      );
+  }
+
+  private buildSearchRegexes(
+    search:
+      string
+  ): Array<{
+    $regex: string;
+    $options: "i";
+  }> {
+    const values =
+      Array.from(
+        new Set([
+          search,
+          this.normalizeDigits(
+            search
+          ),
+        ])
+      )
+        .map((value) =>
+          value.trim()
+        )
+        .filter(Boolean);
+
+    return values.map(
+      (value) => ({
+        $regex:
+          this.escapeRegex(
+            value
+          ),
+
+        $options:
+          "i",
+      })
+    );
+  }
+
   private buildSubDocumentSet(
     path:
       string,
@@ -153,54 +214,32 @@ export class CaseRepository extends BaseRepository<Case> {
         ?.trim();
 
     if (search) {
-      const safeSearch =
-        this.escapeRegex(
+      const searchRegexes =
+        this.buildSearchRegexes(
           search
         );
 
-      query.$or = [
-        {
-          title: {
-            $regex:
-              safeSearch,
+      const searchableFields = [
+        "title",
+        "caseNumber",
+        "archiveNumberOffice",
+        "court.province",
+        "court.city",
+        "court.branch",
+        "court.archiveNumberBranch",
+        "branchHistory.archiveNumberBranch",
+      ] as const;
 
-            $options:
-              "i",
-          },
-        },
-
-        {
-          caseNumber: {
-            $regex:
-              safeSearch,
-
-            $options:
-              "i",
-          },
-        },
-
-        {
-          "court.province":
-            {
-              $regex:
-                safeSearch,
-
-              $options:
-                "i",
-            },
-        },
-
-        {
-          "court.city":
-            {
-              $regex:
-                safeSearch,
-
-              $options:
-                "i",
-            },
-        },
-      ];
+      query.$or =
+        searchableFields.flatMap(
+          (field) =>
+            searchRegexes.map(
+              (regex) => ({
+                [field]:
+                  regex,
+              })
+            )
+        );
     }
 
     return query;

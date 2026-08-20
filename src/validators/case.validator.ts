@@ -21,6 +21,7 @@ import {
 } from "../config/env";
 
 import {
+  OptionalClientIdentitySchema,
   OptionalNationalIdSchema,
 } from "./client.validator";
 
@@ -121,6 +122,36 @@ const OptionalRoleSchema =
 const OptionalRepresentSchema =
   cleanOptionalString(
     200
+  );
+
+const OptionalIdentityDocumentSchema =
+  z.preprocess(
+    (value) => {
+      if (
+        value === undefined ||
+        value === null
+      ) {
+        return undefined;
+      }
+
+      if (typeof value !== "string") {
+        return value;
+      }
+
+      const normalized =
+        normalizePersianDigits(
+          value.trim()
+        );
+
+      return normalized === ""
+        ? undefined
+        : normalized;
+    },
+
+    z
+      .string()
+      .regex(/^\d{1,20}$/)
+      .optional()
   );
 
 
@@ -225,6 +256,14 @@ const MoneySchema =
           normalizePersianDigits(
             value.trim()
           )
+            .replace(
+              /[٬,\s]/g,
+              ""
+            )
+            .replace(
+              /ریال|تومان|ت/g,
+              ""
+            )
         );
       }
 
@@ -272,6 +311,9 @@ export const CourtSchema =
 
       branchCode:
         OptionalString,
+
+      archiveNumberBranch:
+        OptionalString,
     })
     .strict();
 
@@ -311,6 +353,9 @@ export const CaseClientSchema =
       assignedAmount:
         MoneySchema,
 
+      birthDate:
+        OptionalDateSchema,
+
       role:
         OptionalRoleSchema,
 
@@ -329,6 +374,9 @@ export const ExistingCaseClientSchema =
 
       assignedAmount:
         MoneySchema,
+
+      birthDate:
+        OptionalDateSchema,
 
       role:
         OptionalRoleSchema,
@@ -361,7 +409,10 @@ export const ManualCaseClientSchema =
           .optional(),
 
       nationalId:
-        OptionalNationalIdSchema,
+        OptionalClientIdentitySchema,
+
+      birthDate:
+        OptionalDateSchema,
 
       role:
         OptionalRoleSchema,
@@ -397,7 +448,7 @@ export const OpposingPartySchema =
         OptionalString,
 
       nationalId:
-        OptionalNationalIdSchema,
+        OptionalIdentityDocumentSchema,
 
       role:
         OptionalRoleSchema,
@@ -420,6 +471,12 @@ export const LawyerContactSchema =
 
       phone:
         RequiredString,
+
+      nationalId:
+        OptionalNationalIdSchema,
+
+      birthDate:
+        OptionalDateSchema,
 
       barLicenseNumber:
         OptionalString,
@@ -446,6 +503,9 @@ export const RelatedPersonSchema =
       nationalId:
         OptionalNationalIdSchema,
 
+      birthDate:
+        OptionalDateSchema,
+
       role:
         OptionalRoleSchema,
 
@@ -466,6 +526,9 @@ const CaseBodySchema =
       caseNumber:
         RequiredString,
 
+      archiveNumberOffice:
+        OptionalString,
+
       value:
         MoneySchema,
 
@@ -484,6 +547,10 @@ const CaseBodySchema =
 
       nonCashDescription:
         OptionalString,
+
+      estimatedPrice:
+        MoneySchema
+          .optional(),
 
       court:
         CourtSchema

@@ -66,6 +66,10 @@ type PopulatedCaseAssignment = {
   assignedAmount:
     number;
 
+  birthDate?:
+    | Date
+    | null;
+
   role?:
     | string
     | null;
@@ -317,7 +321,8 @@ export class CaseService {
           ? await this.clientService
               .getClientById(
                 lawyerId,
-                input.clientId
+                input.clientId,
+                session
               )
           : await this.clientService
               .resolveClientForCase(
@@ -332,6 +337,9 @@ export class CaseService {
 
                   nationalId:
                     input.nationalId,
+
+                  birthDate:
+                    input.birthDate,
 
                   represent:
                     undefined,
@@ -370,6 +378,11 @@ export class CaseService {
 
         assignedAmount:
           input.assignedAmount,
+
+        birthDate:
+          input.birthDate ??
+          client.birthday ??
+          undefined,
 
         role:
           this.normalizeOptionalString(
@@ -523,6 +536,11 @@ export class CaseService {
 
               nationalId:
                 client.nationalId ??
+                undefined,
+
+              birthDate:
+                assignment.birthDate ??
+                client.birthday ??
                 undefined,
 
               assignedAmount:
@@ -902,7 +920,7 @@ export class CaseService {
                   409,
 
                   MESSAGES
-                    .caseExsist[
+                    .caseNumberAlreadyExists[
                     LANGUAGE
                   ],
 
@@ -1071,7 +1089,7 @@ export class CaseService {
                   409,
 
                   MESSAGES
-                    .caseExsist[
+                    .caseNumberAlreadyExists[
                     LANGUAGE
                   ],
 
@@ -1135,6 +1153,11 @@ export class CaseService {
                           assignment
                             .assignedAmount,
 
+                        birthDate:
+                          assignment
+                            .birthDate ??
+                          undefined,
+
                         role:
                           this.normalizeOptionalString(
                             assignment.role ??
@@ -1148,6 +1171,26 @@ export class CaseService {
                           ),
                       })
                     );
+
+                /*
+                 * For a single-client case, changing only the contract value
+                 * should not force the caller to resend the clients array.
+                 * Keep all assignment metadata and move the single share with
+                 * the new case value.
+                 */
+                if (
+                  data.value !==
+                    undefined &&
+                  assignments.length ===
+                    1
+                ) {
+                  assignments[0] = {
+                    ...assignments[0],
+
+                    assignedAmount:
+                      value,
+                  };
+                }
               }
 
               this.ensureAssignmentsMatchValue(

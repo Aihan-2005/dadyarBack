@@ -119,6 +119,10 @@ export const CaseClientResponseSchema =
           .string()
           .optional(),
 
+      birthDate:
+        DateTimeResponseSchema
+          .optional(),
+
       assignedAmount:
         z.number(),
 
@@ -228,6 +232,15 @@ export const LawyerContactResponseSchema =
       phone:
         z.string(),
 
+      nationalId:
+        z
+          .string()
+          .optional(),
+
+      birthDate:
+        DateTimeResponseSchema
+          .optional(),
+
       barLicenseNumber:
         z
           .string()
@@ -265,6 +278,10 @@ export const RelatedPersonResponseSchema =
           .string()
           .optional(),
 
+      birthDate:
+        DateTimeResponseSchema
+          .optional(),
+
       role:
         z
           .string()
@@ -293,6 +310,11 @@ export const CaseDetailsSchema =
       caseNumber:
         z.string(),
 
+      archiveNumberOffice:
+        z
+          .string()
+          .optional(),
+
       state:
         CaseStateSchema,
 
@@ -308,6 +330,13 @@ export const CaseDetailsSchema =
       nonCashDescription:
         z
           .string()
+          .optional(),
+
+      estimatedPrice:
+        z
+          .number()
+          .int()
+          .min(0)
           .optional(),
 
       court:

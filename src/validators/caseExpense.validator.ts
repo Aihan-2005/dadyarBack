@@ -1,90 +1,235 @@
-import { Types } from "mongoose";
-import { z } from "zod";
+import {
+  Types,
+} from "mongoose";
 
-import { env } from "../config/env";
-import { MESSAGES } from "../constants/messages.constants";
+import {
+  z,
+} from "zod";
 
-const LANGUAGE = env.LANGUAGE;
+import {
+  env,
+} from "../config/env";
+
+import {
+  MESSAGES,
+} from "../constants/messages.constants";
+
+const LANGUAGE =
+  env.LANGUAGE;
 
 // ---------------- Helpers ----------------
 
-const MongoIdSchema = z
-  .string()
-  .trim()
-  .refine((value) => Types.ObjectId.isValid(value), {
-    message: MESSAGES.invalidObjectId[LANGUAGE],
-  });
+const MongoIdSchema =
+  z
+    .string()
+    .trim()
+    .refine(
+      (
+        value
+      ) =>
+        Types.ObjectId.isValid(
+          value
+        ),
+      {
+        message:
+          MESSAGES
+            .invalidObjectId[
+            LANGUAGE
+          ],
+      }
+    );
 
-const normalizePersianDigits = (value: string): string =>
-  value
-    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
-    .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)));
+const normalizeDigits =
+  (
+    value:
+      string
+  ): string =>
+    value
+      .replace(
+        /[۰-۹]/g,
+        (
+          digit
+        ) =>
+          String(
+            "۰۱۲۳۴۵۶۷۸۹"
+              .indexOf(
+                digit
+              )
+          )
+      )
+      .replace(
+        /[٠-٩]/g,
+        (
+          digit
+        ) =>
+          String(
+            "٠١٢٣٤٥٦٧٨٩"
+              .indexOf(
+                digit
+              )
+          )
+      );
 
-const MoneySchema = z.preprocess(
-  (value) => {
-    if (typeof value === "string" && value.trim() !== "") {
-      return Number(normalizePersianDigits(value.trim()));
-    }
+const normalizeMoneyInput =
+  (
+    value:
+      string
+  ): string =>
+    normalizeDigits(
+      value
+    )
+      .replace(
+        /[٬,\s]/g,
+        ""
+      )
+      .replace(
+        /ریال|تومان|ت/g,
+        ""
+      )
+      .trim();
 
-    return value;
-  },
+const MoneySchema =
+  z.preprocess(
+    (
+      value
+    ) => {
+      if (
+        typeof value !==
+        "string"
+      ) {
+        return value;
+      }
 
-  z.number().int().positive(),
-);
+      const normalized =
+        normalizeMoneyInput(
+          value
+        );
 
-const RequiredTitleSchema = z.string().trim().min(1).max(200);
+      if (!normalized) {
+        return value;
+      }
 
-const OptionalDescriptionSchema = z.preprocess(
-  (value) => {
-    if (value === undefined || value === null) {
-      return undefined;
-    }
+      const parsed =
+        Number(
+          normalized
+        );
 
-    if (typeof value === "string") {
-      const trimmed = value.trim();
+      return Number.isFinite(
+        parsed
+      )
+        ? parsed
+        : value;
+    },
 
-      return trimmed === "" ? undefined : trimmed;
-    }
+    z
+      .number()
+      .int()
+      .positive()
+  );
 
-    return value;
-  },
+const RequiredTitleSchema =
+  z
+    .string()
+    .trim()
+    .min(1)
+    .max(200);
 
-  z.string().max(1000).optional(),
-);
+const OptionalDescriptionSchema =
+  z.preprocess(
+    (
+      value
+    ) => {
+      if (
+        value ===
+          undefined ||
+        value ===
+          null
+      ) {
+        return undefined;
+      }
 
-const OptionalExpenseDateSchema = z.preprocess(
-  (value) => {
-    if (value === undefined || value === null || value === "") {
-      return undefined;
-    }
+      if (
+        typeof value ===
+        "string"
+      ) {
+        const trimmed =
+          value.trim();
 
-    return value;
-  },
+        return trimmed ===
+          ""
+          ? undefined
+          : trimmed;
+      }
 
-  z.coerce.date().optional(),
-);
+      return value;
+    },
+
+    z
+      .string()
+      .max(
+        1000
+      )
+      .optional()
+  );
+
+const OptionalExpenseDateSchema =
+  z.preprocess(
+    (
+      value
+    ) => {
+      if (
+        value ===
+          undefined ||
+        value ===
+          null ||
+        value ===
+          ""
+      ) {
+        return undefined;
+      }
+
+      return value;
+    },
+
+    z.coerce
+      .date()
+      .optional()
+  );
 
 // ---------------- Expense Input ----------------
 
-export const CaseExpenseInputSchema = z
-  .object({
-    /*
-     * Existing expense:
-     * expenseId exists.
-     *
-     * New expense:
-     * expenseId does not exist.
-     */
-    expenseId: MongoIdSchema.optional(),
+export const CaseExpenseInputSchema =
+  z
+    .object({
+      /**
+       * Existing expense:
+       * expenseId exists.
+       *
+       * New expense:
+       * expenseId does not exist.
+       */
+      expenseId:
+        MongoIdSchema
+          .optional(),
 
-    title: RequiredTitleSchema,
+      /**
+       * UI now uses one combined
+       * "عنوان هزینه / توضیحات" field.
+       * The value is stored as title.
+       */
+      title:
+        RequiredTitleSchema,
 
-    amount: MoneySchema,
+      amount:
+        MoneySchema,
 
-    description: OptionalDescriptionSchema,
+      description:
+        OptionalDescriptionSchema,
 
-    expenseDate: OptionalExpenseDateSchema,
+      expenseDate:
+        OptionalExpenseDateSchema,
 
-    isPaid: z.boolean(),
-  })
-  .strict();
+      isPaid:
+        z.boolean(),
+    })
+    .strict();
