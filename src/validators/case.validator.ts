@@ -351,7 +351,9 @@ export const CaseClientSchema =
         MongoIdSchema,
 
       assignedAmount:
-        MoneySchema,
+        MoneySchema
+          .optional()
+          .default(0),
 
       birthDate:
         OptionalDateSchema,
@@ -373,7 +375,9 @@ export const ExistingCaseClientSchema =
         MongoIdSchema,
 
       assignedAmount:
-        MoneySchema,
+        MoneySchema
+          .optional()
+          .default(0),
 
       birthDate:
         OptionalDateSchema,
@@ -401,7 +405,9 @@ export const ManualCaseClientSchema =
         PhoneSchema,
 
       assignedAmount:
-        MoneySchema,
+        MoneySchema
+          .optional()
+          .default(0),
 
       fullName:
         RequiredString
@@ -530,7 +536,9 @@ const CaseBodySchema =
         OptionalString,
 
       value:
-        MoneySchema,
+        MoneySchema
+          .optional()
+          .default(0),
 
       state:
         CaseStateSchema
