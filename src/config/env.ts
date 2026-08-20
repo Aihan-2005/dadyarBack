@@ -104,6 +104,18 @@ const envSchema = z.object({
   SMSIR_OTP_TEMPLATE_ID: z.coerce.number().int().positive().optional(),
 
   OTP_RESEND_COOLDOWN_SECONDS: z.coerce.number().int().positive().default(60),
+
+  SMTP_HOST: z.string().trim().optional(),
+
+  SMTP_PORT: z.coerce.number().int().positive().optional(),
+
+  SMTP_USER: z.string().trim().optional(),
+
+  SMTP_PASSWORD: z.string().trim().optional(),
+
+  SMTP_FROM: z.string().trim().optional(),
+
+  SMTP_SECURE: z.coerce.boolean().optional().default(false),
 });
 
 class Env {
@@ -151,13 +163,25 @@ class Env {
 
   public readonly OTP_RESEND_COOLDOWN_SECONDS: number;
 
+  public readonly SMTP_HOST: string | undefined;
+
+  public readonly SMTP_PORT: number | undefined;
+
+  public readonly SMTP_USER: string | undefined;
+
+  public readonly SMTP_PASSWORD: string | undefined;
+
+  public readonly SMTP_FROM: string | undefined;
+
+  public readonly SMTP_SECURE: boolean;
+
   constructor(processEnv = process.env) {
     const parsed = envSchema.safeParse(processEnv);
 
     if (!parsed.success) {
       console.error("Invalid environment variables:");
 
-      console.error(parsed.error.format());
+      console.error(parsed.error.issues);
 
       process.exit(1);
     }
@@ -207,6 +231,18 @@ class Env {
     this.SMSIR_OTP_TEMPLATE_ID = data.SMSIR_OTP_TEMPLATE_ID;
 
     this.OTP_RESEND_COOLDOWN_SECONDS = data.OTP_RESEND_COOLDOWN_SECONDS;
+
+    this.SMTP_HOST = data.SMTP_HOST;
+
+    this.SMTP_PORT = data.SMTP_PORT;
+
+    this.SMTP_USER = data.SMTP_USER;
+
+    this.SMTP_PASSWORD = data.SMTP_PASSWORD;
+
+    this.SMTP_FROM = data.SMTP_FROM;
+
+    this.SMTP_SECURE = data.SMTP_SECURE;
   }
 }
 

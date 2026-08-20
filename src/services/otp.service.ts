@@ -4,12 +4,12 @@ import { env } from "../config/env";
 import { MESSAGES } from "../constants/messages.constants";
 
 import { HttpException } from "../exceptions/httpException";
-import { SmsProviderException } from "../exceptions/smsProvider.exception";
 
 import type {
   CreateOtpInput,
   CreateOtpOptions,
   CreateOtpResult,
+  OtpChannel,
   VerifyOtpInput,
   VerifyOtpResult,
 } from "../interfaces/otp.interface";
@@ -18,7 +18,8 @@ import type { OtpStore } from "../stores/otp/otp.store";
 
 import type { OtpCooldownStore } from "../stores/otp/otpCooldown.store";
 
-import { SmsService } from "./sms.service";
+import { OtpDeliveryService } from "./otpDelivery.service";
+import { OtpPurpose } from "../constants/otp.constants";
 
 const LANGUAGE = env.LANGUAGE;
 
@@ -28,15 +29,23 @@ export class OtpService {
 
     private readonly cooldownStore: OtpCooldownStore,
 
-    private readonly smsService: SmsService = new SmsService(),
+    private readonly deliveryService: OtpDeliveryService,
   ) {}
 
-  private buildOtpKey(phone: string, purpose: string): string {
-    return ["otp", purpose, phone].join(":");
+  private buildOtpKey(
+    channel: OtpChannel,
+    destination: string,
+    purpose: OtpPurpose,
+  ): string {
+    return ["otp", purpose, channel, destination].join(":");
   }
 
-  private buildCooldownKey(phone: string, purpose: string): string {
-    return ["otp", "cooldown", purpose, phone].join(":");
+  private buildCooldownKey(
+    channel: OtpChannel,
+    destination: string,
+    purpose: OtpPurpose,
+  ): string {
+    return ["otp", "cooldown", purpose, channel, destination].join(":");
   }
 
   private generateCode(): string {
@@ -71,7 +80,11 @@ export class OtpService {
     input: CreateOtpInput,
     options: CreateOtpOptions = {},
   ): Promise<CreateOtpResult> {
-    const cooldownKey = this.buildCooldownKey(input.phone, input.purpose);
+    const cooldownKey = this.buildCooldownKey(
+      input.channel,
+      input.destination,
+      input.purpose,
+    );
 
     const cooldownAcquired = await this.cooldownStore.tryAcquire(
       cooldownKey,
@@ -98,25 +111,13 @@ export class OtpService {
       return this.getRequestMetadata();
     }
 
-    const templateId = env.SMSIR_OTP_TEMPLATE_ID;
-
-    if (!templateId) {
-      await this.cooldownStore.release(cooldownKey);
-
-      throw new HttpException(
-        500,
-        MESSAGES.otpDeliveryFailed[LANGUAGE],
-        "OTP_DELIVERY_FAILED",
-      );
-    }
-
     const code = this.generateCode();
 
-    if (env.NODE_ENV === "development") {
-      console.log(code);
-    }
-
-    const key = this.buildOtpKey(input.phone, input.purpose);
+    const key = this.buildOtpKey(
+      input.channel,
+      input.destination,
+      input.purpose,
+    );
 
     await this.otpStore.set(
       key,
@@ -128,45 +129,35 @@ export class OtpService {
       env.OTP_TTL_SECONDS,
     );
 
+    if (env.NODE_ENV === "development") {
+      console.log(`OTP (${input.channel}) for ${input.destination}:`, code);
+    }
+
     try {
-      await this.smsService.sendTemplate({
-        phone: input.phone,
+      await this.deliveryService.send({
+        channel: input.channel,
 
-        templateId,
+        destination: input.destination,
 
-        parameters: [
-          {
-            name: "Code",
-
-            value: code,
-          },
-        ],
+        code,
       });
     } catch (error) {
       await this.otpStore.delete(key);
 
       await this.cooldownStore.release(cooldownKey);
 
-      if (error instanceof SmsProviderException) {
-        console.error("SMS provider error:", {
-          provider: error.provider,
-
-          message: error.message,
-        });
-      }
-
-      throw new HttpException(
-        502,
-        MESSAGES.otpDeliveryFailed[LANGUAGE],
-        "OTP_DELIVERY_FAILED",
-      );
+      throw error;
     }
 
     return this.getRequestMetadata();
   }
 
   public async verifyOtp(input: VerifyOtpInput): Promise<VerifyOtpResult> {
-    const key = this.buildOtpKey(input.phone, input.purpose);
+    const key = this.buildOtpKey(
+      input.channel,
+      input.destination,
+      input.purpose,
+    );
 
     const storedOtp = await this.otpStore.get(key);
 

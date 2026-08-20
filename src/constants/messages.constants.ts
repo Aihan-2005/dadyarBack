@@ -283,9 +283,10 @@ export const MESSAGES = {
 
   duplicateExpenseInRequest: {
     en: "The same expense cannot be submitted more than once",
-    fa: "یک هزینه نمی‌تواند بیش از یک بار ارسال شود"},
-    
-notificationNotFound: {
+    fa: "یک هزینه نمی‌تواند بیش از یک بار ارسال شود",
+  },
+
+  notificationNotFound: {
     en: "Notification was not found",
     fa: "اعلان یافت نشد",
   },
@@ -325,5 +326,10 @@ notificationNotFound: {
     en: "Password changed successfully.",
 
     fa: "رمز عبور با موفقیت تغییر کرد.",
+  },
+  identifierExactlyOneRequired: {
+    fa: "دقیقاً یکی از ایمیل یا شماره همراه باید ارسال شود",
+
+    en: "Exactly one of email or phone must be provided",
   },
 };
