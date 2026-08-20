@@ -12,6 +12,7 @@ import CaseRoute from "../src/routes/case.route";
 import ClientRoute from "../src/routes/client.route";
 import { FinancialReportRoute } from "../src/routes/financialReport.route";
 import { ApiDocsRoute } from "../src/routes/apiDocs.route";
+import NotificationRoute from "../src/routes/notification.route";
 
 const routes: Route[] = [
   new IndexRoute(),
@@ -20,6 +21,7 @@ const routes: Route[] = [
   new CaseRoute(),
   new ClientRoute(),
   new FinancialReportRoute(),
+  new NotificationRoute(),
 ];
 
 if (env.ENABLE_API_DOCS) {
@@ -40,4 +42,3 @@ export default async function handler(req: any, res: any) {
 
   return app.getApp()(req, res);
 }
-

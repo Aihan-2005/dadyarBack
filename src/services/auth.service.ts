@@ -46,7 +46,7 @@ export class AuthService {
   constructor(
     private readonly repo: LawyerRepository,
 
-    private readonly otpService: OtpService = new OtpService(),
+    private readonly otpService: OtpService,
   ) {}
 
   private normalizeEmail(email?: string): string | undefined {
