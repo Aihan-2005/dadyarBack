@@ -5,6 +5,7 @@ import { z } from "zod";
 import { env } from "../config/env";
 
 import { MESSAGES } from "../constants/messages.constants";
+import { OTP_CHANNEL } from "../constants/otp.constants";
 
 const LANGUAGE = env.LANGUAGE;
 
@@ -18,9 +19,30 @@ function normalizeDigits(value: string): string {
     .replace(/[٠-٩]/g, (character) => String(arabicDigits.indexOf(character)));
 }
 
+function requireExactlyOneIdentifier(
+  data: {
+    phone?: string;
+    email?: string;
+  },
+  context: z.RefinementCtx,
+): void {
+  const identifierCount =
+    Number(Boolean(data.email)) + Number(Boolean(data.phone));
+
+  if (identifierCount !== 1) {
+    context.addIssue({
+      code: "custom",
+
+      path: ["email"],
+
+      message: MESSAGES.identifierExactlyOneRequired[LANGUAGE],
+    });
+  }
+}
+
 const RequiredNameSchema = z.string().trim().min(1).max(100);
 
-const EmailSchema = z.string().trim().toLowerCase().email();
+const EmailSchema = z.email().trim().toLowerCase();
 
 const PhoneSchema = z.preprocess(
   (value) => {
@@ -63,7 +85,7 @@ export const SignupSchema = z
   .superRefine((data, context) => {
     if (!data.email && !data.phone) {
       context.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
 
         path: ["email"],
 
@@ -81,20 +103,7 @@ export const LoginSchema = z
     password: LoginPasswordSchema,
   })
   .strict()
-  .superRefine((data, context) => {
-    const identifierCount =
-      Number(Boolean(data.email)) + Number(Boolean(data.phone));
-
-    if (identifierCount !== 1) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-
-        path: ["email"],
-
-        message: "دقیقاً یکی از ایمیل یا شماره همراه باید ارسال شود",
-      });
-    }
-  });
+  .superRefine(requireExactlyOneIdentifier);
 
 const OtpCodeSchema = z.preprocess(
   (value) => {
@@ -111,21 +120,32 @@ const OtpCodeSchema = z.preprocess(
 
 export const RequestOtpLoginSchema = z
   .object({
-    phone: PhoneSchema,
+    phone: PhoneSchema.optional(),
+    email: EmailSchema.optional(),
   })
-  .strict();
+  .strict()
+  .superRefine(requireExactlyOneIdentifier);
 
 export const OtpLoginSchema = z
   .object({
-    phone: PhoneSchema,
+    phone: PhoneSchema.optional(),
+
+    email: EmailSchema.optional(),
 
     code: OtpCodeSchema,
   })
-  .strict();
+  .strict()
+  .superRefine(requireExactlyOneIdentifier);
+
+export const RequestPasswordChangeSchema = z.object({
+  channel: z.enum(OTP_CHANNEL),
+});
 
 export const ChangePasswordSchema = z
   .object({
     code: OtpCodeSchema,
+
+    channel: z.enum(OTP_CHANNEL),
 
     newPassword: PasswordSchema,
   })

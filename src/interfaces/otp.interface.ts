@@ -16,8 +16,12 @@ export interface SaveOtpInput {
   attempts?: number;
 }
 
+export type OtpChannel = "phone" | "email";
+
 export interface OtpIdentifier {
-  phone: string;
+  channel: OtpChannel;
+
+  destination: string;
 
   purpose: OtpPurpose;
 }

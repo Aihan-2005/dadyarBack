@@ -35,6 +35,10 @@ export class SmsIrProvider implements SmsProvider {
     return this.client;
   }
 
+  public isAvailable(): boolean {
+    return Boolean(this.apiKey);
+  }
+
   public async sendTemplate(
     input: SendTemplateSmsInput,
   ): Promise<SmsSendResult> {

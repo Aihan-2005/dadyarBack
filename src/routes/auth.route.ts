@@ -28,6 +28,12 @@ import { LawyerRepository } from "../repositories/lawyer.repository";
 
 import { AuthService } from "../services/auth.service";
 
+import { SmsService } from "../services/sms.service";
+
+import { EmailService } from "../services/email.service";
+
+import { OtpDeliveryService } from "../services/otpDelivery.service";
+
 class AuthRoute implements Route {
   public readonly path = "/auth";
 
@@ -42,7 +48,17 @@ class AuthRoute implements Route {
 
     const otpCooldownStore = new RedisOtpCooldownStore(redisDatabase);
 
-    const otpService = new OtpService(otpStore, otpCooldownStore);
+    const smsService = new SmsService();
+
+    const emailService = new EmailService();
+
+    const otpDeliveryService = new OtpDeliveryService(smsService, emailService);
+
+    const otpService = new OtpService(
+      otpStore,
+      otpCooldownStore,
+      otpDeliveryService,
+    );
 
     const lawyerRepository = new LawyerRepository();
 

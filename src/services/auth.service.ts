@@ -158,24 +158,27 @@ export class AuthService {
 
     this.assertAccountCanAuthenticate(role, status);
 
-    if (!lawyer.phone) {
-      throw new HttpException(
-        400,
-        MESSAGES.phoneRequiredForPasswordChange[LANGUAGE],
-        "PHONE_REQUIRED_FOR_PASSWORD_CHANGE",
-      );
-    }
-
     return {
       lawyer,
-      phone: this.normalizePhone(lawyer.phone)!,
+
+      phone: this.normalizePhone(lawyer.phone),
+
+      email: this.normalizeEmail(lawyer.email),
     };
   }
 
   public async requestOtpLogin(input: RequestOtpLoginInput) {
-    const phone = this.normalizePhone(input.phone)!;
+    const email = this.normalizeEmail(input.email);
 
-    const account = await this.repo.findByPhone(phone);
+    const phone = this.normalizePhone(input.phone);
+
+    const channel = email ? "email" : "phone";
+
+    const destination = email ?? phone!;
+
+    const account = email
+      ? await this.repo.findByEmail(email)
+      : await this.repo.findByPhone(phone!);
 
     let canReceiveOtp = false;
 
@@ -192,7 +195,9 @@ export class AuthService {
 
     return this.otpService.createOtp(
       {
-        phone,
+        channel,
+
+        destination,
 
         purpose: OTP_PURPOSES.OTP_LOGIN,
       },
@@ -203,17 +208,27 @@ export class AuthService {
   }
 
   public async loginWithOtp(input: OtpLoginInput) {
-    const phone = this.normalizePhone(input.phone)!;
+    const email = this.normalizeEmail(input.email);
+
+    const phone = this.normalizePhone(input.phone);
+
+    const channel = email ? "email" : "phone";
+
+    const destination = email ?? phone!;
 
     await this.otpService.verifyOtp({
-      phone,
+      channel,
+
+      destination,
 
       purpose: OTP_PURPOSES.OTP_LOGIN,
 
       code: input.code,
     });
 
-    const authUser = await this.repo.findByPhone(phone);
+    const authUser = email
+      ? await this.repo.findByEmail(email)
+      : await this.repo.findByPhone(phone!);
 
     if (!authUser) {
       throw new HttpException(
@@ -379,21 +394,47 @@ export class AuthService {
     return toPublicLawyerDTO(lawyer);
   }
 
-  public async requestPasswordChange(lawyerId: string) {
-    const { phone } = await this.getPasswordChangeAccount(lawyerId);
+  public async requestPasswordChange(
+    lawyerId: string,
+    channel: "phone" | "email",
+  ) {
+    const { phone, email } = await this.getPasswordChangeAccount(lawyerId);
+
+    const destination = channel === "phone" ? phone : email;
+
+    if (!destination) {
+      throw new HttpException(
+        400,
+        "Verification channel is unavailable",
+        "OTP_CHANNEL_UNAVAILABLE",
+      );
+    }
 
     return this.otpService.createOtp({
-      phone,
+      channel,
+
+      destination,
 
       purpose: OTP_PURPOSES.PASSWORD_CHANGE,
     });
   }
 
   public async changePassword(lawyerId: string, input: ChangePasswordInput) {
-    const { phone } = await this.getPasswordChangeAccount(lawyerId);
+    const { phone, email } = await this.getPasswordChangeAccount(lawyerId);
 
+    const destination = input.channel === "phone" ? phone : email;
+
+    if (!destination) {
+      throw new HttpException(
+        400,
+        "Verification channel is unavailable",
+        "OTP_CHANNEL_UNAVAILABLE",
+      );
+    }
     await this.otpService.verifyOtp({
-      phone,
+      channel: input.channel,
+
+      destination,
 
       purpose: OTP_PURPOSES.PASSWORD_CHANGE,
 

@@ -8,4 +8,7 @@ export const OTP_PURPOSES = {
   PHONE_VERIFICATION: "PHONE_VERIFICATION",
 } as const;
 
+export const OTP_CHANNEL = ["phone", "email"] as const;
+
 export type OtpPurpose = (typeof OTP_PURPOSES)[keyof typeof OTP_PURPOSES];
+export type OtpChannel = (typeof OTP_CHANNEL)[number];

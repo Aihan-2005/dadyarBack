@@ -15,6 +15,7 @@ import {
   LoginSchema,
   OtpLoginSchema,
   RequestOtpLoginSchema,
+  RequestPasswordChangeSchema,
   SignupSchema,
 } from "../../validators/auth.validator";
 
@@ -94,7 +95,8 @@ const serverErrorResponse = {
 };
 
 const badGatewayResponse = {
-  description: "The SMS provider could not deliver the verification code.",
+  description:
+    "The selected OTP delivery provider could not deliver the verification code.",
 
   content: {
     "application/json": {
@@ -332,26 +334,31 @@ openApiRegistry.registerPath({
   description: `
 Requests a one-time verification code for passwordless login.
 
-The user submits their registered Iranian mobile number.
+The user must submit exactly one registered identifier:
 
-### Phone format
+- \`phone\`
+- \`email\`
 
-The phone number must use:
+The backend uses the submitted identifier as the OTP delivery destination.
 
-\`09xxxxxxxxx\`
+### Delivery channel
 
-Persian and Arabic digits are normalized by the backend.
+The OTP delivery method depends on the submitted identifier:
+
+- \`phone\` requests are delivered through SMS
+- \`email\` requests are delivered through email
 
 ### Account privacy
 
-This endpoint intentionally does not reveal whether a phone number belongs to an account.
+This endpoint intentionally does not reveal whether an identifier belongs to an account.
 
 A generic successful response may therefore be returned even when:
 
 - the phone number is not registered
+- the email address is not registered
 - the account is not eligible to authenticate
 
-An SMS is only sent when the account exists and is eligible for authentication.
+An OTP is only delivered when the account exists and is eligible for authentication.
 
 ### OTP lifetime
 
@@ -367,7 +374,7 @@ Requesting another OTP after the cooldown creates a new code and invalidates the
 This endpoint is protected by:
 
 - HTTP/IP rate limiting
-- per-phone OTP resend cooldown
+- per-destination OTP resend cooldown
 
 The OTP itself is also protected by a maximum verification-attempt limit.
 `,
@@ -433,7 +440,16 @@ openApiRegistry.registerPath({
   summary: "Login using OTP",
 
   description: `
-Authenticates a lawyer using their phone number and a previously requested one-time verification code.
+Authenticates a lawyer using their registered phone number or email address and a previously requested one-time verification code.
+
+### Identifier
+
+The request must contain exactly one identifier:
+
+- \`phone\`
+- \`email\`
+
+The identifier must match the one used when requesting the OTP.
 
 ### OTP
 
@@ -443,7 +459,7 @@ Persian and Arabic digits are normalized by the backend.
 
 The OTP must:
 
-- belong to the submitted phone number
+- belong to the submitted phone number or email address
 - have been created for OTP login
 - not be expired
 - not have exceeded the allowed verification attempts
@@ -733,17 +749,53 @@ openApiRegistry.registerPath({
   summary: "Request password-change OTP",
 
   description: `
-Sends a one-time verification code to the authenticated lawyer's registered phone number.
+Sends a one-time verification code for changing the authenticated lawyer's password.
 
 This endpoint requires a valid access token.
 
-### Important
+### Request body
 
-The client does **not** send a phone number.
+The client must specify the preferred verification channel:
 
-The backend determines the account from the access token and sends the OTP to the phone number currently registered on that account.
+\`channel\`:
 
-This prevents a user from requesting a password-change code for an arbitrary phone number.
+- \`phone\`: sends the OTP to the authenticated user's registered phone number
+- \`email\`: sends the OTP to the authenticated user's registered email address
+
+Example:
+
+\`\`\`json
+{
+  "channel": "email"
+}
+\`\`\`
+
+or:
+
+\`\`\`json
+{
+  "channel": "phone"
+}
+\`\`\`
+
+### Contact information
+
+The client does not provide:
+
+- phone number
+- email address
+- user ID
+
+The backend retrieves the corresponding contact information from the authenticated account.
+
+### Requirements
+
+The authenticated account must have the selected contact method configured.
+
+For example:
+
+- selecting \`phone\` requires a registered phone number
+- selecting \`email\` requires a registered email address
 
 ### OTP purpose
 
@@ -751,20 +803,14 @@ The generated OTP is created specifically for:
 
 \`PASSWORD_CHANGE\`
 
-It cannot be used for OTP login or another OTP-protected operation.
-
-### Requirements
-
-The authenticated account must have a phone number.
-
-If the account has no phone number, the request is rejected.
+It cannot be used for OTP login or other OTP-protected operations.
 
 ### Response
 
 The response contains:
 
 - \`expiresIn\`: how long the OTP remains valid
-- \`resendAfter\`: how long the user must wait before requesting another code
+- \`resendAfter\`: how long the user must wait before requesting another OTP
 
 ### Security
 
@@ -772,7 +818,7 @@ This endpoint is protected by:
 
 - access-token authentication
 - HTTP rate limiting
-- per-phone OTP resend cooldown
+- per-destination OTP resend cooldown
 `,
 
   security: [
@@ -780,6 +826,18 @@ This endpoint is protected by:
       bearerAuth: [],
     },
   ],
+
+  request: {
+    body: {
+      required: true,
+
+      content: {
+        "application/json": {
+          schema: RequestPasswordChangeSchema,
+        },
+      },
+    },
+  },
 
   responses: {
     200: {
@@ -852,13 +910,14 @@ This endpoint requires a valid access token.
 
 The client submits:
 
+- \`channel\`: the OTP delivery channel used for verification
 - \`code\`: the 6-digit verification code
 - \`newPassword\`: the new account password
 
-The client does **not** submit:
+The client does not submit:
 
 - phone number
-- OTP purpose
+- email address
 - user ID
 
 Those values are derived by the backend from the authenticated account.
@@ -867,7 +926,7 @@ Those values are derived by the backend from the authenticated account.
 
 The submitted code must:
 
-- belong to the authenticated user's registered phone number
+- belong to the authenticated user's selected verification channel
 - have been generated for \`PASSWORD_CHANGE\`
 - not be expired
 - not have exceeded the allowed verification attempts
