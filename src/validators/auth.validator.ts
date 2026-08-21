@@ -137,6 +137,10 @@ export const OtpLoginSchema = z
   .strict()
   .superRefine(requireExactlyOneIdentifier);
 
+export const RequestPasswordChangeSchema = z.object({
+  channel: z.enum(OTP_CHANNEL),
+});
+
 export const ChangePasswordSchema = z
   .object({
     code: OtpCodeSchema,

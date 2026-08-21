@@ -13,6 +13,7 @@ import {
   LoginSchema,
   OtpLoginSchema,
   RequestOtpLoginSchema,
+  RequestPasswordChangeSchema,
   SignupSchema,
 } from "../validators/auth.validator";
 
@@ -296,7 +297,12 @@ export class AuthController {
         );
       }
 
-      const result = await this.authService.requestPasswordChange(lawyerId);
+      const { channel } = RequestPasswordChangeSchema.parse(req.body ?? {});
+
+      const result = await this.authService.requestPasswordChange(
+        lawyerId,
+        channel,
+      );
 
       this.disableCaching(res);
 
@@ -326,7 +332,7 @@ export class AuthController {
         );
       }
 
-      const input = await ChangePasswordSchema.parseAsync(req.body ?? {});
+      const input = ChangePasswordSchema.parse(req.body ?? {});
 
       const { accessToken, refreshToken, accessTokenExpiresIn } =
         await this.authService.changePassword(lawyerId, input);
