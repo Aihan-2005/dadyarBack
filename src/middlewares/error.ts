@@ -12,6 +12,8 @@ import { HttpException } from "../exceptions/httpException";
 type MongoDuplicateError = Error & {
   code: 11000;
 
+  keyPattern?: Record<string, number>;
+
   keyValue?: Record<string, unknown>;
 };
 
@@ -69,7 +71,41 @@ const errorHandler = (
   }
 
   if (isMongoDuplicateError(error)) {
-    const field = error.keyValue ? Object.keys(error.keyValue)[0] : undefined;
+    const duplicateFields = Object.keys(
+      error.keyPattern ??
+        error.keyValue ??
+        {},
+    );
+
+ 
+    const field =
+      duplicateFields.find(
+        (key) =>
+          key !== "lawyerId",
+      ) ??
+      duplicateFields[0];
+
+    if (
+      duplicateFields.includes(
+        "caseNumber",
+      )
+    ) {
+      return res.status(409).json({
+        success: false,
+
+        code:
+          "CASE_NUMBER_ALREADY_EXISTS",
+
+        message:
+          MESSAGES
+            .caseNumberAlreadyExists[
+            env.LANGUAGE
+          ],
+
+        field:
+          "caseNumber",
+      });
+    }
 
     return res.status(409).json({
       success: false,

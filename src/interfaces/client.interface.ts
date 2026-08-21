@@ -69,6 +69,8 @@ export type ManualCaseClientInput = {
 
   nationalId?: string;
 
+  birthDate?: Date;
+
   represent?: string;
 };
 
@@ -80,6 +82,8 @@ export type PopulatedClient = {
   phone: string;
 
   nationalId?: string | null;
+
+  birthday?: Date | null;
 
   represent?: string | null;
 };

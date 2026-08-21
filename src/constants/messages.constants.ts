@@ -29,10 +29,6 @@ export const MESSAGES = {
     fa: "هیچ کاربری با این شناسه یافت نشد",
   },
 
-  // noStudyWithId: {
-  //   en: "No Study Was Found With This Id",
-  //   fa: "هیچ تحصیلی با این شناسه یافت نشد",
-  // },
 
   noWorkExperienceWithId: {
     en: "No Work Experience Was Found With This Id",
@@ -117,9 +113,18 @@ export const MESSAGES = {
     en: "End Year Can't Be Before Start Year",
     fa: "سال انتها نمیتواند ثبل از شروع باشد",
   },
+  /**
+   * @deprecated Use caseNumberAlreadyExists.
+   * Kept temporarily so older callers do not break during deployment.
+   */
   caseExsist: {
     en: "Case Number Already Exists",
     fa: "پرونده از قبل موجود بود",
+  },
+
+  caseNumberAlreadyExists: {
+    en: "A case with this case number already exists",
+    fa: "پرونده‌ای با این شماره پرونده از قبل ثبت شده است",
   },
   caseNotFound: {
     en: "Case Was Not Found",

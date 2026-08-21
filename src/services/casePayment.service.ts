@@ -39,8 +39,6 @@ export class CasePaymentService {
       new CasePaymentRepository()
   ) {}
 
- 
-
   private normalizeOptionalString(
     value?:
       | string
@@ -182,7 +180,19 @@ export class CasePaymentService {
     return update;
   }
 
- 
+  /**
+   * Synchronizes all payments of a case.
+   *
+   * Semantics:
+   * - payments === undefined => preserve existing payments for that client.
+   * - payments === []        => delete all existing payments for that client.
+   * - paymentId              => update that exact payment.
+   * - no paymentId           => create a new payment.
+   *
+   * A complete validation pass is executed before any write. This keeps
+   * transaction work minimal and prevents partial mutation attempts for
+   * invalid payloads.
+   */
   public async syncCasePayments(
     lawyerId:
       string,
@@ -214,14 +224,16 @@ export class CasePaymentService {
         )
       );
 
-   
     const retainedPaymentIds =
       new Set<string>();
 
-    
     const submittedPaymentIds =
       new Set<string>();
 
+    /*
+     * Preflight validation.
+     * No database mutation happens in this pass.
+     */
     for (
       const client of
       clients
@@ -233,7 +245,6 @@ export class CasePaymentService {
             client.clientId
         );
 
-  
       if (
         client.payments ===
         undefined
@@ -255,7 +266,6 @@ export class CasePaymentService {
         continue;
       }
 
-     
       this.ensurePaymentsWithinAssignedAmount(
         client.payments,
         client.assignedAmount
@@ -269,54 +279,83 @@ export class CasePaymentService {
           payment
         );
 
-       
+        if (
+          !payment.paymentId
+        ) {
+          continue;
+        }
 
         if (
-          payment.paymentId
+          submittedPaymentIds.has(
+            payment.paymentId
+          )
         ) {
-          if (
-            submittedPaymentIds.has(
-              payment.paymentId
-            )
-          ) {
-            throw new HttpException(
-              400,
+          throw new HttpException(
+            400,
 
-              MESSAGES
-                .duplicatePaymentInRequest[
-                LANGUAGE
-              ],
+            MESSAGES
+              .duplicatePaymentInRequest[
+              LANGUAGE
+            ],
 
-              "DUPLICATE_PAYMENT_IN_REQUEST"
-            );
-          }
+            "DUPLICATE_PAYMENT_IN_REQUEST"
+          );
+        }
 
-          submittedPaymentIds.add(
+        submittedPaymentIds.add(
+          payment.paymentId
+        );
+
+        const existingPayment =
+          existingById.get(
             payment.paymentId
           );
 
-          const existingPayment =
-            existingById.get(
-              payment.paymentId
-            );
+        if (
+          !existingPayment ||
+          existingPayment.clientId.toString() !==
+            client.clientId
+        ) {
+          throw new HttpException(
+            404,
 
-          if (
-            !existingPayment ||
-            existingPayment.clientId.toString() !==
-              client.clientId
-          ) {
-            throw new HttpException(
-              404,
+            MESSAGES
+              .paymentNotFound[
+              LANGUAGE
+            ],
 
-              MESSAGES
-                .paymentNotFound[
-                LANGUAGE
-              ],
+            "PAYMENT_NOT_FOUND"
+          );
+        }
 
-              "PAYMENT_NOT_FOUND"
-            );
-          }
+        retainedPaymentIds.add(
+          payment.paymentId
+        );
+      }
+    }
 
+    /*
+     * Mutation pass.
+     * All references and totals are valid at this point.
+     */
+    for (
+      const client of
+      clients
+    ) {
+      if (
+        client.payments ===
+        undefined
+      ) {
+        continue;
+      }
+
+      for (
+        const payment of
+        client.payments
+      ) {
+        if (
+          payment.paymentId
+        ) {
           const updated =
             await this.repository
               .updateByIdForCaseClientForLawyer(
@@ -343,14 +382,8 @@ export class CasePaymentService {
             );
           }
 
-          retainedPaymentIds.add(
-            payment.paymentId
-          );
-
           continue;
         }
-
-       
 
         const {
           paymentId:
@@ -370,17 +403,23 @@ export class CasePaymentService {
               ),
           };
 
-        await this.repository.create(
-          lawyerId,
-          caseId,
-          client.clientId,
-          createData,
-          session
-        );
+        await this.repository
+          .create(
+            lawyerId,
+            caseId,
+            client.clientId,
+            createData,
+            session
+          );
       }
     }
 
-  
+    /*
+     * Anything that existed before but was not retained by the submitted
+     * client/payment graph has been removed from the case.
+     *
+     * This also removes payments belonging to a client removed from the case.
+     */
     const paymentIdsToDelete =
       existingPayments
         .filter(
@@ -402,8 +441,6 @@ export class CasePaymentService {
         session
       );
   }
-
- 
 
   public getCasePayments(
     lawyerId:
@@ -440,8 +477,6 @@ export class CasePaymentService {
         session
       );
   }
-
-  
 
   public deleteCasePayments(
     lawyerId:

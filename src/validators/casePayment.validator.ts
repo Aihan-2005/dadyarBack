@@ -1,101 +1,260 @@
-import { Types } from "mongoose";
-import { z } from "zod";
+import {
+  Types,
+} from "mongoose";
 
-import { env } from "../config/env";
+import {
+  z,
+} from "zod";
 
-import { PAYMENT_METHODS } from "../constants/casePayment.constants";
+import {
+  env,
+} from "../config/env";
 
-import { MESSAGES } from "../constants/messages.constants";
+import {
+  PAYMENT_METHODS,
+} from "../constants/casePayment.constants";
 
-const LANGUAGE = env.LANGUAGE;
+import {
+  MESSAGES,
+} from "../constants/messages.constants";
+
+const LANGUAGE =
+  env.LANGUAGE;
 
 // ---------------- Helpers ----------------
 
-export const MongoIdSchema = z
-  .string()
-  .trim()
-  .refine((value) => Types.ObjectId.isValid(value), {
-    message: MESSAGES.invalidObjectId[LANGUAGE],
-  });
+export const MongoIdSchema =
+  z
+    .string()
+    .trim()
+    .refine(
+      (
+        value
+      ) =>
+        Types.ObjectId.isValid(
+          value
+        ),
+      {
+        message:
+          MESSAGES
+            .invalidObjectId[
+            LANGUAGE
+          ],
+      }
+    );
 
-const normalizePersianDigits = (value: string): string =>
-  value
-    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
-    .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)));
+const normalizeDigits =
+  (
+    value:
+      string
+  ): string =>
+    value
+      .replace(
+        /[۰-۹]/g,
+        (
+          digit
+        ) =>
+          String(
+            "۰۱۲۳۴۵۶۷۸۹"
+              .indexOf(
+                digit
+              )
+          )
+      )
+      .replace(
+        /[٠-٩]/g,
+        (
+          digit
+        ) =>
+          String(
+            "٠١٢٣٤٥٦٧٨٩"
+              .indexOf(
+                digit
+              )
+          )
+      );
 
-const MoneySchema = z.preprocess(
-  (value) => {
-    if (typeof value === "string" && value.trim() !== "") {
-      return Number(normalizePersianDigits(value.trim()));
-    }
+const normalizeMoneyInput =
+  (
+    value:
+      string
+  ): string =>
+    normalizeDigits(
+      value
+    )
+      .replace(
+        /[٬,\s]/g,
+        ""
+      )
+      .replace(
+        /ریال|تومان|ت/g,
+        ""
+      )
+      .trim();
 
-    return value;
-  },
+const MoneySchema =
+  z.preprocess(
+    (
+      value
+    ) => {
+      if (
+        typeof value !==
+        "string"
+      ) {
+        return value;
+      }
 
-  z.number().int().positive(),
-);
+      const normalized =
+        normalizeMoneyInput(
+          value
+        );
 
-const OptionalDescriptionSchema = z.preprocess(
-  (value) => {
-    if (value === undefined || value === null) {
-      return undefined;
-    }
+      if (!normalized) {
+        return value;
+      }
 
-    if (typeof value === "string") {
-      const trimmed = value.trim();
+      const parsed =
+        Number(
+          normalized
+        );
 
-      return trimmed === "" ? undefined : trimmed;
-    }
+      return Number.isFinite(
+        parsed
+      )
+        ? parsed
+        : value;
+    },
 
-    return value;
-  },
+    z
+      .number()
+      .int()
+      .positive()
+  );
 
-  z.string().max(1000).optional(),
-);
+const OptionalDescriptionSchema =
+  z.preprocess(
+    (
+      value
+    ) => {
+      if (
+        value ===
+          undefined ||
+        value ===
+          null
+      ) {
+        return undefined;
+      }
 
-const OptionalDueDateSchema = z.preprocess(
-  (value) => {
-    if (value === undefined || value === null || value === "") {
-      return undefined;
-    }
+      if (
+        typeof value ===
+        "string"
+      ) {
+        const trimmed =
+          value.trim();
 
-    return value;
-  },
+        return trimmed ===
+          ""
+          ? undefined
+          : trimmed;
+      }
 
-  z.coerce.date().optional(),
-);
+      return value;
+    },
+
+    z
+      .string()
+      .max(
+        1000
+      )
+      .optional()
+  );
+
+const OptionalDueDateSchema =
+  z.preprocess(
+    (
+      value
+    ) => {
+      if (
+        value ===
+          undefined ||
+        value ===
+          null ||
+        value ===
+          ""
+      ) {
+        return undefined;
+      }
+
+      return value;
+    },
+
+    z.coerce
+      .date()
+      .optional()
+  );
 
 // ---------------- Method ----------------
 
-export const PaymentMethodSchema = z.enum(
-  Object.values(PAYMENT_METHODS) as ["CASH", "NON_CASH"],
-);
+export const PaymentMethodSchema =
+  z.enum(
+    Object.values(
+      PAYMENT_METHODS
+    ) as [
+      "CASH",
+      "NON_CASH",
+    ]
+  );
 
 // ---------------- Case Payment Input ----------------
 
-export const CasePaymentInputSchema = z
-  .object({
-    paymentId: MongoIdSchema.optional(),
+export const CasePaymentInputSchema =
+  z
+    .object({
+      paymentId:
+        MongoIdSchema
+          .optional(),
 
-    method: PaymentMethodSchema,
+      method:
+        PaymentMethodSchema,
 
-    amount: MoneySchema,
+      amount:
+        MoneySchema,
 
-    description: OptionalDescriptionSchema,
+      description:
+        OptionalDescriptionSchema,
 
-    dueDate: OptionalDueDateSchema,
+      dueDate:
+        OptionalDueDateSchema,
 
-    isPaid: z.boolean(),
-  })
-  .strict()
-  .superRefine((data, context) => {
-    if (data.method === PAYMENT_METHODS.NON_CASH && !data.description) {
-      context.addIssue({
-        code: "custom",
+      isPaid:
+        z.boolean(),
+    })
+    .strict()
+    .superRefine(
+      (
+        data,
+        context
+      ) => {
+        if (
+          data.method ===
+            PAYMENT_METHODS
+              .NON_CASH &&
+          !data.description
+        ) {
+          context.addIssue({
+            code:
+              "custom",
 
-        path: ["description"],
+            path: [
+              "description",
+            ],
 
-        message: MESSAGES.nonCashPaymentDescriptionRequired[LANGUAGE],
-      });
-    }
-  });
+            message:
+              MESSAGES
+                .nonCashPaymentDescriptionRequired[
+                LANGUAGE
+              ],
+          });
+        }
+      }
+    );

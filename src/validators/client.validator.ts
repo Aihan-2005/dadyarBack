@@ -93,6 +93,27 @@ export const OptionalNationalIdSchema = z.preprocess(
   z.string().regex(/^\d{10}$/).optional(),
 );
 
+/**
+ * کد ملی شخص حقیقی (۱۰ رقم) یا شناسه ملی شخص حقوقی (۱۱ رقم).
+ */
+export const OptionalClientIdentitySchema = z.preprocess(
+  (value) => {
+    if (value === undefined || value === null) {
+      return undefined;
+    }
+
+    if (typeof value !== "string") {
+      return value;
+    }
+
+    const normalized = normalizeDigits(value.trim());
+
+    return normalized === "" ? undefined : normalized;
+  },
+
+  z.string().regex(/^\d{10,11}$/).optional(),
+);
+
  
 
 const OptionalHomeNumberSchema = z.preprocess(
@@ -217,6 +238,33 @@ const ClearableNationalIdSchema = z.preprocess(
     .union([
       z.null(),
       z.string().regex(/^\d{10}$/),
+    ])
+    .optional(),
+);
+
+const ClearableClientIdentitySchema = z.preprocess(
+  (value) => {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    if (value === null) {
+      return null;
+    }
+
+    if (typeof value !== "string") {
+      return value;
+    }
+
+    const normalized = normalizeDigits(value.trim());
+
+    return normalized === "" ? null : normalized;
+  },
+
+  z
+    .union([
+      z.null(),
+      z.string().regex(/^\d{10,11}$/),
     ])
     .optional(),
 );
@@ -350,7 +398,7 @@ export const CreateClientSchema = z
       PhoneSchema,
 
     nationalId:
-      OptionalNationalIdSchema,
+      OptionalClientIdentitySchema,
 
     homeNumber:
       OptionalHomeNumberSchema,
@@ -386,7 +434,7 @@ export const UpdateClientSchema = z
         .optional(),
 
     nationalId:
-      ClearableNationalIdSchema,
+      ClearableClientIdentitySchema,
 
     homeNumber:
       ClearableHomeNumberSchema,

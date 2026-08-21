@@ -90,10 +90,10 @@ export const ClientSchema =
           true,
 
         match:
-          /^\d{10}$/,
+          /^\d{10,11}$/,
 
         maxlength:
-          10,
+          11,
       },
 
     
