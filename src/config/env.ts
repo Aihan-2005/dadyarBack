@@ -116,6 +116,8 @@ const envSchema = z.object({
   SMTP_FROM: z.string().trim().optional(),
 
   SMTP_SECURE: z.coerce.boolean().optional().default(false),
+
+  STORAGE_ROOT: z.string().trim().min(1).default("./storage"),
 });
 
 class Env {
@@ -174,6 +176,8 @@ class Env {
   public readonly SMTP_FROM: string | undefined;
 
   public readonly SMTP_SECURE: boolean;
+
+  public readonly STORAGE_ROOT: string;
 
   constructor(processEnv = process.env) {
     const parsed = envSchema.safeParse(processEnv);
@@ -243,6 +247,8 @@ class Env {
     this.SMTP_FROM = data.SMTP_FROM;
 
     this.SMTP_SECURE = data.SMTP_SECURE;
+
+    this.STORAGE_ROOT = data.STORAGE_ROOT;
   }
 }
 

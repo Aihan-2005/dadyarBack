@@ -29,7 +29,6 @@ export const MESSAGES = {
     fa: "هیچ کاربری با این شناسه یافت نشد",
   },
 
-
   noWorkExperienceWithId: {
     en: "No Work Experience Was Found With This Id",
     fa: "هیچ سابقه کاری با این شناسه یافت نشد",
@@ -332,9 +331,40 @@ export const MESSAGES = {
 
     fa: "رمز عبور با موفقیت تغییر کرد.",
   },
+
   identifierExactlyOneRequired: {
     fa: "دقیقاً یکی از ایمیل یا شماره همراه باید ارسال شود",
 
     en: "Exactly one of email or phone must be provided",
+  },
+
+  validationError: {
+    en: "The submitted data is invalid",
+    fa: "اطلاعات ارسال‌شده معتبر نیست",
+  },
+
+  databaseValidationError: {
+    en: "The data does not match the expected structure",
+    fa: "اطلاعات با ساختار مورد انتظار سازگار نیست",
+  },
+
+  attachmentTooLarge: {
+    en: "Attachment must not exceed 2 MB",
+    fa: "حجم فایل نباید بیشتر از ۲ مگابایت باشد",
+  },
+
+  tooManyAttachments: {
+    en: "Only one attachment is allowed",
+    fa: "فقط یک فایل قابل ارسال است",
+  },
+
+  unexpectedAttachment: {
+    en: "An unexpected attachment was submitted",
+    fa: "فایل ارسالی در فیلد مورد انتظار قرار ندارد",
+  },
+
+  invalidAttachment: {
+    en: "The uploaded attachment is invalid",
+    fa: "فایل ارسال‌شده معتبر نیست",
   },
 };

@@ -10,7 +10,7 @@ import { env, type Enviroment } from "./config/env";
 
 import type { Route } from "./interfaces/routes.interface";
 
-import errorHandler from "./middlewares/error";
+import errorHandler from "./middlewares/error.middleware";
 import { API_PREFIX } from "./constants/route.constants";
 
 class App {

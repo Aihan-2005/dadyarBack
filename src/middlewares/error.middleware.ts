@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 
 import mongoose from "mongoose";
+import multer from "multer";
 import { ZodError } from "zod";
 
 import { env } from "../config/env";
@@ -8,6 +9,8 @@ import { env } from "../config/env";
 import { MESSAGES } from "../constants/messages.constants";
 
 import { HttpException } from "../exceptions/httpException";
+
+const LANGUAGE = env.LANGUAGE;
 
 type MongoDuplicateError = Error & {
   code: 11000;
@@ -57,10 +60,7 @@ const errorHandler = (
 
       code: "VALIDATION_ERROR",
 
-      message:
-        env.LANGUAGE === "fa"
-          ? "اطلاعات ارسال‌شده معتبر نیست"
-          : "The submitted data is invalid",
+      message: MESSAGES.validationError[LANGUAGE],
 
       issues: error.issues.map((issue) => ({
         path: issue.path.join("."),
@@ -72,38 +72,21 @@ const errorHandler = (
 
   if (isMongoDuplicateError(error)) {
     const duplicateFields = Object.keys(
-      error.keyPattern ??
-        error.keyValue ??
-        {},
+      error.keyPattern ?? error.keyValue ?? {},
     );
 
- 
     const field =
-      duplicateFields.find(
-        (key) =>
-          key !== "lawyerId",
-      ) ??
-      duplicateFields[0];
+      duplicateFields.find((key) => key !== "lawyerId") ?? duplicateFields[0];
 
-    if (
-      duplicateFields.includes(
-        "caseNumber",
-      )
-    ) {
+    if (duplicateFields.includes("caseNumber")) {
       return res.status(409).json({
         success: false,
 
-        code:
-          "CASE_NUMBER_ALREADY_EXISTS",
+        code: "CASE_NUMBER_ALREADY_EXISTS",
 
-        message:
-          MESSAGES
-            .caseNumberAlreadyExists[
-            env.LANGUAGE
-          ],
+        message: MESSAGES.caseNumberAlreadyExists[LANGUAGE],
 
-        field:
-          "caseNumber",
+        field: "caseNumber",
       });
     }
 
@@ -112,7 +95,7 @@ const errorHandler = (
 
       code: "DUPLICATE_RESOURCE",
 
-      message: MESSAGES.duplicateField[env.LANGUAGE],
+      message: MESSAGES.duplicateField[LANGUAGE],
 
       ...(field
         ? {
@@ -128,7 +111,7 @@ const errorHandler = (
 
       code: "INVALID_IDENTIFIER",
 
-      message: MESSAGES.invalidObjectId[env.LANGUAGE],
+      message: MESSAGES.invalidObjectId[LANGUAGE],
     });
   }
 
@@ -138,10 +121,47 @@ const errorHandler = (
 
       code: "DATABASE_VALIDATION_ERROR",
 
-      message:
-        env.LANGUAGE === "fa"
-          ? "اطلاعات با ساختار مورد انتظار سازگار نیست"
-          : "The data does not match the expected structure",
+      message: MESSAGES.databaseValidationError[LANGUAGE],
+    });
+  }
+
+  if (error instanceof multer.MulterError) {
+    if (error.code === "LIMIT_FILE_SIZE") {
+      return res.status(413).json({
+        success: false,
+
+        code: "ATTACHMENT_TOO_LARGE",
+
+        message: MESSAGES.attachmentTooLarge[LANGUAGE],
+      });
+    }
+
+    if (error.code === "LIMIT_FILE_COUNT") {
+      return res.status(400).json({
+        success: false,
+
+        code: "TOO_MANY_ATTACHMENTS",
+
+        message: MESSAGES.tooManyAttachments[LANGUAGE],
+      });
+    }
+
+    if (error.code === "LIMIT_UNEXPECTED_FILE") {
+      return res.status(400).json({
+        success: false,
+
+        code: "UNEXPECTED_ATTACHMENT",
+
+        message: MESSAGES.unexpectedAttachment[LANGUAGE],
+      });
+    }
+
+    return res.status(400).json({
+      success: false,
+
+      code: "INVALID_ATTACHMENT",
+
+      message: MESSAGES.invalidAttachment[LANGUAGE],
     });
   }
 
@@ -152,7 +172,7 @@ const errorHandler = (
 
     code: "INTERNAL_SERVER_ERROR",
 
-    message: MESSAGES.serverError[env.LANGUAGE],
+    message: MESSAGES.serverError[LANGUAGE],
   });
 };
 
