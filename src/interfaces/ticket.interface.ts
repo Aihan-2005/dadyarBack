@@ -14,6 +14,4 @@ export type Ticket = InferSchemaType<typeof TicketSchema> & {
 
 export type CreateTicketInput = z.infer<typeof CreateTicketSchema>;
 
-export type CreateTicketData = CreateTicketInput & {
-  attachmentId?: string;
-};
+export type CreateTicketData = Omit<CreateTicketInput, "description">;

@@ -15,12 +15,15 @@ import type { TicketStatus } from "../constants/ticket.constants";
 import { TicketRepository } from "../repositories/ticket.repository";
 
 import { AttachmentService } from "./attachment.service";
+import { TicketMessageRepository } from "../repositories/ticketMessage.repository";
 
 const LANGUAGE = env.LANGUAGE;
 
 export class TicketService {
   constructor(
     private readonly ticketRepository = new TicketRepository(),
+
+    private readonly ticketMessageRepository = new TicketMessageRepository(),
 
     private readonly attachmentService = new AttachmentService(),
   ) {}
@@ -77,6 +80,16 @@ export class TicketService {
       }
 
       return await session.withTransaction(async () => {
+        const ticket = await this.ticketRepository.create(
+          lawyerId,
+          {
+            title: data.title,
+
+            type: data.type,
+          },
+          session,
+        );
+
         let attachmentId: string | undefined;
 
         if (uploadedAttachment) {
@@ -89,10 +102,15 @@ export class TicketService {
           attachmentId = createdAttachment._id.toString();
         }
 
-        return this.ticketRepository.create(
-          lawyerId,
+        await this.ticketMessageRepository.create(
           {
-            ...data,
+            ticketId: ticket._id.toString(),
+
+            senderId: lawyerId,
+
+            senderType: "LAWYER",
+
+            message: data.description,
 
             ...(attachmentId
               ? {
@@ -102,6 +120,8 @@ export class TicketService {
           },
           session,
         );
+
+        return ticket;
       });
     } catch (error) {
       if (uploadedAttachment) {
@@ -124,22 +144,6 @@ export class TicketService {
     return this.ensureTicketBelongsToLawyer(lawyerId, ticketId);
   }
 
-  public async getAttachmentDownloadUrl(lawyerId: string, ticketId: string) {
-    const ticket = await this.ensureTicketBelongsToLawyer(lawyerId, ticketId);
-
-    if (!ticket.attachmentId) {
-      throw new HttpException(
-        404,
-        MESSAGES.ticketAttachmentNotFound[LANGUAGE],
-        "TICKET_ATTACHMENT_NOT_FOUND",
-      );
-    }
-
-    return this.attachmentService.getDownloadUrl(
-      ticket.attachmentId.toString(),
-    );
-  }
-
   // ---------------------------- ADMIN ---------------------------------
   public listAllTickets() {
     return this.ticketRepository.findAll();
@@ -153,21 +157,5 @@ export class TicketService {
     await this.ensureTicketExists(ticketId);
 
     return this.ticketRepository.updateStatus(ticketId, status);
-  }
-
-  public async getAttachmentDownloadUrlByTicketId(ticketId: string) {
-    const ticket = await this.ensureTicketExists(ticketId);
-
-    if (!ticket.attachmentId) {
-      throw new HttpException(
-        404,
-        MESSAGES.ticketAttachmentNotFound[LANGUAGE],
-        "TICKET_ATTACHMENT_NOT_FOUND",
-      );
-    }
-
-    return this.attachmentService.getDownloadUrl(
-      ticket.attachmentId.toString(),
-    );
   }
 }

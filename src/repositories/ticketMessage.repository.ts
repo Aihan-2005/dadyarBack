@@ -1,3 +1,4 @@
+import type { ClientSession } from "mongoose";
 import type {
   CreateTicketMessageData,
   TicketMessage,
@@ -12,14 +13,28 @@ export class TicketMessageRepository extends BaseRepository<TicketMessage> {
     super(TicketMessageModel);
   }
 
-  public create(data: CreateTicketMessageData) {
-    return this.model.create({
+  public async create(data: CreateTicketMessageData, session?: ClientSession) {
+    const createData = {
       ...data,
 
       ticketId: this.toObjectId(data.ticketId),
 
       senderId: this.toObjectId(data.senderId),
+
+      attachmentId: data.attachmentId
+        ? this.toObjectId(data.attachmentId)
+        : undefined,
+    };
+
+    if (!session) {
+      return this.model.create(createData);
+    }
+
+    const [message] = await this.model.create([createData], {
+      session,
     });
+
+    return message;
   }
 
   public findByTicketId(ticketId: string) {
@@ -29,6 +44,17 @@ export class TicketMessageRepository extends BaseRepository<TicketMessage> {
       })
       .sort({
         createdAt: 1,
+      })
+      .lean()
+      .exec();
+  }
+
+  public findByIdForTicket(ticketId: string, messageId: string) {
+    return this.model
+      .findOne({
+        _id: this.toObjectId(messageId),
+
+        ticketId: this.toObjectId(ticketId),
       })
       .lean()
       .exec();

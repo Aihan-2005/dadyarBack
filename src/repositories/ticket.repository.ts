@@ -75,10 +75,6 @@ export class TicketRepository extends BaseRepository<Ticket> {
       ...data,
 
       lawyerId: this.toObjectId(lawyerId),
-
-      attachmentId: data.attachmentId
-        ? this.toObjectId(data.attachmentId)
-        : undefined,
     };
 
     if (!session) {

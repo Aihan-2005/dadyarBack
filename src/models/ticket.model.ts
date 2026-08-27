@@ -26,16 +26,6 @@ export const TicketSchema = new Schema(
       maxlength: 200,
     },
 
-    description: {
-      type: String,
-
-      required: true,
-
-      trim: true,
-
-      maxlength: 5000,
-    },
-
     type: {
       type: String,
 
@@ -50,12 +40,6 @@ export const TicketSchema = new Schema(
       required: true,
 
       default: "OPEN",
-    },
-
-    attachmentId: {
-      type: Schema.Types.ObjectId,
-
-      ref: "Attachment",
     },
   },
   {

@@ -24,4 +24,6 @@ export type CreateTicketMessageData = CreateTicketMessageInput & {
   senderId: string;
 
   senderType: TicketMessageSender;
+
+  attachmentId?: string;
 };

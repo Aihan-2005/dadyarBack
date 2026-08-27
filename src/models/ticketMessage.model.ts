@@ -43,6 +43,11 @@ export const TicketMessageSchema = new Schema(
 
       maxlength: 5000,
     },
+    attachmentId: {
+      type: Schema.Types.ObjectId,
+
+      ref: "Attachment",
+    },
   },
   {
     timestamps: true,
