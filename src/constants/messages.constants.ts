@@ -387,4 +387,9 @@ export const MESSAGES = {
     en: "This ticket does not have an attachment",
     fa: "این تیکت فایل پیوست ندارد",
   },
+
+  ticketClosed: {
+    en: "This ticket is closed and cannot receive new messages",
+    fa: "این تیکت بسته شده و امکان ارسال پیام جدید وجود ندارد",
+  },
 };
