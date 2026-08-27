@@ -1,3 +1,5 @@
+import type { ClientSession } from "mongoose";
+
 import type {
   Attachment,
   CreateAttachmentData,
@@ -12,8 +14,16 @@ export class AttachmentRepository extends BaseRepository<Attachment> {
     super(AttachmentModel);
   }
 
-  public async create(data: CreateAttachmentData) {
-    return this.model.create(data);
+  public async create(data: CreateAttachmentData, session?: ClientSession) {
+    if (!session) {
+      return this.model.create(data);
+    }
+
+    const [attachment] = await this.model.create([data], {
+      session,
+    });
+
+    return attachment;
   }
 
   public findById(attachmentId: string) {

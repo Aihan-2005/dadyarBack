@@ -1,3 +1,4 @@
+import { ClientSession } from "mongoose";
 import type { CreateTicketData, Ticket } from "../interfaces/ticket.interface";
 
 import { TicketModel } from "../models/ticket.model";
@@ -32,8 +33,12 @@ export class TicketRepository extends BaseRepository<Ticket> {
       .exec();
   }
 
-  public create(lawyerId: string, data: CreateTicketData) {
-    return this.model.create({
+  public async create(
+    lawyerId: string,
+    data: CreateTicketData,
+    session?: ClientSession,
+  ) {
+    const createData = {
       ...data,
 
       lawyerId: this.toObjectId(lawyerId),
@@ -41,6 +46,16 @@ export class TicketRepository extends BaseRepository<Ticket> {
       attachmentId: data.attachmentId
         ? this.toObjectId(data.attachmentId)
         : undefined,
+    };
+
+    if (!session) {
+      return this.model.create(createData);
+    }
+
+    const [ticket] = await this.model.create([createData], {
+      session,
     });
+
+    return ticket;
   }
 }

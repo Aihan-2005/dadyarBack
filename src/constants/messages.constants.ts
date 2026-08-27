@@ -372,4 +372,19 @@ export const MESSAGES = {
     en: "The attachment type is not allowed",
     fa: "نوع فایل ارسالی مجاز نیست",
   },
+
+  attachmentNotFound: {
+    en: "Attachment was not found",
+    fa: "فایل پیوست یافت نشد",
+  },
+
+  ticketNotFound: {
+    en: "Ticket was not found",
+    fa: "تیکت یافت نشد",
+  },
+
+  ticketAttachmentNotFound: {
+    en: "This ticket does not have an attachment",
+    fa: "این تیکت فایل پیوست ندارد",
+  },
 };

@@ -2,7 +2,12 @@ import { randomUUID } from "node:crypto";
 
 import * as path from "node:path";
 
-import type { UploadAttachmentInput } from "../interfaces/attachment.interface";
+import type { ClientSession } from "mongoose";
+
+import type {
+  CreateAttachmentData,
+  UploadAttachmentInput,
+} from "../interfaces/attachment.interface";
 
 import { AttachmentRepository } from "../repositories/attachment.repository";
 
@@ -33,6 +38,50 @@ export class AttachmentService {
   ) {}
 
   public async createAttachment(input: UploadAttachmentInput) {
+    const createData = await this.uploadAttachment(input);
+
+    try {
+      return await this.createAttachmentRecord(createData);
+    } catch (error) {
+      await this.deleteStoredAttachment(createData.storageKey).catch(
+        () => undefined,
+      );
+
+      throw error;
+    }
+  }
+
+  public async deleteAttachment(attachmentId: string) {
+    const attachment = await this.attachmentRepository.findById(attachmentId);
+
+    if (!attachment) {
+      return;
+    }
+
+    await this.storageProvider.delete(attachment.storageKey);
+
+    return this.attachmentRepository.deleteById(attachmentId);
+  }
+
+  public async getDownloadUrl(attachmentId: string) {
+    const attachment = await this.attachmentRepository.findById(attachmentId);
+
+    if (!attachment) {
+      throw new HttpException(
+        404,
+        MESSAGES.attachmentNotFound[LANGUAGE],
+        "ATTACHMENT_NOT_FOUND",
+      );
+    }
+
+    return this.storageProvider.getDownloadUrl({
+      storageKey: attachment.storageKey,
+
+      expiresInSeconds: 600,
+    });
+  }
+
+  public async uploadAttachment(input: UploadAttachmentInput) {
     const file = UploadAttachmentSchema.parse(input);
 
     const extension = path.extname(file.originalName).slice(1).toLowerCase();
@@ -73,42 +122,17 @@ export class AttachmentService {
       mimeType: file.mimeType,
     });
 
-    try {
-      return await this.attachmentRepository.create(createData);
-    } catch (error) {
-      await this.storageProvider.delete(storageKey).catch(() => undefined);
-
-      throw error;
-    }
+    return createData;
   }
 
-  public async deleteAttachment(attachmentId: string) {
-    const attachment = await this.attachmentRepository.findById(attachmentId);
-
-    if (!attachment) {
-      return;
-    }
-
-    await this.storageProvider.delete(attachment.storageKey);
-
-    return this.attachmentRepository.deleteById(attachmentId);
+  public createAttachmentRecord(
+    data: CreateAttachmentData,
+    session?: ClientSession,
+  ) {
+    return this.attachmentRepository.create(data, session);
   }
 
-  public async getDownloadUrl(attachmentId: string) {
-    const attachment = await this.attachmentRepository.findById(attachmentId);
-
-    if (!attachment) {
-      throw new HttpException(
-        404,
-        "Attachment not found",
-        "ATTACHMENT_NOT_FOUND",
-      );
-    }
-
-    return this.storageProvider.getDownloadUrl({
-      storageKey: attachment.storageKey,
-
-      expiresInSeconds: 600,
-    });
+  public deleteStoredAttachment(storageKey: string) {
+    return this.storageProvider.delete(storageKey);
   }
 }
