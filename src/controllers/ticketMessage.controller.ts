@@ -14,7 +14,8 @@ import {
   CreateTicketMessageSchema,
   ParamTicketMessageIdSchema,
 } from "../validators/ticketMessage.validator";
-import { UploadAttachmentInput } from "../interfaces/attachment.interface";
+
+import type { UploadAttachmentInput } from "../interfaces/attachment.interface";
 
 const LANGUAGE = env.LANGUAGE;
 

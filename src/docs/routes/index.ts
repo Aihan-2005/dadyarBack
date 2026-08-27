@@ -4,3 +4,4 @@ import "./lawyer.openapi";
 import "./case.openapi";
 import "./client.openapi";
 import "./finance.openapi";
+import "./ticket.openapi";
