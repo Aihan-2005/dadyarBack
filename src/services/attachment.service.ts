@@ -6,7 +6,7 @@ import type { UploadAttachmentInput } from "../interfaces/attachment.interface";
 
 import { AttachmentRepository } from "../repositories/attachment.repository";
 
-import { LocalStorageProvider } from "../providers/storage/localStorage.provider";
+import { S3StorageProvider } from "../providers/storage/s3Storage.provider";
 
 import type { StorageProvider } from "../providers/storage/storage.provider";
 
@@ -15,13 +15,21 @@ import {
   CreateAttachmentSchema,
   UploadAttachmentSchema,
 } from "../validators/attachment.validator";
+
 import { ATTACHMENT_MIME_TYPES } from "../constants/attachment.constants";
+
 import { HttpException } from "../exceptions/httpException";
+
+import { MESSAGES } from "../constants/messages.constants";
+
+import { env } from "../config/env";
+
+const LANGUAGE = env.LANGUAGE;
 
 export class AttachmentService {
   constructor(
     private readonly attachmentRepository = new AttachmentRepository(),
-    private readonly storageProvider: StorageProvider = new LocalStorageProvider(),
+    private readonly storageProvider: StorageProvider = new S3StorageProvider(),
   ) {}
 
   public async createAttachment(input: UploadAttachmentInput) {
@@ -38,7 +46,7 @@ export class AttachmentService {
     if (!allowedMimeTypes.includes(file.mimeType)) {
       throw new HttpException(
         400,
-        "Invalid attachment type",
+        MESSAGES.invalidAttachmentType[LANGUAGE],
         "INVALID_ATTACHMENT_TYPE",
       );
     }
@@ -61,6 +69,8 @@ export class AttachmentService {
       storageKey,
 
       buffer: file.buffer,
+
+      mimeType: file.mimeType,
     });
 
     try {
@@ -82,5 +92,23 @@ export class AttachmentService {
     await this.storageProvider.delete(attachment.storageKey);
 
     return this.attachmentRepository.deleteById(attachmentId);
+  }
+
+  public async getDownloadUrl(attachmentId: string) {
+    const attachment = await this.attachmentRepository.findById(attachmentId);
+
+    if (!attachment) {
+      throw new HttpException(
+        404,
+        "Attachment not found",
+        "ATTACHMENT_NOT_FOUND",
+      );
+    }
+
+    return this.storageProvider.getDownloadUrl({
+      storageKey: attachment.storageKey,
+
+      expiresInSeconds: 600,
+    });
   }
 }

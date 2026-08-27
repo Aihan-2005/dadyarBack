@@ -4,7 +4,10 @@ import * as path from "node:path";
 
 import { env } from "../../config/env";
 
-import type { SaveFileInput } from "../../interfaces/storage.interface";
+import type {
+  GetDownloadUrlInput,
+  SaveFileInput,
+} from "../../interfaces/storage.interface";
 
 import type { StorageProvider } from "./storage.provider";
 
@@ -51,5 +54,9 @@ export class LocalStorageProvider implements StorageProvider {
 
       throw error;
     }
+  }
+
+  getDownloadUrl(input: GetDownloadUrlInput): Promise<string> {
+    return Promise.resolve("");
   }
 }

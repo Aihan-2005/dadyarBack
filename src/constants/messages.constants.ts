@@ -367,4 +367,9 @@ export const MESSAGES = {
     en: "The uploaded attachment is invalid",
     fa: "فایل ارسال‌شده معتبر نیست",
   },
+
+  invalidAttachmentType: {
+    en: "The attachment type is not allowed",
+    fa: "نوع فایل ارسالی مجاز نیست",
+  },
 };
