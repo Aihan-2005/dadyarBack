@@ -116,6 +116,18 @@ const envSchema = z.object({
   SMTP_FROM: z.string().trim().optional(),
 
   SMTP_SECURE: z.coerce.boolean().optional().default(false),
+
+  STORAGE_ROOT: z.string().trim().min(1).default("./storage"),
+
+  S3_ENDPOINT: z.url(),
+
+  S3_REGION: z.string().trim().min(1),
+
+  S3_BUCKET: z.string().trim().min(1),
+
+  S3_ACCESS_KEY: z.string().trim().min(1),
+
+  S3_SECRET_KEY: z.string().trim().min(1),
 });
 
 class Env {
@@ -174,6 +186,18 @@ class Env {
   public readonly SMTP_FROM: string | undefined;
 
   public readonly SMTP_SECURE: boolean;
+
+  public readonly STORAGE_ROOT: string;
+
+  public readonly S3_ENDPOINT: string;
+
+  public readonly S3_REGION: string;
+
+  public readonly S3_BUCKET: string;
+
+  public readonly S3_ACCESS_KEY: string;
+
+  public readonly S3_SECRET_KEY: string;
 
   constructor(processEnv = process.env) {
     const parsed = envSchema.safeParse(processEnv);
@@ -243,6 +267,18 @@ class Env {
     this.SMTP_FROM = data.SMTP_FROM;
 
     this.SMTP_SECURE = data.SMTP_SECURE;
+
+    this.STORAGE_ROOT = data.STORAGE_ROOT;
+
+    this.S3_ENDPOINT = data.S3_ENDPOINT;
+
+    this.S3_REGION = data.S3_REGION;
+
+    this.S3_BUCKET = data.S3_BUCKET;
+
+    this.S3_ACCESS_KEY = data.S3_ACCESS_KEY;
+
+    this.S3_SECRET_KEY = data.S3_SECRET_KEY;
   }
 }
 

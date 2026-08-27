@@ -13,6 +13,7 @@ import ClientRoute from "../src/routes/client.route";
 import { FinancialReportRoute } from "../src/routes/financialReport.route";
 import { ApiDocsRoute } from "../src/routes/apiDocs.route";
 import NotificationRoute from "../src/routes/notification.route";
+import TicketRoute from "../src/routes/ticket.route";
 
 const routes: Route[] = [
   new IndexRoute(),
@@ -22,6 +23,7 @@ const routes: Route[] = [
   new ClientRoute(),
   new FinancialReportRoute(),
   new NotificationRoute(),
+  new TicketRoute(),
 ];
 
 if (env.ENABLE_API_DOCS) {

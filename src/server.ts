@@ -13,6 +13,7 @@ import { env } from "./config/env";
 import { ApiDocsRoute } from "./routes/apiDocs.route";
 import { Route } from "./interfaces/routes.interface";
 import NotificationRoute from "./routes/notification.route";
+import TicketRoute from "./routes/ticket.route";
 
 let isShuttingDown = false;
 
@@ -76,6 +77,7 @@ async function bootstrap(): Promise<void> {
       new ClientRoute(),
       new FinancialReportRoute(),
       new NotificationRoute(),
+      new TicketRoute(),
     ];
 
     if (env.ENABLE_API_DOCS) {

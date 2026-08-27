@@ -29,7 +29,6 @@ export const MESSAGES = {
     fa: "هیچ کاربری با این شناسه یافت نشد",
   },
 
-
   noWorkExperienceWithId: {
     en: "No Work Experience Was Found With This Id",
     fa: "هیچ سابقه کاری با این شناسه یافت نشد",
@@ -332,9 +331,75 @@ export const MESSAGES = {
 
     fa: "رمز عبور با موفقیت تغییر کرد.",
   },
+
   identifierExactlyOneRequired: {
     fa: "دقیقاً یکی از ایمیل یا شماره همراه باید ارسال شود",
 
     en: "Exactly one of email or phone must be provided",
+  },
+
+  validationError: {
+    en: "The submitted data is invalid",
+    fa: "اطلاعات ارسال‌شده معتبر نیست",
+  },
+
+  databaseValidationError: {
+    en: "The data does not match the expected structure",
+    fa: "اطلاعات با ساختار مورد انتظار سازگار نیست",
+  },
+
+  attachmentTooLarge: {
+    en: "Attachment must not exceed 2 MB",
+    fa: "حجم فایل نباید بیشتر از ۲ مگابایت باشد",
+  },
+
+  tooManyAttachments: {
+    en: "Only one attachment is allowed",
+    fa: "فقط یک فایل قابل ارسال است",
+  },
+
+  unexpectedAttachment: {
+    en: "An unexpected attachment was submitted",
+    fa: "فایل ارسالی در فیلد مورد انتظار قرار ندارد",
+  },
+
+  invalidAttachment: {
+    en: "The uploaded attachment is invalid",
+    fa: "فایل ارسال‌شده معتبر نیست",
+  },
+
+  invalidAttachmentType: {
+    en: "The attachment type is not allowed",
+    fa: "نوع فایل ارسالی مجاز نیست",
+  },
+
+  attachmentNotFound: {
+    en: "Attachment was not found",
+    fa: "فایل پیوست یافت نشد",
+  },
+
+  ticketNotFound: {
+    en: "Ticket was not found",
+    fa: "تیکت یافت نشد",
+  },
+
+  ticketAttachmentNotFound: {
+    en: "This ticket does not have an attachment",
+    fa: "این تیکت فایل پیوست ندارد",
+  },
+
+  ticketClosed: {
+    en: "This ticket is closed and cannot receive new messages",
+    fa: "این تیکت بسته شده و امکان ارسال پیام جدید وجود ندارد",
+  },
+
+  ticketMessageNotFound: {
+    en: "Ticket message was not found",
+    fa: "پیام تیکت یافت نشد",
+  },
+
+  ticketMessageAttachmentNotFound: {
+    en: "This ticket message does not have an attachment",
+    fa: "این پیام تیکت فایل پیوست ندارد",
   },
 };
