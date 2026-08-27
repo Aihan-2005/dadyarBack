@@ -119,33 +119,6 @@ class TicketController {
       next(error);
     }
   };
-
-  public getAttachmentDownloadUrl = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<Response | void> => {
-    try {
-      const lawyerId = this.getLawyerId(req);
-
-      const { id } = ParamTicketIdSchema.parse(req.params);
-
-      const url = await this.ticketService.getAttachmentDownloadUrl(
-        lawyerId,
-        id,
-      );
-
-      return res.status(200).json({
-        success: true,
-
-        data: {
-          url,
-        },
-      });
-    } catch (error) {
-      next(error);
-    }
-  };
 }
 
 export default TicketController;

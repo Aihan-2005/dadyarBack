@@ -392,4 +392,14 @@ export const MESSAGES = {
     en: "This ticket is closed and cannot receive new messages",
     fa: "این تیکت بسته شده و امکان ارسال پیام جدید وجود ندارد",
   },
+
+  ticketMessageNotFound: {
+    en: "Ticket message was not found",
+    fa: "پیام تیکت یافت نشد",
+  },
+
+  ticketMessageAttachmentNotFound: {
+    en: "This ticket message does not have an attachment",
+    fa: "این پیام تیکت فایل پیوست ندارد",
+  },
 };

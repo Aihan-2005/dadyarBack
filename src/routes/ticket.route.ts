@@ -39,7 +39,7 @@ class TicketRoute implements Route {
 
     this.router.get(
       "/:id/messages/:messageId/attachment",
-      this.ticketController.getAttachmentDownloadUrl,
+      this.ticketMessageController.getAttachmentDownloadUrl,
     );
 
     this.router.get("/:id/messages", this.ticketMessageController.listMessages);

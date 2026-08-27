@@ -10,7 +10,11 @@ import { TicketMessageService } from "../services/ticketMessage.service";
 
 import { ParamTicketIdSchema } from "../validators/ticket.validator";
 
-import { CreateTicketMessageSchema } from "../validators/ticketMessage.validator";
+import {
+  CreateTicketMessageSchema,
+  ParamTicketMessageIdSchema,
+} from "../validators/ticketMessage.validator";
+import { UploadAttachmentInput } from "../interfaces/attachment.interface";
 
 const LANGUAGE = env.LANGUAGE;
 
@@ -29,6 +33,22 @@ class TicketMessageController {
     }
 
     return lawyerId;
+  }
+
+  private getAttachment(
+    file: Express.Multer.File | undefined,
+  ): UploadAttachmentInput | undefined {
+    if (!file) {
+      return undefined;
+    }
+
+    return {
+      originalName: file.originalname,
+
+      mimeType: file.mimetype,
+
+      buffer: file.buffer,
+    };
   }
 
   public listMessages = async (
@@ -68,16 +88,47 @@ class TicketMessageController {
 
       const input = CreateTicketMessageSchema.parse(req.body ?? {});
 
+      const attachment = this.getAttachment(req.file);
+
       const message = await this.ticketMessageService.addLawyerMessage(
         lawyerId,
         id,
         input,
+        attachment,
       );
 
       return res.status(201).json({
         success: true,
 
         data: message,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public getAttachmentDownloadUrl = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<Response | void> => {
+    try {
+      const lawyerId = this.getLawyerId(req);
+
+      const { id, messageId } = ParamTicketMessageIdSchema.parse(req.params);
+
+      const url = await this.ticketMessageService.getAttachmentDownloadUrl(
+        lawyerId,
+        id,
+        messageId,
+      );
+
+      return res.status(200).json({
+        success: true,
+
+        data: {
+          url,
+        },
       });
     } catch (error) {
       next(error);
