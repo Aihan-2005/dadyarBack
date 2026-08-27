@@ -1,4 +1,4 @@
-import { ClientSession } from "mongoose";
+import type { ClientSession } from "mongoose";
 import type { CreateTicketData, Ticket } from "../interfaces/ticket.interface";
 
 import { TicketModel } from "../models/ticket.model";
