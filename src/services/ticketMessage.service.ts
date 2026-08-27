@@ -19,6 +19,20 @@ export class TicketMessageService {
     private readonly ticketRepository = new TicketRepository(),
   ) {}
 
+  private async ensureTicketExists(ticketId: string) {
+    const ticket = await this.ticketRepository.findById(ticketId);
+
+    if (!ticket) {
+      throw new HttpException(
+        404,
+        MESSAGES.ticketNotFound[LANGUAGE],
+        "TICKET_NOT_FOUND",
+      );
+    }
+
+    return ticket;
+  }
+
   private async ensureTicketBelongsToLawyer(
     lawyerId: string,
     ticketId: string,
@@ -68,6 +82,40 @@ export class TicketMessageService {
       senderId: lawyerId,
 
       senderType: "LAWYER",
+    });
+  }
+
+  // -------------------------- Admin ------------------------------
+
+  public async listMessagesForAdmin(ticketId: string) {
+    await this.ensureTicketExists(ticketId);
+
+    return this.ticketMessageRepository.findByTicketId(ticketId);
+  }
+
+  public async addAdminMessage(
+    adminId: string,
+    ticketId: string,
+    data: CreateTicketMessageInput,
+  ) {
+    const ticket = await this.ensureTicketExists(ticketId);
+
+    if (ticket.status === "CLOSED") {
+      throw new HttpException(
+        409,
+        MESSAGES.ticketClosed[LANGUAGE],
+        "TICKET_CLOSED",
+      );
+    }
+
+    return this.ticketMessageRepository.create({
+      ...data,
+
+      ticketId,
+
+      senderId: adminId,
+
+      senderType: "ADMIN",
     });
   }
 }

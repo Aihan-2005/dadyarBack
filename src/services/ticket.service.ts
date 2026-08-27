@@ -10,6 +10,8 @@ import type { UploadAttachmentInput } from "../interfaces/attachment.interface";
 
 import type { CreateTicketInput } from "../interfaces/ticket.interface";
 
+import type { TicketStatus } from "../constants/ticket.constants";
+
 import { TicketRepository } from "../repositories/ticket.repository";
 
 import { AttachmentService } from "./attachment.service";
@@ -22,6 +24,20 @@ export class TicketService {
 
     private readonly attachmentService = new AttachmentService(),
   ) {}
+
+  private async ensureTicketExists(ticketId: string) {
+    const ticket = await this.ticketRepository.findById(ticketId);
+
+    if (!ticket) {
+      throw new HttpException(
+        404,
+        MESSAGES.ticketNotFound[LANGUAGE],
+        "TICKET_NOT_FOUND",
+      );
+    }
+
+    return ticket;
+  }
 
   private async ensureTicketBelongsToLawyer(
     lawyerId: string,
@@ -110,6 +126,37 @@ export class TicketService {
 
   public async getAttachmentDownloadUrl(lawyerId: string, ticketId: string) {
     const ticket = await this.ensureTicketBelongsToLawyer(lawyerId, ticketId);
+
+    if (!ticket.attachmentId) {
+      throw new HttpException(
+        404,
+        MESSAGES.ticketAttachmentNotFound[LANGUAGE],
+        "TICKET_ATTACHMENT_NOT_FOUND",
+      );
+    }
+
+    return this.attachmentService.getDownloadUrl(
+      ticket.attachmentId.toString(),
+    );
+  }
+
+  // ---------------------------- ADMIN ---------------------------------
+  public listAllTickets() {
+    return this.ticketRepository.findAll();
+  }
+
+  public getTicketById(ticketId: string) {
+    return this.ensureTicketExists(ticketId);
+  }
+
+  public async updateTicketStatus(ticketId: string, status: TicketStatus) {
+    await this.ensureTicketExists(ticketId);
+
+    return this.ticketRepository.updateStatus(ticketId, status);
+  }
+
+  public async getAttachmentDownloadUrlByTicketId(ticketId: string) {
+    const ticket = await this.ensureTicketExists(ticketId);
 
     if (!ticket.attachmentId) {
       throw new HttpException(

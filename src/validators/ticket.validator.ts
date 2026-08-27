@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { TICKET_TYPES } from "../constants/ticket.constants";
+import { TICKET_STATUSES, TICKET_TYPES } from "../constants/ticket.constants";
 
 import { MongoIdSchema } from "./case.validator";
 
@@ -18,4 +18,10 @@ export const CreateTicketSchema = z.object({
 
 export const ParamTicketIdSchema = z.object({
   id: MongoIdSchema,
+});
+
+export const TicketStatusSchema = z.enum(TICKET_STATUSES);
+
+export const UpdateTicketStatusSchema = z.object({
+  status: TicketStatusSchema,
 });
