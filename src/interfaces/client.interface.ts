@@ -6,13 +6,11 @@ import {
   UpdateClientSchema,
 } from "../validators/client.validator";
 
- 
+export type ClientCreatePayload =
+  z.infer<typeof CreateClientSchema>;
 
-export type ClientCreatePayload = z.infer<typeof CreateClientSchema>;
-
-export type UpdateClientInput = z.infer<typeof UpdateClientSchema>;
-
- 
+export type UpdateClientInput =
+  z.infer<typeof UpdateClientSchema>;
 
 export type Client = {
   lawyerId: Types.ObjectId;
@@ -23,7 +21,6 @@ export type Client = {
 
   nationalId?: string;
 
-   
   homeNumber?: string;
 
   birthday?: Date;
@@ -34,24 +31,27 @@ export type Client = {
 
   description?: string;
 
- 
-  personalPasswordHash?: string;
+  
+  personalPassword?: string;
 
   createdAt: Date;
 
   updatedAt: Date;
 };
 
-export type ClientRecord = Client & {
-  _id: Types.ObjectId;
-};
+export type ClientRecord =
+  Client & {
+    _id: Types.ObjectId;
+  };
 
-export type CreateClientRecordInput = Omit<
-  Client,
-  "lawyerId" | "createdAt" | "updatedAt"
->;
+export type CreateClientRecordInput =
+  Omit<
+    Client,
+    | "lawyerId"
+    | "createdAt"
+    | "updatedAt"
+  >;
 
- 
 export type FindClientsOptions = {
   search?: string;
 
@@ -59,8 +59,6 @@ export type FindClientsOptions = {
 
   limit?: number;
 };
-
- 
 
 export type ManualCaseClientInput = {
   fullName?: string;

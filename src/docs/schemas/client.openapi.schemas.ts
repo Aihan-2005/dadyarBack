@@ -12,7 +12,6 @@ import {
   ObjectIdResponseSchema,
   PaginationSchema,
 } from "./common.openapi";
- 
 
 export const ClientResponseSchema =
   openApiRegistry.register(
@@ -36,7 +35,6 @@ export const ClientResponseSchema =
           .string()
           .optional(),
 
-     
       homeNumber:
         z
           .string()
@@ -61,6 +59,12 @@ export const ClientResponseSchema =
           .string()
           .optional(),
 
+      
+      personalPassword:
+        z
+          .string()
+          .optional(),
+
       createdAt:
         DateTimeResponseSchema,
 
@@ -68,8 +72,6 @@ export const ClientResponseSchema =
         DateTimeResponseSchema,
     }),
   );
-
- 
 
 export const ClientSuccessSchema =
   openApiRegistry.register(
@@ -86,8 +88,6 @@ export const ClientSuccessSchema =
     }),
   );
 
- 
-
 export const ClientLookupSuccessSchema =
   openApiRegistry.register(
     "ClientLookupSuccess",
@@ -103,8 +103,6 @@ export const ClientLookupSuccessSchema =
           .nullable(),
     }),
   );
-
- 
 
 export const ClientListSuccessSchema =
   openApiRegistry.register(

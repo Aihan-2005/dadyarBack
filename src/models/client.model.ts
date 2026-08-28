@@ -7,28 +7,34 @@ import type {
   Client,
 } from "../interfaces/client.interface";
 
- 
+const SENSITIVE_CLIENT_FIELDS = [
+  "personalPassword",
+
+  "personalPasswordHash",
+] as const;
 
 function removeSensitiveClientFields(
-  _document:
-    unknown,
-
-  returnedObject:
-    unknown,
+  _document: unknown,
+  returnedObject: unknown,
 ): unknown {
   if (
-    returnedObject &&
-    typeof returnedObject ===
-      "object" &&
-    "personalPasswordHash" in
-      returnedObject
+    !returnedObject ||
+    typeof returnedObject !== "object"
   ) {
-    delete (
-      returnedObject as Record<
-        string,
-        unknown
-      >
-    ).personalPasswordHash;
+    return returnedObject;
+  }
+
+  const object =
+    returnedObject as Record<
+      string,
+      unknown
+    >;
+
+  for (
+    const field of
+      SENSITIVE_CLIENT_FIELDS
+  ) {
+    delete object[field];
   }
 
   return returnedObject;
@@ -96,7 +102,6 @@ export const ClientSchema =
           11,
       },
 
-    
       homeNumber: {
         type:
           String,
@@ -146,10 +151,12 @@ export const ClientSchema =
           1000,
       },
 
-    
-      personalPasswordHash: {
+      personalPassword: {
         type:
           String,
+
+        maxlength:
+          200,
 
         select:
           false,
@@ -183,7 +190,6 @@ ClientSchema.index(
     phone:
       1,
   },
-
   {
     unique:
       true,
@@ -198,7 +204,6 @@ ClientSchema.index(
     nationalId:
       1,
   },
-
   {
     unique:
       true,
@@ -223,7 +228,6 @@ ClientSchema.index({
 const ClientModel =
   model<Client>(
     "Client",
-
     ClientSchema,
   );
 

@@ -1,5 +1,3 @@
-import bcrypt from "bcrypt";
-
 import type {
   ClientSession,
   UpdateQuery,
@@ -33,14 +31,9 @@ import {
 const LANGUAGE =
   env.LANGUAGE;
 
-const PERSONAL_PASSWORD_BCRYPT_ROUNDS =
-  12;
-
 export class ClientService {
   private readonly repo =
     new ClientRepository();
-
-  
 
   private normalizeRequiredString(
     value:
@@ -78,20 +71,6 @@ export class ClientService {
     );
   }
 
- 
-  private hashPersonalPassword(
-    password:
-      string,
-  ): Promise<string> {
-    return bcrypt.hash(
-      password,
-
-      PERSONAL_PASSWORD_BCRYPT_ROUNDS,
-    );
-  }
-
-  
-
   private sameClient(
     recordId:
       unknown,
@@ -115,13 +94,17 @@ export class ClientService {
       >,
   ): void {
     const hasAtLeastOneEffectiveField =
-      Object.values(
-        data,
-      ).some(
-        (value) =>
-          value !==
-          undefined,
-      );
+      Object
+        .values(
+          data,
+        )
+        .some(
+          (
+            value,
+          ) =>
+            value !==
+            undefined,
+        );
 
     if (
       !hasAtLeastOneEffectiveField
@@ -129,9 +112,10 @@ export class ClientService {
       throw new HttpException(
         400,
 
-        MESSAGES.noClientFieldFound[
-          LANGUAGE
-        ],
+        MESSAGES
+          .noClientFieldFound[
+            LANGUAGE
+          ],
 
         "NO_CLIENT_FIELDS",
       );
@@ -163,9 +147,10 @@ export class ClientService {
       throw new HttpException(
         404,
 
-        MESSAGES.clientNotFound[
-          LANGUAGE
-        ],
+        MESSAGES
+          .clientNotFound[
+            LANGUAGE
+          ],
 
         "CLIENT_NOT_FOUND",
       );
@@ -230,9 +215,10 @@ export class ClientService {
       throw new HttpException(
         409,
 
-        MESSAGES.phoneExsist[
-          LANGUAGE
-        ],
+        MESSAGES
+          .phoneExsist[
+            LANGUAGE
+          ],
 
         "CLIENT_PHONE_ALREADY_EXISTS",
       );
@@ -252,16 +238,15 @@ export class ClientService {
       throw new HttpException(
         409,
 
-        MESSAGES.nationalIdExists[
-          LANGUAGE
-        ],
+        MESSAGES
+          .nationalIdExists[
+            LANGUAGE
+          ],
 
         "CLIENT_NATIONAL_ID_ALREADY_EXISTS",
       );
     }
   }
-
-  
 
   public async createClient(
     lawyerId:
@@ -288,15 +273,6 @@ export class ClientService {
       nationalId,
     );
 
- 
-
-    const personalPasswordHash =
-      input.personalPassword
-        ? await this.hashPersonalPassword(
-            input.personalPassword,
-          )
-        : undefined;
-
     return this.repo.create(
       lawyerId,
 
@@ -310,7 +286,6 @@ export class ClientService {
 
         nationalId,
 
-       
         homeNumber:
           this.normalizeOptionalString(
             input.homeNumber,
@@ -334,12 +309,12 @@ export class ClientService {
             input.description,
           ),
 
-        personalPasswordHash,
+       
+        personalPassword:
+          input.personalPassword,
       },
     );
   }
-
-  
 
   public async getClientById(
     lawyerId:
@@ -351,13 +326,32 @@ export class ClientService {
     session?:
       ClientSession,
   ): Promise<ClientRecord> {
-    return this.ensureClientBelongsToLawyer(
-      lawyerId,
+    const client =
+      await this.repo
+        .findByIdForLawyerWithPersonalPassword(
+          lawyerId,
 
-      clientId,
+          clientId,
 
-      session,
-    );
+          session,
+        );
+
+    if (
+      !client
+    ) {
+      throw new HttpException(
+        404,
+
+        MESSAGES
+          .clientNotFound[
+            LANGUAGE
+          ],
+
+        "CLIENT_NOT_FOUND",
+      );
+    }
+
+    return client;
   }
 
   public async findClientByPhone(
@@ -408,7 +402,8 @@ export class ClientService {
         ...options,
 
         search:
-          options.search?.trim(),
+          options.search
+            ?.trim(),
 
         page,
 
@@ -451,8 +446,6 @@ export class ClientService {
       },
     };
   }
-
-  
 
   public async updateClient(
     lawyerId:
@@ -530,8 +523,6 @@ export class ClientService {
         1
       > = {};
 
-    
-
     if (
       input.fullName !==
       undefined
@@ -542,8 +533,6 @@ export class ClientService {
         );
     }
 
-    
-
     if (
       input.phone !==
       undefined
@@ -552,7 +541,6 @@ export class ClientService {
         phone;
     }
 
-   
     if (
       input.represent !==
       undefined
@@ -573,8 +561,6 @@ export class ClientService {
       }
     }
 
-    
-
     if (
       input.nationalId !==
       undefined
@@ -589,7 +575,6 @@ export class ClientService {
           1;
       }
     }
- 
 
     if (
       input.homeNumber !==
@@ -611,8 +596,6 @@ export class ClientService {
       }
     }
 
-     
-
     if (
       input.birthday !==
       undefined
@@ -627,7 +610,6 @@ export class ClientService {
           1;
       }
     }
- 
 
     if (
       input.homeAddress !==
@@ -649,8 +631,6 @@ export class ClientService {
       }
     }
 
-    
-
     if (
       input.description !==
       undefined
@@ -670,26 +650,32 @@ export class ClientService {
           1;
       }
     }
- 
+
     if (
       input.personalPassword !==
       undefined
     ) {
-      setFields.personalPasswordHash =
-        await this.hashPersonalPassword(
-          input.personalPassword,
-        );
+      if (
+        input.personalPassword ===
+        null
+      ) {
+        unsetFields.personalPassword =
+          1;
+      } else {
+        setFields.personalPassword =
+          input.personalPassword;
+      }
     }
-
-     
 
     const update:
       UpdateQuery<Client> = {};
 
     if (
-      Object.keys(
-        setFields,
-      ).length >
+      Object
+        .keys(
+          setFields,
+        )
+        .length >
       0
     ) {
       update.$set =
@@ -697,9 +683,11 @@ export class ClientService {
     }
 
     if (
-      Object.keys(
-        unsetFields,
-      ).length >
+      Object
+        .keys(
+          unsetFields,
+        )
+        .length >
       0
     ) {
       update.$unset =
@@ -721,9 +709,10 @@ export class ClientService {
       throw new HttpException(
         404,
 
-        MESSAGES.clientNotFound[
-          LANGUAGE
-        ],
+        MESSAGES
+          .clientNotFound[
+            LANGUAGE
+          ],
 
         "CLIENT_NOT_FOUND",
       );
@@ -731,8 +720,6 @@ export class ClientService {
 
     return updated;
   }
-
- 
 
   public async resolveClientForCase(
     lawyerId:
@@ -780,9 +767,10 @@ export class ClientService {
         throw new HttpException(
           409,
 
-          MESSAGES.clientDataConflict[
-            LANGUAGE
-          ],
+          MESSAGES
+            .clientDataConflict[
+              LANGUAGE
+            ],
 
           "CLIENT_DATA_CONFLICT",
         );
@@ -813,7 +801,9 @@ export class ClientService {
           await this.repo.updateByIdForLawyer(
             lawyerId,
 
-            existing._id.toString(),
+            existing
+              ._id
+              .toString(),
 
             update,
 
@@ -830,7 +820,8 @@ export class ClientService {
     }
 
     const fullName =
-      input.fullName?.trim();
+      input.fullName
+        ?.trim();
 
     if (
       !fullName
@@ -838,9 +829,10 @@ export class ClientService {
       throw new HttpException(
         400,
 
-        MESSAGES.clientFullNameRequired[
-          LANGUAGE
-        ],
+        MESSAGES
+          .clientFullNameRequired[
+            LANGUAGE
+          ],
 
         "CLIENT_FULL_NAME_REQUIRED",
       );
@@ -864,16 +856,16 @@ export class ClientService {
         throw new HttpException(
           409,
 
-          MESSAGES.nationalIdExists[
-            LANGUAGE
-          ],
+          MESSAGES
+            .nationalIdExists[
+              LANGUAGE
+            ],
 
           "CLIENT_NATIONAL_ID_ALREADY_EXISTS",
         );
       }
     }
 
-    
     return this.repo.create(
       lawyerId,
 
