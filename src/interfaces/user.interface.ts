@@ -1,14 +1,16 @@
 import type { InferSchemaType, Types } from "mongoose";
 
-import type { UserRole } from "../constants/user.constants";
+import type { z } from "zod";
 
 import { UserSchema } from "../models/user.model";
 
-export type User = InferSchemaType<typeof UserSchema> & {
-  createdAt: Date;
+import {
+  CreateUserDataSchema,
+  UserRoleSchema,
+  UserStatusSchema,
+} from "../validators/user.validator";
 
-  updatedAt: Date;
-};
+export type User = InferSchemaType<typeof UserSchema>;
 
 export type UserRecord = User & {
   _id: Types.ObjectId;
@@ -26,16 +28,8 @@ export type UserAccessContext = {
   status: User["status"];
 };
 
-export type CreateUserData = {
-  email?: string;
+export type UserRole = z.infer<typeof UserRoleSchema>;
 
-  phone?: string;
+export type UserStatus = z.infer<typeof UserStatusSchema>;
 
-  password: string;
-
-  role: UserRole;
-
-  emailVerifiedAt?: Date | null;
-
-  phoneVerifiedAt?: Date | null;
-};
+export type CreateUserData = z.infer<typeof CreateUserDataSchema>;
