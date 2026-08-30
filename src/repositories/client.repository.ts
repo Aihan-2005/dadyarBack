@@ -1,8 +1,4 @@
-import type {
-  ClientSession,
-  QueryFilter,
-  UpdateQuery,
-} from "mongoose";
+import type { ClientSession, QueryFilter, UpdateQuery } from "mongoose";
 
 import type {
   Client,
@@ -13,23 +9,14 @@ import type {
 
 import ClientModel from "../models/client.model";
 
-import {
-  BaseRepository,
-} from "./base.repository";
+import { BaseRepository } from "./base.repository";
 
 export class ClientRepository extends BaseRepository<Client> {
   constructor() {
-    super(
-      ClientModel,
-    );
+    super(ClientModel);
   }
 
- 
-
-  private escapeRegex(
-    value:
-      string,
-  ) {
+  private escapeRegex(value: string) {
     return value.replace(
       /[.*+?^${}()|[\]\\]/g,
 
@@ -38,72 +25,52 @@ export class ClientRepository extends BaseRepository<Client> {
   }
 
   private buildSearchQuery(
-    lawyerId:
-      string,
+    lawyerId: string,
 
-    search?:
-      string,
+    search?: string,
   ): QueryFilter<Client> {
-    const query:
-      QueryFilter<Client> = {
-        lawyerId:
-          this.toObjectId(
-            lawyerId,
-          ),
-      };
+    const query: QueryFilter<Client> = {
+      lawyerId: this.toObjectId(lawyerId),
+    };
 
-    const normalizedSearch =
-      search?.trim();
+    const normalizedSearch = search?.trim();
 
-    if (
-      !normalizedSearch
-    ) {
+    if (!normalizedSearch) {
       return query;
     }
 
-    const safeSearch =
-      this.escapeRegex(
-        normalizedSearch,
-      );
+    const safeSearch = this.escapeRegex(normalizedSearch);
 
     query.$or = [
       {
         fullName: {
-          $regex:
-            safeSearch,
+          $regex: safeSearch,
 
-          $options:
-            "i",
+          $options: "i",
         },
       },
 
       {
         phone: {
-          $regex:
-            safeSearch,
+          $regex: safeSearch,
 
-          $options:
-            "i",
+          $options: "i",
         },
       },
 
       {
         nationalId: {
-          $regex:
-            safeSearch,
+          $regex: safeSearch,
 
-          $options:
-            "i",
+          $options: "i",
         },
       },
 
       {
         homeNumber: {
-          $regex:
-            safeSearch,
+          $regex: safeSearch,
 
-          $options:
-            "i",
+          $options: "i",
         },
       },
     ];
@@ -111,293 +78,199 @@ export class ClientRepository extends BaseRepository<Client> {
     return query;
   }
 
- 
-
   public findByIdForLawyer(
-    lawyerId:
-      string,
+    lawyerId: string,
 
-    clientId:
-      string,
+    clientId: string,
 
-    session?:
-      ClientSession,
+    session?: ClientSession,
   ) {
-    const query =
-      this.model
-        .findOne({
-          _id:
-            this.toObjectId(
-              clientId,
-            ),
+    const query = this.model
+      .findOne({
+        _id: this.toObjectId(clientId),
 
-          lawyerId:
-            this.toObjectId(
-              lawyerId,
-            ),
-        })
-
-        .select(
-          "-personalPasswordHash",
-        );
-
-    if (
-      session
-    ) {
-      query.session(
-        session,
-      );
-    }
-
-    return query
-      .lean<ClientRecord>()
-      .exec();
-  }
-
-   
-
-  public findByPhone(
-    lawyerId:
-      string,
-
-    phone:
-      string,
-
-    session?:
-      ClientSession,
-  ) {
-    const query =
-      this.model
-        .findOne({
-          lawyerId:
-            this.toObjectId(
-              lawyerId,
-            ),
-
-          phone,
-        })
-
-        .select(
-          "-personalPasswordHash",
-        );
-
-    if (
-      session
-    ) {
-      query.session(
-        session,
-      );
-    }
-
-    return query
-      .lean<ClientRecord>()
-      .exec();
-  }
-
- 
-
-  public findByNationalId(
-    lawyerId:
-      string,
-
-    nationalId:
-      string,
-
-    session?:
-      ClientSession,
-  ) {
-    const query =
-      this.model
-        .findOne({
-          lawyerId:
-            this.toObjectId(
-              lawyerId,
-            ),
-
-          nationalId,
-        })
-
-        .select(
-          "-personalPasswordHash",
-        );
-
-    if (
-      session
-    ) {
-      query.session(
-        session,
-      );
-    }
-
-    return query
-      .lean<ClientRecord>()
-      .exec();
-  }
-
- 
-
-  public findByLawyerId(
-    lawyerId:
-      string,
-
-    options:
-      FindClientsOptions = {},
-  ) {
-    const page =
-      options.page ??
-      1;
-
-    const limit =
-      options.limit ??
-      10;
-
-    const skip =
-      (
-        page -
-        1
-      ) *
-      limit;
-
-    const query =
-      this.buildSearchQuery(
-        lawyerId,
-
-        options.search,
-      );
-
-    return this.model
-      .find(
-        query,
-      )
-
-      .select(
-        "-personalPasswordHash",
-      )
-
-      .sort({
-        updatedAt:
-          -1,
+        lawyerId: this.toObjectId(lawyerId),
       })
 
-      .skip(
-        skip,
-      )
+      .select("-personalPasswordHash");
 
-      .limit(
-        limit,
-      )
+    if (session) {
+      query.session(session);
+    }
+
+    return query.lean<ClientRecord>().exec();
+  }
+
+  public findByPhone(
+    lawyerId: string,
+
+    phone: string,
+
+    session?: ClientSession,
+  ) {
+    const query = this.model
+      .findOne({
+        lawyerId: this.toObjectId(lawyerId),
+
+        phone,
+      })
+
+      .select("-personalPasswordHash");
+
+    if (session) {
+      query.session(session);
+    }
+
+    return query.lean<ClientRecord>().exec();
+  }
+
+  public findByNationalId(
+    lawyerId: string,
+
+    nationalId: string,
+
+    session?: ClientSession,
+  ) {
+    const query = this.model
+      .findOne({
+        lawyerId: this.toObjectId(lawyerId),
+
+        nationalId,
+      })
+
+      .select("-personalPasswordHash");
+
+    if (session) {
+      query.session(session);
+    }
+
+    return query.lean<ClientRecord>().exec();
+  }
+
+  public findByLawyerId(
+    lawyerId: string,
+
+    options: FindClientsOptions = {},
+  ) {
+    const page = options.page ?? 1;
+
+    const limit = options.limit ?? 10;
+
+    const skip = (page - 1) * limit;
+
+    const query = this.buildSearchQuery(
+      lawyerId,
+
+      options.search,
+    );
+
+    return this.model
+      .find(query)
+
+      .select("-personalPasswordHash")
+
+      .sort({
+        updatedAt: -1,
+      })
+
+      .skip(skip)
+
+      .limit(limit)
 
       .lean<ClientRecord[]>()
 
       .exec();
   }
 
-  
-
   public countByLawyerId(
-    lawyerId:
-      string,
+    lawyerId: string,
 
-    options:
-      FindClientsOptions = {},
+    options: FindClientsOptions = {},
   ) {
-    const query =
-      this.buildSearchQuery(
-        lawyerId,
+    const query = this.buildSearchQuery(
+      lawyerId,
 
-        options.search,
-      );
+      options.search,
+    );
 
-    return this.model
-      .countDocuments(
-        query,
-      )
-      .exec();
+    return this.model.countDocuments(query).exec();
   }
 
-  
-
   public async create(
-    lawyerId:
-      string,
+    lawyerId: string,
 
-    data:
-      CreateClientRecordInput,
+    data: CreateClientRecordInput,
 
-    session?:
-      ClientSession,
+    session?: ClientSession,
   ): Promise<ClientRecord> {
-    const [
-      created,
-    ] =
-      await this.model.create(
-        [
-          {
-            ...data,
-
-            lawyerId:
-              this.toObjectId(
-                lawyerId,
-              ),
-          },
-        ],
-
+    const [created] = await this.model.create(
+      [
         {
-          session,
-        },
-      );
+          ...data,
 
-   
+          lawyerId: this.toObjectId(lawyerId),
+        },
+      ],
+
+      {
+        session,
+      },
+    );
+
     return created.toObject() as unknown as ClientRecord;
   }
 
- 
   public updateByIdForLawyer(
-    lawyerId:
-      string,
+    lawyerId: string,
 
-    clientId:
-      string,
+    clientId: string,
 
-    update:
-      UpdateQuery<Client>,
+    update: UpdateQuery<Client>,
 
-    session?:
-      ClientSession,
+    session?: ClientSession,
   ) {
     return this.model
       .findOneAndUpdate(
         {
-          _id:
-            this.toObjectId(
-              clientId,
-            ),
+          _id: this.toObjectId(clientId),
 
-          lawyerId:
-            this.toObjectId(
-              lawyerId,
-            ),
+          lawyerId: this.toObjectId(lawyerId),
         },
 
         update,
 
         {
-          new:
-            true,
+          new: true,
 
-          runValidators:
-            true,
+          runValidators: true,
 
           session,
         },
-      )
-
-      .select(
-        "-personalPasswordHash",
       )
 
       .lean<ClientRecord>()
 
       .exec();
   }
+
+  public findByIdForLawyerWithPersonalPassword(
+    lawyerId: string,
+    clientId: string,
+    session?: ClientSession,
+  ) {
+    const query = this.model
+      .findOne({
+        _id: this.toObjectId(clientId),
+
+        lawyerId: this.toObjectId(lawyerId),
+      })
+      .select("+personalPassword");
+
+    if (session) {
+      query.session(session);
+    }
+
+    return query.lean<ClientRecord>().exec();
+  }
 }
+

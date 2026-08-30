@@ -1,30 +1,14 @@
-import {
-  model,
-  Schema,
-  type HydratedDocument,
-} from "mongoose";
-
-import { env } from "../config/env";
+import { model, Schema } from "mongoose";
 
 import {
-  DEFAULT_LAWYER_ROLE,
   DEFAULT_LAWYER_STATUS,
-  LAWYER_ROLES,
   LAWYER_STATUSES,
+  SKILL_LEVELS,
 } from "../constants/lawyer.constants";
 
-import { MESSAGES } from "../constants/messages.constants";
+import type { Lawyer } from "../interfaces/lawyer.interface";
 
-import type {
-  Education,
-  Lawyer,
-  Skill,
-  WorkExperience,
-} from "../interfaces/lawyer.interface";
-
-export const SKILL_LEVELS = [1, 2, 3, 4, 5] as const;
-
-export const EducationSchema = new Schema<Education>(
+export const EducationSchema = new Schema(
   {
     degree: {
       type: String,
@@ -59,7 +43,7 @@ export const EducationSchema = new Schema<Education>(
   },
 );
 
-export const WorkExperienceSchema = new Schema<WorkExperience>(
+export const WorkExperienceSchema = new Schema(
   {
     title: {
       type: String,
@@ -101,7 +85,7 @@ export const WorkExperienceSchema = new Schema<WorkExperience>(
   },
 );
 
-export const SkillSchema = new Schema<Skill>(
+export const SkillSchema = new Schema(
   {
     name: {
       type: String,
@@ -123,7 +107,7 @@ export const SkillSchema = new Schema<Skill>(
   },
 );
 
-export const LawyerSchema = new Schema<Lawyer>(
+export const LawyerSchema = new Schema(
   {
     firstName: {
       type: String,
@@ -139,37 +123,6 @@ export const LawyerSchema = new Schema<Lawyer>(
       maxlength: 100,
     },
 
-    email: {
-      type: String,
-      unique: true,
-      lowercase: true,
-      trim: true,
-      sparse: true,
-    },
-
-    phone: {
-      type: String,
-      match: /^09\d{9}$/,
-      unique: true,
-      trim: true,
-      sparse: true,
-    },
-
-    password: {
-      type: String,
-      required: true,
-      select: false,
-    },
-
-    role: {
-      type: String,
-      enum: Object.values(LAWYER_ROLES),
-      default: DEFAULT_LAWYER_ROLE,
-      required: true,
-      immutable: true,
-      index: true,
-    },
-
     status: {
       type: String,
       enum: Object.values(LAWYER_STATUSES),
@@ -178,22 +131,7 @@ export const LawyerSchema = new Schema<Lawyer>(
       index: true,
     },
 
-    emailVerifiedAt: {
-      type: Date,
-      default: null,
-    },
-
-    phoneVerifiedAt: {
-      type: Date,
-      default: null,
-    },
-
     licenseVerifiedAt: {
-      type: Date,
-      default: null,
-    },
-
-    lastLoginAt: {
       type: Date,
       default: null,
     },
@@ -270,15 +208,6 @@ export const LawyerSchema = new Schema<Lawyer>(
   {
     timestamps: true,
     versionKey: false,
-  },
-);
-
-LawyerSchema.pre(
-  "validate",
-  function (this: HydratedDocument<Lawyer>) {
-    if (!this.email && !this.phone) {
-      throw new Error(MESSAGES.noEmailNorPhone[env.LANGUAGE]);
-    }
   },
 );
 

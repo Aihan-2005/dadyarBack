@@ -132,4 +132,37 @@ export class UserRepository extends BaseRepository<User> {
       )
       .exec();
   }
+
+  public updatePhoneById(
+    id: string,
+    phone: string | undefined,
+    session?: ClientSession,
+  ) {
+    const update = phone
+      ? {
+          $set: {
+            phone,
+
+            phoneVerifiedAt: null,
+          },
+        }
+      : {
+          $unset: {
+            phone: 1 as const,
+          },
+
+          $set: {
+            phoneVerifiedAt: null,
+          },
+        };
+
+    return this.model
+      .findByIdAndUpdate(this.toObjectId(id), update, {
+        new: true,
+        runValidators: true,
+        session,
+      })
+      .lean<UserRecord>()
+      .exec();
+  }
 }

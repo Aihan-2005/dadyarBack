@@ -19,11 +19,12 @@ import { HttpException } from "../exceptions/httpException";
 import { LawyerRepository } from "../repositories/lawyer.repository";
 
 import { TokenService } from "../services/token.service";
+import { UserRepository } from "../repositories/user.repository";
 
 const LANGUAGE = env.LANGUAGE;
 
 const tokenService = new TokenService();
-
+const userRepository = new UserRepository();
 const lawyerRepository = new LawyerRepository();
 
 export const requireAuth = async (
@@ -64,8 +65,7 @@ export const requireAuth = async (
   }
 
   try {
-    const account = await lawyerRepository.findAccessContextById(userId);
-
+    const account = await userRepository.findAccessContextById(userId);
     if (!account) {
       throw new HttpException(
         401,
@@ -105,9 +105,9 @@ export const requireAuth = async (
     req.user = {
       id: userId,
 
-      role,
+      role: account.role,
 
-      status,
+      status: account.status,
     };
 
     return next();
@@ -116,22 +116,52 @@ export const requireAuth = async (
   }
 };
 
-export const requireActiveLawyer = (
+export const requireActiveLawyer = async (
   req: Request,
   _res: Response,
   next: NextFunction,
 ) => {
-  if (!req.user || !isActiveLawyerStatus(req.user.status)) {
-    return next(
-      new HttpException(
+  try {
+    if (!req.user) {
+      throw new HttpException(
+        401,
+        MESSAGES.unauthorized[LANGUAGE],
+        "UNAUTHORIZED",
+      );
+    }
+
+    const lawyer = await lawyerRepository.findById(req.user.id);
+
+    if (!lawyer) {
+      throw new HttpException(
+        401,
+        MESSAGES.unableToFindUser[LANGUAGE],
+        "LAWYER_PROFILE_NOT_FOUND",
+      );
+    }
+
+    const status = resolveLawyerStatus(lawyer.status);
+
+    if (status === LAWYER_STATUSES.REJECTED) {
+      throw new HttpException(
+        403,
+        MESSAGES.accountRejected[LANGUAGE],
+        "ACCOUNT_REJECTED",
+      );
+    }
+
+    if (!isActiveLawyerStatus(status)) {
+      throw new HttpException(
         403,
         MESSAGES.accountPendingVerification[LANGUAGE],
         "ACCOUNT_NOT_ACTIVE",
-      ),
-    );
-  }
+      );
+    }
 
-  return next();
+    return next();
+  } catch (error) {
+    return next(error);
+  }
 };
 
 export default requireAuth;

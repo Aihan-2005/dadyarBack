@@ -1,30 +1,20 @@
-import type {
-  JwtPayload,
-} from "jsonwebtoken";
+import type { JwtPayload } from "jsonwebtoken";
 
-import type {
-  Types,
-} from "mongoose";
+import type { Types } from "mongoose";
 
-import type {
-  LawyerRole,
-} from "../constants/lawyer.constants";
+import type { UserRole } from "./user.interface";
 
-export type TokenType =
-  | "access"
-  | "refresh";
+export type TokenType = "access" | "refresh";
 
-export interface AccessTokenPayload
-  extends JwtPayload {
+export interface AccessTokenPayload extends JwtPayload {
   sub: string;
 
-  role: LawyerRole;
+  role: UserRole;
 
   type: "access";
 }
 
-export interface RefreshTokenPayload
-  extends JwtPayload {
+export interface RefreshTokenPayload extends JwtPayload {
   sub: string;
 
   jti: string;
@@ -44,8 +34,7 @@ export interface RefreshToken {
   updatedAt?: Date;
 }
 
-export interface RefreshTokenRecord
-  extends RefreshToken {
+export interface RefreshTokenRecord extends RefreshToken {
   _id: Types.ObjectId;
 
   createdAt: Date;
@@ -58,6 +47,6 @@ export interface TokenPair {
 
   refreshToken: string;
 
-  accessTokenExpiresIn:
-    number;
+  accessTokenExpiresIn: number;
 }
+

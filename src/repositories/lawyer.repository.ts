@@ -1,15 +1,9 @@
-import type { ClientSession, UpdateQuery } from "mongoose";
-
-import {
-  DEFAULT_LAWYER_ROLE,
-  DEFAULT_LAWYER_STATUS,
-} from "../constants/lawyer.constants";
+import type { ClientSession, Types, UpdateQuery } from "mongoose";
+import { DEFAULT_LAWYER_STATUS } from "../constants/lawyer.constants";
 
 import type {
-  CreateLawyerInput,
+  CreateLawyerData,
   Lawyer,
-  LawyerAccessContext,
-  LawyerAuthRecord,
   LawyerRecord,
 } from "../interfaces/lawyer.interface";
 
@@ -19,14 +13,6 @@ import { BaseRepository } from "./base.repository";
 export class LawyerRepository extends BaseRepository<Lawyer> {
   constructor() {
     super(LawyerModel);
-  }
-
-  public findByEmail(email: string) {
-    return this.model.findOne({ email }).lean<LawyerRecord>().exec();
-  }
-
-  public findByPhone(phone: string) {
-    return this.model.findOne({ phone }).lean<LawyerRecord>().exec();
   }
 
   public findByLicenseNumber(licenseNumber: string) {
@@ -42,100 +28,62 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
     return this.model.findById(this.toObjectId(id)).lean<LawyerRecord>().exec();
   }
 
-  public findAccessContextById(id: string) {
-    return this.model
-      .findById(this.toObjectId(id))
-      .select("_id role status")
-      .lean<LawyerAccessContext>()
-      .exec();
-  }
+  public async create(
+    userId: Types.ObjectId,
+    data: CreateLawyerData,
+    session?: ClientSession,
+  ) {
+    const createData = {
+      _id: userId,
 
-  public findAuthByEmail(email: string) {
-    return this.model
-      .findOne({ email })
-      .select("+password")
-      .lean<LawyerAuthRecord>()
-      .exec();
-  }
+      firstName: data.firstName,
 
-  public findAuthByPhone(phone: string) {
-    return this.model
-      .findOne({ phone })
-      .select("+password")
-      .lean<LawyerAuthRecord>()
-      .exec();
-  }
-
-  public create(data: CreateLawyerInput) {
-    return this.model.create({
-      ...data,
-
-      role: DEFAULT_LAWYER_ROLE,
+      lastName: data.lastName,
 
       status: DEFAULT_LAWYER_STATUS,
 
-      emailVerifiedAt: null,
-      phoneVerifiedAt: null,
       licenseVerifiedAt: null,
-      lastLoginAt: null,
 
       specialization: "",
+
       yearsOfExperience: 0,
+
       address: "",
+
       bio: "",
 
       education: [],
+
       experience: [],
+
       skills: [],
+
       languages: [],
+    };
+
+    if (!session) {
+      return this.model.create(createData);
+    }
+
+    const [lawyer] = await this.model.create([createData], {
+      session,
     });
+
+    return lawyer;
   }
 
-  public updateLastLogin(id: string, lastLoginAt: Date) {
-    return this.model
-      .updateOne(
-        {
-          _id: this.toObjectId(id),
-        },
-
-        {
-          $set: {
-            lastLoginAt,
-          },
-        },
-      )
-      .exec();
-  }
-
-  public updateProfileById(id: string, update: UpdateQuery<Lawyer>) {
+  public updateProfileById(
+    id: string,
+    update: UpdateQuery<Lawyer>,
+    session?: ClientSession,
+  ) {
     return this.model
       .findByIdAndUpdate(this.toObjectId(id), update, {
         new: true,
         runValidators: true,
+        session,
       })
       .lean<LawyerRecord>()
-      .exec();
-  }
-
-  public updatePasswordById(
-    id: string,
-    password: string,
-    session?: ClientSession,
-  ) {
-    return this.model
-      .updateOne(
-        {
-          _id: this.toObjectId(id),
-        },
-        {
-          $set: {
-            password,
-          },
-        },
-        {
-          session,
-        },
-      )
       .exec();
   }
 }

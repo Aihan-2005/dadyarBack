@@ -46,25 +46,17 @@ export const UserSchema = new Schema(
 
     role: {
       type: String,
-
-      enum: Object.values(USER_ROLES),
-
+      enum: USER_ROLES,
       required: true,
-
       immutable: true,
-
       index: true,
     },
 
     status: {
       type: String,
-
-      enum: Object.values(USER_STATUSES),
-
+      enum: USER_STATUSES,
       required: true,
-
       default: DEFAULT_USER_STATUS,
-
       index: true,
     },
 

@@ -33,6 +33,7 @@ import { SmsService } from "../services/sms.service";
 import { EmailService } from "../services/email.service";
 
 import { OtpDeliveryService } from "../services/otpDelivery.service";
+import { UserRepository } from "../repositories/user.repository";
 
 class AuthRoute implements Route {
   public readonly path = "/auth";
@@ -60,9 +61,15 @@ class AuthRoute implements Route {
       otpDeliveryService,
     );
 
+    const userRepository = new UserRepository();
+
     const lawyerRepository = new LawyerRepository();
 
-    const authService = new AuthService(lawyerRepository, otpService);
+    const authService = new AuthService(
+      userRepository,
+      lawyerRepository,
+      otpService,
+    );
 
     this.authController = new AuthController(authService);
 

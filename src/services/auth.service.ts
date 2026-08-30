@@ -2,13 +2,17 @@ import bcrypt from "bcrypt";
 
 import { env } from "../config/env";
 
+import type {
+  ChangePasswordInput,
+  LoginInput,
+  OtpLoginInput,
+  RequestOtpLoginInput,
+  SignupInput,
+} from "../interfaces/auth.interface";
+
 import {
-  LAWYER_ROLES,
   LAWYER_STATUSES,
-  resolveLawyerRole,
   resolveLawyerStatus,
-  type LawyerRole,
-  type LawyerStatus,
 } from "../constants/lawyer.constants";
 
 import { MESSAGES } from "../constants/messages.constants";
@@ -17,26 +21,17 @@ import { toPublicLawyerDTO } from "../dtos/lawyer.dto";
 
 import { HttpException } from "../exceptions/httpException";
 
-import type {
-  CreateLawyerInput,
-  LawyerRecord,
-  LoginDTO,
-} from "../interfaces/lawyer.interface";
-
 import { LawyerRepository } from "../repositories/lawyer.repository";
 
 import { TokenService } from "./token.service";
 
 import { OTP_PURPOSES } from "../constants/otp.constants";
 
-import type {
-  ChangePasswordInput,
-  OtpLoginInput,
-  RequestOtpLoginInput,
-} from "../interfaces/auth.interface";
-
 import { OtpService } from "./otp.service";
 import mongoose from "mongoose";
+import { UserRepository } from "../repositories/user.repository";
+import { UserRecord, UserRole, UserStatus } from "../interfaces/user.interface";
+import { LawyerRecord } from "../interfaces/lawyer.interface";
 
 const LANGUAGE = env.LANGUAGE;
 
@@ -44,16 +39,18 @@ export class AuthService {
   private readonly tokenService = new TokenService();
 
   constructor(
-    private readonly repo: LawyerRepository,
+    private readonly userRepo: UserRepository,
+
+    private readonly lawyerRepo: LawyerRepository,
 
     private readonly otpService: OtpService,
   ) {}
 
-  private normalizeEmail(email?: string): string | undefined {
+  private normalizeEmail(email?: string | null): string | undefined {
     return email?.trim().toLowerCase();
   }
 
-  private normalizePhone(phone?: string): string | undefined {
+  private normalizePhone(phone?: string | null): string | undefined {
     return phone?.trim();
   }
 
@@ -65,22 +62,41 @@ export class AuthService {
     return bcrypt.compare(plainPassword, hashedPassword);
   }
 
-  private assertAccountCanAuthenticate(
-    role: LawyerRole,
-    status: LawyerStatus,
-  ): void {
-    if (role !== LAWYER_ROLES.LAWYER) {
+  private assertUserCanAuthenticate(user: {
+    role: UserRole;
+
+    status: UserStatus;
+  }): void {
+    if (user.role !== "LAWYER") {
       throw new HttpException(
         403,
+
         MESSAGES.invalidAccountRole[LANGUAGE],
+
         "INVALID_ACCOUNT_ROLE",
       );
     }
 
+    if (user.status === "SUSPENDED") {
+      throw new HttpException(
+        403,
+
+        MESSAGES.accountSuspended[LANGUAGE],
+
+        "ACCOUNT_SUSPENDED",
+      );
+    }
+  }
+
+  private assertLawyerCanAuthenticate(lawyer: LawyerRecord): void {
+    const status = resolveLawyerStatus(lawyer.status);
+
     if (status === LAWYER_STATUSES.SUSPENDED) {
       throw new HttpException(
         403,
+
         MESSAGES.accountSuspended[LANGUAGE],
+
         "ACCOUNT_SUSPENDED",
       );
     }
@@ -88,29 +104,31 @@ export class AuthService {
     if (status === LAWYER_STATUSES.REJECTED) {
       throw new HttpException(
         403,
+
         MESSAGES.accountRejected[LANGUAGE],
+
         "ACCOUNT_REJECTED",
       );
     }
   }
 
-  private async ensureLawyerDoesNotExist(
-    input: CreateLawyerInput,
-  ): Promise<void> {
+  private async ensureUserDoesNotExist(input: SignupInput): Promise<void> {
     const email = this.normalizeEmail(input.email);
 
     const phone = this.normalizePhone(input.phone);
 
     const [emailOwner, phoneOwner] = await Promise.all([
-      email ? this.repo.findByEmail(email) : Promise.resolve(null),
+      email ? this.userRepo.findByEmail(email) : Promise.resolve(null),
 
-      phone ? this.repo.findByPhone(phone) : Promise.resolve(null),
+      phone ? this.userRepo.findByPhone(phone) : Promise.resolve(null),
     ]);
 
     if (emailOwner) {
       throw new HttpException(
         409,
+
         MESSAGES.emailExsist[LANGUAGE],
+
         "EMAIL_ALREADY_EXISTS",
       );
     }
@@ -118,52 +136,41 @@ export class AuthService {
     if (phoneOwner) {
       throw new HttpException(
         409,
+
         MESSAGES.phoneExsist[LANGUAGE],
+
         "PHONE_ALREADY_EXISTS",
       );
     }
   }
 
-  private normalizeSignupData(
-    input: CreateLawyerInput,
-    hashedPassword: string,
-  ): CreateLawyerInput {
-    return {
-      firstName: input.firstName.trim(),
+  private async getPasswordChangeAccount(userId: string) {
+    const [user, lawyer] = await Promise.all([
+      this.userRepo.findById(userId),
 
-      lastName: input.lastName.trim(),
+      this.lawyerRepo.findById(userId),
+    ]);
 
-      email: this.normalizeEmail(input.email),
-
-      phone: this.normalizePhone(input.phone),
-
-      password: hashedPassword,
-    };
-  }
-
-  private async getPasswordChangeAccount(lawyerId: string) {
-    const lawyer = await this.repo.findById(lawyerId);
-
-    if (!lawyer) {
+    if (!user || !lawyer) {
       throw new HttpException(
         404,
+
         MESSAGES.noUserWithId[LANGUAGE],
+
         "USER_NOT_FOUND",
       );
     }
 
-    const role = resolveLawyerRole(lawyer.role);
+    this.assertUserCanAuthenticate(user);
 
-    const status = resolveLawyerStatus(lawyer.status);
-
-    this.assertAccountCanAuthenticate(role, status);
+    this.assertLawyerCanAuthenticate(lawyer);
 
     return {
-      lawyer,
+      user,
 
-      phone: this.normalizePhone(lawyer.phone),
+      phone: this.normalizePhone(user.phone),
 
-      email: this.normalizeEmail(lawyer.email),
+      email: this.normalizeEmail(user.email),
     };
   }
 
@@ -177,20 +184,25 @@ export class AuthService {
     const destination = email ?? phone!;
 
     const account = email
-      ? await this.repo.findByEmail(email)
-      : await this.repo.findByPhone(phone!);
+      ? await this.userRepo.findByEmail(email)
+      : await this.userRepo.findByPhone(phone!);
 
     let canReceiveOtp = false;
 
-    if (account) {
-      const role = resolveLawyerRole(account.role);
+    if (
+      account &&
+      account.role === "LAWYER" &&
+      account.status !== "SUSPENDED"
+    ) {
+      const lawyer = await this.lawyerRepo.findById(account._id.toString());
 
-      const status = resolveLawyerStatus(account.status);
+      if (lawyer) {
+        const status = resolveLawyerStatus(lawyer.status);
 
-      canReceiveOtp =
-        role === LAWYER_ROLES.LAWYER &&
-        status !== LAWYER_STATUSES.SUSPENDED &&
-        status !== LAWYER_STATUSES.REJECTED;
+        canReceiveOtp =
+          status !== LAWYER_STATUSES.SUSPENDED &&
+          status !== LAWYER_STATUSES.REJECTED;
+      }
     }
 
     return this.otpService.createOtp(
@@ -201,6 +213,7 @@ export class AuthService {
 
         purpose: OTP_PURPOSES.OTP_LOGIN,
       },
+
       {
         deliver: canReceiveOtp,
       },
@@ -227,80 +240,134 @@ export class AuthService {
     });
 
     const authUser = email
-      ? await this.repo.findByEmail(email)
-      : await this.repo.findByPhone(phone!);
+      ? await this.userRepo.findByEmail(email)
+      : await this.userRepo.findByPhone(phone!);
 
     if (!authUser) {
       throw new HttpException(
         401,
+
         MESSAGES.invalidCredentials[LANGUAGE],
+
         "INVALID_CREDENTIALS",
       );
     }
 
-    const role = resolveLawyerRole(authUser.role);
-
-    const status = resolveLawyerStatus(authUser.status);
-
-    this.assertAccountCanAuthenticate(role, status);
+    this.assertUserCanAuthenticate(authUser);
 
     const userId = authUser._id.toString();
 
+    const lawyer = await this.lawyerRepo.findById(userId);
+
+    if (!lawyer) {
+      throw new HttpException(
+        401,
+
+        MESSAGES.unableToFindUser[LANGUAGE],
+
+        "LAWYER_PROFILE_NOT_FOUND",
+      );
+    }
+
+    this.assertLawyerCanAuthenticate(lawyer);
+
     const lastLoginAt = new Date();
 
-    await this.repo.updateLastLogin(userId, lastLoginAt);
+    await this.userRepo.updateLastLogin(userId, lastLoginAt);
 
-    const tokenPair = await this.tokenService.issueTokenPair(userId);
-
-    const user = toPublicLawyerDTO({
-      ...authUser,
-
-      role,
-
-      status,
-
-      lastLoginAt,
-    });
+    const tokenPair = await this.tokenService.issueTokenPair(
+      userId,
+      authUser.role,
+    );
 
     return {
-      user,
+      user: toPublicLawyerDTO(lawyer, {
+        ...authUser,
+
+        lastLoginAt,
+      }),
 
       ...tokenPair,
     };
   }
 
-  public async signup(input: CreateLawyerInput) {
-    await this.ensureLawyerDoesNotExist(input);
+  public async signup(input: SignupInput) {
+    await this.ensureUserDoesNotExist(input);
 
     const hashedPassword = await this.hashPassword(input.password);
 
-    const created = await this.repo.create(
-      this.normalizeSignupData(input, hashedPassword),
-    );
+    const session = await mongoose.startSession();
 
-    const userId = created._id.toString();
+    try {
+      const result = await session.withTransaction(async () => {
+        const user = await this.userRepo.create(
+          {
+            email: this.normalizeEmail(input.email),
 
-    const tokenPair = await this.tokenService.issueTokenPair(userId);
+            phone: this.normalizePhone(input.phone),
 
-    const user = toPublicLawyerDTO(
-      created.toObject() as unknown as LawyerRecord,
-    );
+            password: hashedPassword,
 
-    return {
-      user,
+            role: "LAWYER",
+          },
 
-      ...tokenPair,
-    };
+          session,
+        );
+
+        const lawyer = await this.lawyerRepo.create(
+          user._id,
+
+          {
+            firstName: input.firstName.trim(),
+
+            lastName: input.lastName.trim(),
+          },
+
+          session,
+        );
+
+        const tokenPair = await this.tokenService.issueTokenPair(
+          user._id.toString(),
+
+          user.role,
+
+          session,
+        );
+
+        return {
+          user: toPublicLawyerDTO(
+            lawyer.toObject() as LawyerRecord,
+            user.toObject() as UserRecord,
+          ),
+
+          ...tokenPair,
+        };
+      });
+
+      if (!result) {
+        throw new HttpException(
+          500,
+
+          MESSAGES.serverError[LANGUAGE],
+
+          "SIGNUP_FAILED",
+        );
+      }
+
+      return result;
+    } finally {
+      await session.endSession();
+    }
   }
 
-  public async login(input: LoginDTO) {
+  public async login(input: LoginInput) {
     const email = this.normalizeEmail(input.email);
 
     const phone = this.normalizePhone(input.phone);
 
     const authUser = email
-      ? await this.repo.findAuthByEmail(email)
-      : await this.repo.findAuthByPhone(phone!);
+      ? await this.userRepo.findAuthByEmail(email)
+      : await this.userRepo.findAuthByPhone(phone!);
 
     if (!authUser) {
       throw new HttpException(
@@ -322,27 +389,35 @@ export class AuthService {
         "INVALID_CREDENTIALS",
       );
     }
-
-    const role = resolveLawyerRole(authUser.role);
-
-    const status = resolveLawyerStatus(authUser.status);
-
-    this.assertAccountCanAuthenticate(role, status);
+    this.assertUserCanAuthenticate(authUser);
 
     const userId = authUser._id.toString();
 
+    const lawyer = await this.lawyerRepo.findById(userId);
+
+    if (!lawyer) {
+      throw new HttpException(
+        401,
+
+        MESSAGES.unableToFindUser[LANGUAGE],
+
+        "LAWYER_PROFILE_NOT_FOUND",
+      );
+    }
+
+    this.assertLawyerCanAuthenticate(lawyer);
+
     const lastLoginAt = new Date();
 
-    await this.repo.updateLastLogin(userId, lastLoginAt);
+    await this.userRepo.updateLastLogin(userId, lastLoginAt);
 
-    const tokenPair = await this.tokenService.issueTokenPair(userId);
+    const tokenPair = await this.tokenService.issueTokenPair(
+      userId,
+      authUser.role,
+    );
 
-    const user = toPublicLawyerDTO({
+    const user = toPublicLawyerDTO(lawyer, {
       ...authUser,
-
-      role,
-
-      status,
 
       lastLoginAt,
     });
@@ -357,41 +432,59 @@ export class AuthService {
   public async refresh(refreshToken: string) {
     const userId = await this.tokenService.consumeRefreshToken(refreshToken);
 
-    const account = await this.repo.findAccessContextById(userId);
+    const account = await this.userRepo.findAccessContextById(userId);
 
     if (!account) {
       throw new HttpException(
         401,
+
         MESSAGES.unableToFindUser[LANGUAGE],
+
         "SESSION_USER_NOT_FOUND",
       );
     }
 
-    const role = resolveLawyerRole(account.role);
+    this.assertUserCanAuthenticate(account);
 
-    const status = resolveLawyerStatus(account.status);
+    const lawyer = await this.lawyerRepo.findById(userId);
 
-    this.assertAccountCanAuthenticate(role, status);
+    if (!lawyer) {
+      throw new HttpException(
+        401,
 
-    return this.tokenService.issueTokenPair(userId);
+        MESSAGES.unableToFindUser[LANGUAGE],
+
+        "LAWYER_PROFILE_NOT_FOUND",
+      );
+    }
+
+    this.assertLawyerCanAuthenticate(lawyer);
+
+    return this.tokenService.issueTokenPair(userId, account.role);
   }
 
   public async logout(refreshToken: string): Promise<void> {
     await this.tokenService.revokeRefreshToken(refreshToken);
   }
 
-  public async me(lawyerId: string) {
-    const lawyer = await this.repo.findById(lawyerId);
+  public async me(userId: string) {
+    const [user, lawyer] = await Promise.all([
+      this.userRepo.findById(userId),
 
-    if (!lawyer) {
+      this.lawyerRepo.findById(userId),
+    ]);
+
+    if (!user || !lawyer) {
       throw new HttpException(
         404,
+
         MESSAGES.noUserWithId[LANGUAGE],
+
         "USER_NOT_FOUND",
       );
     }
 
-    return toPublicLawyerDTO(lawyer);
+    return toPublicLawyerDTO(lawyer, user);
   }
 
   public async requestPasswordChange(
@@ -419,18 +512,21 @@ export class AuthService {
     });
   }
 
-  public async changePassword(lawyerId: string, input: ChangePasswordInput) {
-    const { phone, email } = await this.getPasswordChangeAccount(lawyerId);
+  public async changePassword(userId: string, input: ChangePasswordInput) {
+    const { user, phone, email } = await this.getPasswordChangeAccount(userId);
 
     const destination = input.channel === "phone" ? phone : email;
 
     if (!destination) {
       throw new HttpException(
         400,
+
         "Verification channel is unavailable",
+
         "OTP_CHANNEL_UNAVAILABLE",
       );
     }
+
     await this.otpService.verifyOtp({
       channel: input.channel,
 
@@ -446,34 +542,42 @@ export class AuthService {
     const session = await mongoose.startSession();
 
     try {
-      let tokenPair: Awaited<
-        ReturnType<TokenService["issueTokenPair"]>
-      > | null = null;
+      const tokenPair = await session.withTransaction(async () => {
+        const result = await this.userRepo.updatePasswordById(
+          userId,
 
-      await session.withTransaction(async () => {
-        const result = await this.repo.updatePasswordById(
-          lawyerId,
           hashedPassword,
+
           session,
         );
 
         if (result.matchedCount === 0) {
           throw new HttpException(
             404,
+
             MESSAGES.noUserWithId[LANGUAGE],
+
             "USER_NOT_FOUND",
           );
         }
 
-        await this.tokenService.revokeAllUserSessions(lawyerId, session);
+        await this.tokenService.revokeAllUserSessions(userId, session);
 
-        tokenPair = await this.tokenService.issueTokenPair(lawyerId, session);
+        return this.tokenService.issueTokenPair(
+          userId,
+
+          user.role,
+
+          session,
+        );
       });
 
       if (!tokenPair) {
         throw new HttpException(
           500,
+
           MESSAGES.serverError[LANGUAGE],
+
           "PASSWORD_CHANGE_FAILED",
         );
       }
