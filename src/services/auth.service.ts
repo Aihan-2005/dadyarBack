@@ -273,24 +273,9 @@ export class AuthService {
         "INVALID_CREDENTIALS",
       );
     }
-
-    this.assertUserCanAuthenticate(authUser);
-
     const userId = authUser._id.toString();
 
-    const lawyer = await this.lawyerRepo.findById(userId);
-
-    if (!lawyer) {
-      throw new HttpException(
-        401,
-
-        MESSAGES.unableToFindUser[LANGUAGE],
-
-        "LAWYER_PROFILE_NOT_FOUND",
-      );
-    }
-
-    this.assertLawyerCanAuthenticate(lawyer);
+    const lawyer = await this.assertRoleCanAuthenticate(authUser);
 
     const lastLoginAt = new Date();
 
@@ -302,7 +287,10 @@ export class AuthService {
       lastLoginAt,
     };
 
-    const user = await this.buildAuthUserDTO(updatedUser);
+    const user =
+      authUser.role === "LAWYER" && lawyer
+        ? toPublicLawyerDTO(lawyer, updatedUser)
+        : toPublicUserDTO(updatedUser);
 
     const tokenPair = await this.tokenService.issueTokenPair(
       userId,
@@ -414,23 +402,10 @@ export class AuthService {
         "INVALID_CREDENTIALS",
       );
     }
-    this.assertUserCanAuthenticate(authUser);
 
     const userId = authUser._id.toString();
 
-    const lawyer = await this.lawyerRepo.findById(userId);
-
-    if (!lawyer) {
-      throw new HttpException(
-        401,
-
-        MESSAGES.unableToFindUser[LANGUAGE],
-
-        "LAWYER_PROFILE_NOT_FOUND",
-      );
-    }
-
-    this.assertLawyerCanAuthenticate(lawyer);
+    const lawyer = await this.assertRoleCanAuthenticate(authUser);
 
     const lastLoginAt = new Date();
 
@@ -442,7 +417,10 @@ export class AuthService {
       lastLoginAt,
     };
 
-    const user = await this.buildAuthUserDTO(updatedUser);
+    const user =
+      authUser.role === "LAWYER" && lawyer
+        ? toPublicLawyerDTO(lawyer, updatedUser)
+        : toPublicUserDTO(updatedUser);
 
     const tokenPair = await this.tokenService.issueTokenPair(
       userId,

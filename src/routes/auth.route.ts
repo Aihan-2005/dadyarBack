@@ -12,7 +12,7 @@ import { AuthController } from "../controllers/auth.controller";
 
 import type { Route } from "../interfaces/routes.interface";
 
-import requireAuth, { requireRole } from "../middlewares/auth.middleware";
+import requireAuth from "../middlewares/auth.middleware";
 
 import {
   loginRateLimiter,
