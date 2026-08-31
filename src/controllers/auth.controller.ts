@@ -255,9 +255,9 @@ export class AuthController {
     next: NextFunction,
   ): Promise<Response | void> => {
     try {
-      const lawyerId = req.user?.id;
+      const userId = req.user?.id;
 
-      if (!lawyerId) {
+      if (!userId) {
         throw new HttpException(
           401,
           MESSAGES.unauthorized[LANGUAGE],
@@ -265,7 +265,7 @@ export class AuthController {
         );
       }
 
-      const user = await this.authService.me(lawyerId);
+      const user = await this.authService.me(userId);
 
       this.disableCaching(res);
 
@@ -287,9 +287,9 @@ export class AuthController {
     next: NextFunction,
   ): Promise<Response | void> => {
     try {
-      const lawyerId = req.user?.id;
+      const userId = req.user?.id;
 
-      if (!lawyerId) {
+      if (!userId) {
         throw new HttpException(
           401,
           MESSAGES.unauthorized[LANGUAGE],
@@ -300,7 +300,7 @@ export class AuthController {
       const { channel } = RequestPasswordChangeSchema.parse(req.body ?? {});
 
       const result = await this.authService.requestPasswordChange(
-        lawyerId,
+        userId,
         channel,
       );
 
@@ -322,9 +322,9 @@ export class AuthController {
     next: NextFunction,
   ): Promise<Response | void> => {
     try {
-      const lawyerId = req.user?.id;
+      const userId = req.user?.id;
 
-      if (!lawyerId) {
+      if (!userId) {
         throw new HttpException(
           401,
           MESSAGES.unauthorized[LANGUAGE],
@@ -335,7 +335,7 @@ export class AuthController {
       const input = ChangePasswordSchema.parse(req.body ?? {});
 
       const { accessToken, refreshToken, accessTokenExpiresIn } =
-        await this.authService.changePassword(lawyerId, input);
+        await this.authService.changePassword(userId, input);
 
       this.disableCaching(res);
 

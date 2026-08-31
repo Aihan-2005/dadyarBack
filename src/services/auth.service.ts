@@ -32,6 +32,7 @@ import mongoose from "mongoose";
 import { UserRepository } from "../repositories/user.repository";
 import { UserRecord, UserRole, UserStatus } from "../interfaces/user.interface";
 import { LawyerRecord } from "../interfaces/lawyer.interface";
+import { toPublicUserDTO } from "../dtos/user.dto";
 
 const LANGUAGE = env.LANGUAGE;
 
@@ -62,21 +63,7 @@ export class AuthService {
     return bcrypt.compare(plainPassword, hashedPassword);
   }
 
-  private assertUserCanAuthenticate(user: {
-    role: UserRole;
-
-    status: UserStatus;
-  }): void {
-    if (user.role !== "LAWYER") {
-      throw new HttpException(
-        403,
-
-        MESSAGES.invalidAccountRole[LANGUAGE],
-
-        "INVALID_ACCOUNT_ROLE",
-      );
-    }
-
+  private assertUserCanAuthenticate(user: { status: UserStatus }): void {
     if (user.status === "SUSPENDED") {
       throw new HttpException(
         403,
@@ -112,6 +99,46 @@ export class AuthService {
     }
   }
 
+  private async assertRoleCanAuthenticate(user: {
+    _id: { toString(): string };
+
+    role: UserRole;
+
+    status: UserStatus;
+  }): Promise<LawyerRecord | null> {
+    this.assertUserCanAuthenticate(user);
+
+    if (user.role !== "LAWYER") {
+      return null;
+    }
+
+    const lawyer = await this.lawyerRepo.findById(user._id.toString());
+
+    if (!lawyer) {
+      throw new HttpException(
+        401,
+
+        MESSAGES.unableToFindUser[LANGUAGE],
+
+        "LAWYER_PROFILE_NOT_FOUND",
+      );
+    }
+
+    this.assertLawyerCanAuthenticate(lawyer);
+
+    return lawyer;
+  }
+
+  private async buildAuthUserDTO(user: UserRecord) {
+    const lawyer = await this.assertRoleCanAuthenticate(user);
+
+    if (user.role === "LAWYER" && lawyer) {
+      return toPublicLawyerDTO(lawyer, user);
+    }
+
+    return toPublicUserDTO(user);
+  }
+
   private async ensureUserDoesNotExist(input: SignupInput): Promise<void> {
     const email = this.normalizeEmail(input.email);
 
@@ -145,13 +172,9 @@ export class AuthService {
   }
 
   private async getPasswordChangeAccount(userId: string) {
-    const [user, lawyer] = await Promise.all([
-      this.userRepo.findById(userId),
+    const user = await this.userRepo.findById(userId);
 
-      this.lawyerRepo.findById(userId),
-    ]);
-
-    if (!user || !lawyer) {
+    if (!user) {
       throw new HttpException(
         404,
 
@@ -161,9 +184,7 @@ export class AuthService {
       );
     }
 
-    this.assertUserCanAuthenticate(user);
-
-    this.assertLawyerCanAuthenticate(lawyer);
+    await this.assertRoleCanAuthenticate(user);
 
     return {
       user,
@@ -189,19 +210,19 @@ export class AuthService {
 
     let canReceiveOtp = false;
 
-    if (
-      account &&
-      account.role === "LAWYER" &&
-      account.status !== "SUSPENDED"
-    ) {
-      const lawyer = await this.lawyerRepo.findById(account._id.toString());
+    if (account && account.status !== "SUSPENDED") {
+      if (account.role === "LAWYER") {
+        const lawyer = await this.lawyerRepo.findById(account._id.toString());
 
-      if (lawyer) {
-        const status = resolveLawyerStatus(lawyer.status);
+        if (lawyer) {
+          const status = resolveLawyerStatus(lawyer.status);
 
-        canReceiveOtp =
-          status !== LAWYER_STATUSES.SUSPENDED &&
-          status !== LAWYER_STATUSES.REJECTED;
+          canReceiveOtp =
+            status !== LAWYER_STATUSES.SUSPENDED &&
+            status !== LAWYER_STATUSES.REJECTED;
+        }
+      } else {
+        canReceiveOtp = true;
       }
     }
 
@@ -275,17 +296,21 @@ export class AuthService {
 
     await this.userRepo.updateLastLogin(userId, lastLoginAt);
 
+    const updatedUser = {
+      ...authUser,
+
+      lastLoginAt,
+    };
+
+    const user = await this.buildAuthUserDTO(updatedUser);
+
     const tokenPair = await this.tokenService.issueTokenPair(
       userId,
       authUser.role,
     );
 
     return {
-      user: toPublicLawyerDTO(lawyer, {
-        ...authUser,
-
-        lastLoginAt,
-      }),
+      user,
 
       ...tokenPair,
     };
@@ -411,16 +436,18 @@ export class AuthService {
 
     await this.userRepo.updateLastLogin(userId, lastLoginAt);
 
+    const updatedUser = {
+      ...authUser,
+
+      lastLoginAt,
+    };
+
+    const user = await this.buildAuthUserDTO(updatedUser);
+
     const tokenPair = await this.tokenService.issueTokenPair(
       userId,
       authUser.role,
     );
-
-    const user = toPublicLawyerDTO(lawyer, {
-      ...authUser,
-
-      lastLoginAt,
-    });
 
     return {
       user,
@@ -444,21 +471,7 @@ export class AuthService {
       );
     }
 
-    this.assertUserCanAuthenticate(account);
-
-    const lawyer = await this.lawyerRepo.findById(userId);
-
-    if (!lawyer) {
-      throw new HttpException(
-        401,
-
-        MESSAGES.unableToFindUser[LANGUAGE],
-
-        "LAWYER_PROFILE_NOT_FOUND",
-      );
-    }
-
-    this.assertLawyerCanAuthenticate(lawyer);
+    await this.assertRoleCanAuthenticate(account);
 
     return this.tokenService.issueTokenPair(userId, account.role);
   }
@@ -468,13 +481,9 @@ export class AuthService {
   }
 
   public async me(userId: string) {
-    const [user, lawyer] = await Promise.all([
-      this.userRepo.findById(userId),
+    const user = await this.userRepo.findById(userId);
 
-      this.lawyerRepo.findById(userId),
-    ]);
-
-    if (!user || !lawyer) {
+    if (!user) {
       throw new HttpException(
         404,
 
@@ -484,7 +493,7 @@ export class AuthService {
       );
     }
 
-    return toPublicLawyerDTO(lawyer, user);
+    return this.buildAuthUserDTO(user);
   }
 
   public async requestPasswordChange(

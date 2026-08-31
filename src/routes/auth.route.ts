@@ -105,17 +105,11 @@ class AuthRoute implements Route {
 
     this.router.post("/logout", this.authController.logout);
 
-    this.router.get(
-      "/me",
-      requireAuth,
-      requireRole("LAWYER"),
-      this.authController.me,
-    );
+    this.router.get("/me", requireAuth, this.authController.me);
 
     this.router.post(
       "/password/change/request",
       requireAuth,
-      requireRole("LAWYER"),
       passwordChangeRequestRateLimiter,
       this.authController.requestPasswordChange,
     );
@@ -123,7 +117,6 @@ class AuthRoute implements Route {
     this.router.patch(
       "/password",
       requireAuth,
-      requireRole("LAWYER"),
       passwordChangeRateLimiter,
       this.authController.changePassword,
     );
