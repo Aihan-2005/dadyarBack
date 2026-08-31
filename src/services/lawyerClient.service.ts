@@ -7,20 +7,20 @@ import { MESSAGES } from "../constants/messages.constants";
 import { HttpException } from "../exceptions/httpException";
 
 import type {
-  Client,
-  ClientCreatePayload,
-  ClientRecord,
-  FindClientsOptions,
-  ManualCaseClientInput,
-  UpdateClientInput,
-} from "../interfaces/client.interface";
+  LawyerClient,
+  LawyerClientCreatePayload,
+  LawyerClientRecord,
+  FindLawyerClientsOptions,
+  UpdateLawyerClientInput,
+  ManualCaseLawyerClientInput,
+} from "../interfaces/lawyerClient.interface";
 
-import { ClientRepository } from "../repositories/client.repository";
+import { LawyerClientRepository } from "../repositories/lawyerClient.repository";
 
 const LANGUAGE = env.LANGUAGE;
 
-export class ClientService {
-  private readonly repo = new ClientRepository();
+export class LawyerClientService {
+  constructor(private readonly repo = new LawyerClientRepository()) {}
 
   private normalizeRequiredString(value: string): string {
     return value.trim();
@@ -68,7 +68,7 @@ export class ClientService {
     clientId: string,
 
     session?: ClientSession,
-  ): Promise<ClientRecord> {
+  ): Promise<LawyerClientRecord> {
     const client = await this.repo.findByIdForLawyer(
       lawyerId,
 
@@ -158,11 +158,11 @@ export class ClientService {
     }
   }
 
-  public async createClient(
+  public async createLawyerClient(
     lawyerId: string,
 
-    input: ClientCreatePayload,
-  ): Promise<ClientRecord> {
+    input: LawyerClientCreatePayload,
+  ): Promise<LawyerClientRecord> {
     const phone = this.normalizePhone(input.phone);
 
     const nationalId = this.normalizeNationalId(input.nationalId);
@@ -200,13 +200,13 @@ export class ClientService {
     );
   }
 
-  public async getClientById(
+  public async getLawyerClientById(
     lawyerId: string,
 
     clientId: string,
 
     session?: ClientSession,
-  ): Promise<ClientRecord> {
+  ): Promise<LawyerClientRecord> {
     const client = await this.repo.findByIdForLawyerWithPersonalPassword(
       lawyerId,
 
@@ -228,7 +228,7 @@ export class ClientService {
     return client;
   }
 
-  public async findClientByPhone(
+  public async findLawyerClientByPhone(
     lawyerId: string,
 
     phone: string,
@@ -240,10 +240,10 @@ export class ClientService {
     );
   }
 
-  public async listClients(
+  public async listLawyerClients(
     lawyerId: string,
 
-    options: FindClientsOptions = {},
+    options: FindLawyerClientsOptions = {},
   ) {
     const page = Math.max(
       options.page ?? 1,
@@ -261,7 +261,7 @@ export class ClientService {
       100,
     );
 
-    const safeOptions: FindClientsOptions = {
+    const safeOptions: FindLawyerClientsOptions = {
       ...options,
 
       search: options.search?.trim(),
@@ -300,13 +300,13 @@ export class ClientService {
     };
   }
 
-  public async updateClient(
+  public async updateLawyerClient(
     lawyerId: string,
 
     clientId: string,
 
-    input: UpdateClientInput,
-  ): Promise<ClientRecord> {
+    input: UpdateLawyerClientInput,
+  ): Promise<LawyerClientRecord> {
     this.ensureNotEmptyObject(input);
 
     const current = await this.ensureClientBelongsToLawyer(
@@ -418,7 +418,7 @@ export class ClientService {
       }
     }
 
-    const update: UpdateQuery<Client> = {};
+    const update: UpdateQuery<LawyerClient> = {};
 
     if (Object.keys(setFields).length > 0) {
       update.$set = setFields;
@@ -449,13 +449,13 @@ export class ClientService {
     return updated;
   }
 
-  public async resolveClientForCase(
+  public async resolveLawyerClientForCase(
     lawyerId: string,
 
-    input: ManualCaseClientInput,
+    input: ManualCaseLawyerClientInput,
 
     session: ClientSession,
-  ): Promise<ClientRecord> {
+  ): Promise<LawyerClientRecord> {
     const phone = this.normalizePhone(input.phone);
 
     const nationalId = this.normalizeNationalId(input.nationalId);
@@ -486,7 +486,7 @@ export class ClientService {
       }
 
       if (input.represent !== undefined && represent !== existing.represent) {
-        const update: UpdateQuery<Client> = represent
+        const update: UpdateQuery<LawyerClient> = represent
           ? {
               $set: {
                 represent,
@@ -565,4 +565,3 @@ export class ClientService {
     );
   }
 }
-

@@ -6,20 +6,20 @@ import { MESSAGES } from "../constants/messages.constants";
 
 import { HttpException } from "../exceptions/httpException";
 
-import { ClientService } from "../services/client.service";
+import { LawyerClientService } from "../services/lawyerClient.service";
 
 import {
-  ClientPhoneQuerySchema,
-  CreateClientSchema,
-  ListClientsQuerySchema,
-  ParamClientIdSchema,
-  UpdateClientSchema,
-} from "../validators/client.validator";
+  CreateLawyerClientSchema,
+  LawyerClientPhoneQuerySchema,
+  LawyerClientIdParamSchema,
+  ListLawyerClientsQuerySchema,
+  UpdateLawyerClientSchema,
+} from "../validators/lawyerClient.validator";
 
 const LANGUAGE = env.LANGUAGE;
 
-export class ClientController {
-  constructor(private readonly clientService: ClientService) {}
+export class LawyerClientController {
+  constructor(private readonly lawyerClientService: LawyerClientService) {}
 
   // ---------------- Helpers ----------------
 
@@ -56,9 +56,12 @@ export class ClientController {
     try {
       const lawyerId = this.getLawyerId(req);
 
-      const input = CreateClientSchema.parse(req.body ?? {});
+      const input = CreateLawyerClientSchema.parse(req.body ?? {});
 
-      const client = await this.clientService.createClient(lawyerId, input);
+      const client = await this.lawyerClientService.createLawyerClient(
+        lawyerId,
+        input,
+      );
 
       return res.status(201).json({
         success: true,
@@ -81,9 +84,12 @@ export class ClientController {
     try {
       const lawyerId = this.getLawyerId(req);
 
-      const options = ListClientsQuerySchema.parse(req.query);
+      const options = ListLawyerClientsQuerySchema.parse(req.query);
 
-      const result = await this.clientService.listClients(lawyerId, options);
+      const result = await this.lawyerClientService.listLawyerClients(
+        lawyerId,
+        options,
+      );
 
       this.disableCaching(res);
 
@@ -108,9 +114,9 @@ export class ClientController {
     try {
       const lawyerId = this.getLawyerId(req);
 
-      const { phone } = ClientPhoneQuerySchema.parse(req.query);
+      const { phone } = LawyerClientPhoneQuerySchema.parse(req.query);
 
-      const client = await this.clientService.findClientByPhone(
+      const client = await this.lawyerClientService.findLawyerClientByPhone(
         lawyerId,
         phone,
       );
@@ -136,9 +142,12 @@ export class ClientController {
     try {
       const lawyerId = this.getLawyerId(req);
 
-      const { clientId } = ParamClientIdSchema.parse(req.params);
+      const { clientId } = LawyerClientIdParamSchema.parse(req.params);
 
-      const client = await this.clientService.getClientById(lawyerId, clientId);
+      const client = await this.lawyerClientService.getLawyerClientById(
+        lawyerId,
+        clientId,
+      );
 
       this.disableCaching(res);
 
@@ -163,11 +172,11 @@ export class ClientController {
     try {
       const lawyerId = this.getLawyerId(req);
 
-      const { clientId } = ParamClientIdSchema.parse(req.params);
+      const { clientId } = LawyerClientIdParamSchema.parse(req.params);
 
-      const input = UpdateClientSchema.parse(req.body ?? {});
+      const input = UpdateLawyerClientSchema.parse(req.body ?? {});
 
-      const updated = await this.clientService.updateClient(
+      const updated = await this.lawyerClientService.updateLawyerClient(
         lawyerId,
         clientId,
         input,

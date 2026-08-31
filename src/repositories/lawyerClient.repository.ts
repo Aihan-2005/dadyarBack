@@ -1,19 +1,19 @@
 import type { ClientSession, QueryFilter, UpdateQuery } from "mongoose";
 
 import type {
-  Client,
-  ClientRecord,
-  CreateClientRecordInput,
-  FindClientsOptions,
-} from "../interfaces/client.interface";
+  LawyerClient,
+  LawyerClientRecord,
+  CreateLawyerClientRecordInput,
+  FindLawyerClientsOptions,
+} from "../interfaces/lawyerClient.interface";
 
-import ClientModel from "../models/client.model";
+import { LawyerClientModel } from "../models/lawyerClient.model";
 
 import { BaseRepository } from "./base.repository";
 
-export class ClientRepository extends BaseRepository<Client> {
+export class LawyerClientRepository extends BaseRepository<LawyerClient> {
   constructor() {
-    super(ClientModel);
+    super(LawyerClientModel);
   }
 
   private escapeRegex(value: string) {
@@ -28,8 +28,8 @@ export class ClientRepository extends BaseRepository<Client> {
     lawyerId: string,
 
     search?: string,
-  ): QueryFilter<Client> {
-    const query: QueryFilter<Client> = {
+  ): QueryFilter<LawyerClient> {
+    const query: QueryFilter<LawyerClient> = {
       lawyerId: this.toObjectId(lawyerId),
     };
 
@@ -85,17 +85,19 @@ export class ClientRepository extends BaseRepository<Client> {
 
     session?: ClientSession,
   ) {
-    const query = this.model.findOne({
-      _id: this.toObjectId(clientId),
+    const query = this.model
+      .findOne({
+        _id: this.toObjectId(clientId),
 
-      lawyerId: this.toObjectId(lawyerId),
-    });
+        lawyerId: this.toObjectId(lawyerId),
+      })
+      .select("-userId");
 
     if (session) {
       query.session(session);
     }
 
-    return query.lean<ClientRecord>().exec();
+    return query.lean<LawyerClientRecord>().exec();
   }
 
   public findByPhone(
@@ -112,13 +114,13 @@ export class ClientRepository extends BaseRepository<Client> {
         phone,
       })
 
-      .select("-personalPasswordHash");
+      .select("-userId");
 
     if (session) {
       query.session(session);
     }
 
-    return query.lean<ClientRecord>().exec();
+    return query.lean<LawyerClientRecord>().exec();
   }
 
   public findByNationalId(
@@ -134,20 +136,19 @@ export class ClientRepository extends BaseRepository<Client> {
 
         nationalId,
       })
-
-      .select("-personalPasswordHash");
+      .select("-userId");
 
     if (session) {
       query.session(session);
     }
 
-    return query.lean<ClientRecord>().exec();
+    return query.lean<LawyerClientRecord>().exec();
   }
 
   public findByLawyerId(
     lawyerId: string,
 
-    options: FindClientsOptions = {},
+    options: FindLawyerClientsOptions = {},
   ) {
     const page = options.page ?? 1;
 
@@ -164,7 +165,7 @@ export class ClientRepository extends BaseRepository<Client> {
     return this.model
       .find(query)
 
-      .select("-personalPasswordHash")
+      .select("-userId")
 
       .sort({
         updatedAt: -1,
@@ -174,7 +175,7 @@ export class ClientRepository extends BaseRepository<Client> {
 
       .limit(limit)
 
-      .lean<ClientRecord[]>()
+      .lean<LawyerClientRecord[]>()
 
       .exec();
   }
@@ -182,7 +183,7 @@ export class ClientRepository extends BaseRepository<Client> {
   public countByLawyerId(
     lawyerId: string,
 
-    options: FindClientsOptions = {},
+    options: FindLawyerClientsOptions = {},
   ) {
     const query = this.buildSearchQuery(
       lawyerId,
@@ -196,10 +197,10 @@ export class ClientRepository extends BaseRepository<Client> {
   public async create(
     lawyerId: string,
 
-    data: CreateClientRecordInput,
+    data: CreateLawyerClientRecordInput,
 
     session?: ClientSession,
-  ): Promise<ClientRecord> {
+  ): Promise<LawyerClientRecord> {
     const [created] = await this.model.create(
       [
         {
@@ -214,7 +215,7 @@ export class ClientRepository extends BaseRepository<Client> {
       },
     );
 
-    return created.toObject() as unknown as ClientRecord;
+    return created.toObject() as unknown as LawyerClientRecord;
   }
 
   public updateByIdForLawyer(
@@ -222,7 +223,7 @@ export class ClientRepository extends BaseRepository<Client> {
 
     clientId: string,
 
-    update: UpdateQuery<Client>,
+    update: UpdateQuery<LawyerClient>,
 
     session?: ClientSession,
   ) {
@@ -245,7 +246,9 @@ export class ClientRepository extends BaseRepository<Client> {
         },
       )
 
-      .lean<ClientRecord>()
+      .select("-userId")
+
+      .lean<LawyerClientRecord>()
 
       .exec();
   }
@@ -261,12 +264,52 @@ export class ClientRepository extends BaseRepository<Client> {
 
         lawyerId: this.toObjectId(lawyerId),
       })
-      .select("+personalPassword");
+      .select("+personalPassword -userId");
 
     if (session) {
       query.session(session);
     }
 
-    return query.lean<ClientRecord>().exec();
+    return query.lean<LawyerClientRecord>().exec();
+  }
+
+  public findByUserId(userId: string, session?: ClientSession) {
+    const query = this.model.find({
+      userId: this.toObjectId(userId),
+    });
+
+    if (session) {
+      query.session(session);
+    }
+
+    return query.lean<LawyerClientRecord[]>().exec();
+  }
+
+  public linkUnlinkedByPhoneToUser(
+    phone: string,
+    userId: string,
+    session?: ClientSession,
+  ) {
+    return this.model
+      .updateMany(
+        {
+          phone,
+
+          userId: {
+            $exists: false,
+          },
+        },
+
+        {
+          $set: {
+            userId: this.toObjectId(userId),
+          },
+        },
+
+        {
+          session,
+        },
+      )
+      .exec();
   }
 }
