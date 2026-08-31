@@ -6,6 +6,8 @@ export const OTP_PURPOSES = {
   PASSWORD_RESET: "PASSWORD_RESET",
 
   PHONE_VERIFICATION: "PHONE_VERIFICATION",
+
+  CLIENT_SIGNUP: "CLIENT_SIGNUP",
 } as const;
 
 export const OTP_CHANNEL = ["phone", "email"] as const;

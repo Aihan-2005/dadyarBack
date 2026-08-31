@@ -10,8 +10,10 @@ import { AuthService } from "../services/auth.service";
 
 import {
   ChangePasswordSchema,
+  ClientSignupSchema,
   LoginSchema,
   OtpLoginSchema,
+  RequestClientSignupOtpSchema,
   RequestOtpLoginSchema,
   RequestPasswordChangeSchema,
   SignupSchema,
@@ -346,6 +348,70 @@ export class AuthController {
 
         data: {
           message: MESSAGES.passwordChangedSuccessfully[LANGUAGE],
+
+          accessToken,
+
+          accessTokenExpiresIn,
+        },
+      });
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  public requestClientSignupOtp = async (
+    req: Request,
+
+    res: Response,
+
+    next: NextFunction,
+  ): Promise<Response | void> => {
+    try {
+      const input = RequestClientSignupOtpSchema.parse(req.body ?? {});
+
+      const result = await this.authService.requestClientSignupOtp(input);
+
+      this.disableCaching(res);
+
+      return res.status(200).json({
+        success: true,
+
+        data: result,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  public clientSignup = async (
+    req: Request,
+
+    res: Response,
+
+    next: NextFunction,
+  ): Promise<Response | void> => {
+    try {
+      const input = ClientSignupSchema.parse(req.body ?? {});
+
+      const {
+        user,
+
+        accessToken,
+
+        refreshToken,
+
+        accessTokenExpiresIn,
+      } = await this.authService.signupClient(input);
+
+      this.disableCaching(res);
+
+      this.setRefreshCookie(res, refreshToken);
+
+      return res.status(201).json({
+        success: true,
+
+        data: {
+          user,
 
           accessToken,
 

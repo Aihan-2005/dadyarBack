@@ -4,8 +4,10 @@ import { env } from "../config/env";
 
 import type {
   ChangePasswordInput,
+  ClientSignupInput,
   LoginInput,
   OtpLoginInput,
+  RequestClientSignupOtpInput,
   RequestOtpLoginInput,
   SignupInput,
 } from "../interfaces/auth.interface";
@@ -30,6 +32,7 @@ import { OTP_PURPOSES } from "../constants/otp.constants";
 import { OtpService } from "./otp.service";
 import mongoose from "mongoose";
 import { UserRepository } from "../repositories/user.repository";
+import { LawyerClientRepository } from "../repositories/lawyerClient.repository";
 import { UserRecord, UserRole, UserStatus } from "../interfaces/user.interface";
 import { LawyerRecord } from "../interfaces/lawyer.interface";
 import { toPublicUserDTO } from "../dtos/user.dto";
@@ -43,6 +46,8 @@ export class AuthService {
     private readonly userRepo: UserRepository,
 
     private readonly lawyerRepo: LawyerRepository,
+
+    private readonly lawyerClientRepo: LawyerClientRepository,
 
     private readonly otpService: OtpService,
   ) {}
@@ -570,6 +575,122 @@ export class AuthService {
       }
 
       return tokenPair;
+    } finally {
+      await session.endSession();
+    }
+  }
+
+  public async requestClientSignupOtp(input: RequestClientSignupOtpInput) {
+    const phone = this.normalizePhone(input.phone)!;
+
+    const existingUser = await this.userRepo.findByPhone(phone);
+
+    return this.otpService.createOtp(
+      {
+        channel: "phone",
+
+        destination: phone,
+
+        purpose: OTP_PURPOSES.CLIENT_SIGNUP,
+      },
+
+      {
+        deliver: !existingUser,
+      },
+    );
+  }
+
+  public async signupClient(input: ClientSignupInput) {
+    const phone = this.normalizePhone(input.phone)!;
+
+    const existingUser = await this.userRepo.findByPhone(phone);
+
+    if (existingUser) {
+      if (existingUser.role !== "CLIENT") {
+        throw new HttpException(
+          409,
+
+          MESSAGES.accountRoleConflict[LANGUAGE],
+
+          "ACCOUNT_ROLE_CONFLICT",
+        );
+      }
+
+      throw new HttpException(
+        409,
+
+        MESSAGES.phoneExsist[LANGUAGE],
+
+        "PHONE_ALREADY_EXISTS",
+      );
+    }
+
+    await this.otpService.verifyOtp({
+      channel: "phone",
+
+      destination: phone,
+
+      purpose: OTP_PURPOSES.CLIENT_SIGNUP,
+
+      code: input.code,
+    });
+
+    const hashedPassword = await this.hashPassword(input.password);
+
+    const phoneVerifiedAt = new Date();
+
+    const session = await mongoose.startSession();
+
+    try {
+      const result = await session.withTransaction(async () => {
+        const user = await this.userRepo.create(
+          {
+            phone,
+
+            password: hashedPassword,
+
+            role: "CLIENT",
+
+            phoneVerifiedAt,
+          },
+
+          session,
+        );
+
+        await this.lawyerClientRepo.linkUnlinkedByPhoneToUser(
+          phone,
+
+          user._id.toString(),
+
+          session,
+        );
+
+        const tokenPair = await this.tokenService.issueTokenPair(
+          user._id.toString(),
+
+          user.role,
+
+          session,
+        );
+
+        return {
+          user: toPublicUserDTO(user.toObject() as UserRecord),
+
+          ...tokenPair,
+        };
+      });
+
+      if (!result) {
+        throw new HttpException(
+          500,
+
+          MESSAGES.serverError[LANGUAGE],
+
+          "CLIENT_SIGNUP_FAILED",
+        );
+      }
+
+      return result;
     } finally {
       await session.endSession();
     }

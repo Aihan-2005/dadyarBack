@@ -150,3 +150,19 @@ export const ChangePasswordSchema = z
     newPassword: PasswordSchema,
   })
   .strict();
+
+export const RequestClientSignupOtpSchema = z
+  .object({
+    phone: PhoneSchema,
+  })
+  .strict();
+
+export const ClientSignupSchema = z
+  .object({
+    phone: PhoneSchema,
+
+    password: PasswordSchema,
+
+    code: OtpCodeSchema,
+  })
+  .strict();

@@ -202,6 +202,12 @@ export const MESSAGES = {
     fa: "حساب وکیل موردنظر رد شده است",
   },
 
+  accountRoleConflict: {
+    en: "This phone number belongs to an account with a different role",
+
+    fa: "این شماره تلفن به حسابی با نقش متفاوت تعلق دارد",
+  },
+
   accountPendingVerification: {
     en: "Lawyer account verification is not completed",
     fa: "فرایند تأیید حساب وکیل هنوز تکمیل نشده است",
