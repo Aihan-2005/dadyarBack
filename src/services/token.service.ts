@@ -4,6 +4,8 @@ import type { Request } from "express";
 
 import type { ClientSession } from "mongoose";
 
+import type { UserRole } from "../interfaces/user.interface";
+
 import jwt from "jsonwebtoken";
 
 import { env } from "../config/env";
@@ -19,7 +21,6 @@ import type {
 } from "../interfaces/token.interface";
 
 import { RefreshTokenRepository } from "../repositories/refreshToken.repository";
-import { UserRole } from "../interfaces/user.interface";
 import { UserRoleSchema } from "../validators/user.validator";
 
 export class TokenService {

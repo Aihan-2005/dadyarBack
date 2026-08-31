@@ -85,14 +85,11 @@ export class ClientRepository extends BaseRepository<Client> {
 
     session?: ClientSession,
   ) {
-    const query = this.model
-      .findOne({
-        _id: this.toObjectId(clientId),
+    const query = this.model.findOne({
+      _id: this.toObjectId(clientId),
 
-        lawyerId: this.toObjectId(lawyerId),
-      })
-
-      .select("-personalPasswordHash");
+      lawyerId: this.toObjectId(lawyerId),
+    });
 
     if (session) {
       query.session(session);
@@ -273,4 +270,3 @@ export class ClientRepository extends BaseRepository<Client> {
     return query.lean<ClientRecord>().exec();
   }
 }
-

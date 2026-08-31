@@ -5,10 +5,8 @@ import { Types } from "mongoose";
 import { env } from "../config/env";
 
 import {
-  LAWYER_ROLES,
   LAWYER_STATUSES,
   isActiveLawyerStatus,
-  resolveLawyerRole,
   resolveLawyerStatus,
 } from "../constants/lawyer.constants";
 
@@ -74,31 +72,23 @@ export const requireAuth = async (
       );
     }
 
-    const role = resolveLawyerRole(account.role);
-
-    const status = resolveLawyerStatus(account.status);
-
-    if (role !== LAWYER_ROLES.LAWYER) {
+    if (account.role !== "LAWYER") {
       throw new HttpException(
         403,
+
         MESSAGES.invalidAccountRole[LANGUAGE],
+
         "INVALID_ACCOUNT_ROLE",
       );
     }
 
-    if (status === LAWYER_STATUSES.SUSPENDED) {
+    if (account.status === "SUSPENDED") {
       throw new HttpException(
         403,
-        MESSAGES.accountSuspended[LANGUAGE],
-        "ACCOUNT_SUSPENDED",
-      );
-    }
 
-    if (status === LAWYER_STATUSES.REJECTED) {
-      throw new HttpException(
-        403,
-        MESSAGES.accountRejected[LANGUAGE],
-        "ACCOUNT_REJECTED",
+        MESSAGES.accountSuspended[LANGUAGE],
+
+        "ACCOUNT_SUSPENDED",
       );
     }
 
