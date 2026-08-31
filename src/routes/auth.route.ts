@@ -12,7 +12,7 @@ import { AuthController } from "../controllers/auth.controller";
 
 import type { Route } from "../interfaces/routes.interface";
 
-import requireAuth from "../middlewares/auth.middleware";
+import requireAuth, { requireRole } from "../middlewares/auth.middleware";
 
 import {
   loginRateLimiter,
@@ -105,11 +105,17 @@ class AuthRoute implements Route {
 
     this.router.post("/logout", this.authController.logout);
 
-    this.router.get("/me", requireAuth, this.authController.me);
+    this.router.get(
+      "/me",
+      requireAuth,
+      requireRole("LAWYER"),
+      this.authController.me,
+    );
 
     this.router.post(
       "/password/change/request",
       requireAuth,
+      requireRole("LAWYER"),
       passwordChangeRequestRateLimiter,
       this.authController.requestPasswordChange,
     );
@@ -117,6 +123,7 @@ class AuthRoute implements Route {
     this.router.patch(
       "/password",
       requireAuth,
+      requireRole("LAWYER"),
       passwordChangeRateLimiter,
       this.authController.changePassword,
     );

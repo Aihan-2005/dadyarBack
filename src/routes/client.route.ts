@@ -4,7 +4,7 @@ import { ClientController } from "../controllers/client.controller";
 
 import type { Route } from "../interfaces/routes.interface";
 
-import requireAuth from "../middlewares/auth.middleware";
+import requireAuth, { requireRole } from "../middlewares/auth.middleware";
 
 import { ClientService } from "../services/client.service";
 
@@ -20,13 +20,13 @@ class ClientRoute implements Route {
 
     this.clientController = new ClientController(clientService);
 
-    this.initializeMiddlewares();
+    this.authRoutes();
 
     this.initializeRoutes();
   }
 
-  private initializeMiddlewares(): void {
-    this.router.use(requireAuth);
+  private authRoutes() {
+    this.router.use(requireAuth, requireRole("LAWYER"));
   }
 
   private initializeRoutes(): void {

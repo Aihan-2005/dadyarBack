@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import type { UserRole } from "../interfaces/user.interface";
 
 import { Types } from "mongoose";
 
@@ -72,16 +73,6 @@ export const requireAuth = async (
       );
     }
 
-    if (account.role !== "LAWYER") {
-      throw new HttpException(
-        403,
-
-        MESSAGES.invalidAccountRole[LANGUAGE],
-
-        "INVALID_ACCOUNT_ROLE",
-      );
-    }
-
     if (account.status === "SUSPENDED") {
       throw new HttpException(
         403,
@@ -105,6 +96,36 @@ export const requireAuth = async (
     return next(error);
   }
 };
+
+export const requireRole =
+  (...allowedRoles: UserRole[]) =>
+  (req: Request, _res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return next(
+        new HttpException(
+          401,
+
+          MESSAGES.unauthorized[LANGUAGE],
+
+          "UNAUTHORIZED",
+        ),
+      );
+    }
+
+    if (!allowedRoles.includes(req.user.role)) {
+      return next(
+        new HttpException(
+          403,
+
+          MESSAGES.invalidAccountRole[LANGUAGE],
+
+          "INVALID_ACCOUNT_ROLE",
+        ),
+      );
+    }
+
+    return next();
+  };
 
 export const requireActiveLawyer = async (
   req: Request,
