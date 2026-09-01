@@ -215,7 +215,11 @@ export class LawyerClientRepository extends BaseRepository<LawyerClient> {
       },
     );
 
-    return created.toObject() as unknown as LawyerClientRecord;
+    const record = created.toObject() as unknown as LawyerClientRecord;
+
+    delete record.userId;
+
+    return record;
   }
 
   public updateByIdForLawyer(

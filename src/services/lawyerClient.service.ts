@@ -16,11 +16,16 @@ import type {
 } from "../interfaces/lawyerClient.interface";
 
 import { LawyerClientRepository } from "../repositories/lawyerClient.repository";
+import { UserRepository } from "../repositories/user.repository";
 
 const LANGUAGE = env.LANGUAGE;
 
 export class LawyerClientService {
-  constructor(private readonly repo = new LawyerClientRepository()) {}
+  constructor(
+    private readonly repo = new LawyerClientRepository(),
+
+    private readonly userRepo = new UserRepository(),
+  ) {}
 
   private normalizeRequiredString(value: string): string {
     return value.trim();
@@ -158,6 +163,19 @@ export class LawyerClientService {
     }
   }
 
+  private async findLinkableClientUserId(
+    phone: string,
+    session?: ClientSession,
+  ) {
+    const user = await this.userRepo.findByPhone(phone, session);
+
+    if (!user || user.role !== "CLIENT" || !user.phoneVerifiedAt) {
+      return undefined;
+    }
+
+    return user._id;
+  }
+
   public async createLawyerClient(
     lawyerId: string,
 
@@ -174,6 +192,8 @@ export class LawyerClientService {
 
       nationalId,
     );
+
+    const userId = await this.findLinkableClientUserId(phone);
 
     return this.repo.create(
       lawyerId,
@@ -196,6 +216,8 @@ export class LawyerClientService {
         description: this.normalizeOptionalString(input.description),
 
         personalPassword: input.personalPassword,
+
+        userId,
       },
     );
   }
@@ -345,6 +367,16 @@ export class LawyerClientService {
     const setFields: Record<string, unknown> = {};
 
     const unsetFields: Record<string, 1> = {};
+
+    if (phoneChanged) {
+      const userId = await this.findLinkableClientUserId(phone);
+
+      if (userId) {
+        setFields.userId = userId;
+      } else {
+        unsetFields.userId = 1;
+      }
+    }
 
     if (input.fullName !== undefined) {
       setFields.fullName = this.normalizeRequiredString(input.fullName);
@@ -546,6 +578,8 @@ export class LawyerClientService {
       }
     }
 
+    const userId = await this.findLinkableClientUserId(phone, session);
+
     return this.repo.create(
       lawyerId,
 
@@ -559,6 +593,8 @@ export class LawyerClientService {
         birthday: input.birthDate,
 
         represent,
+
+        userId,
       },
 
       session,

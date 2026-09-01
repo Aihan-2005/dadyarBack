@@ -30,7 +30,9 @@ export type FindLawyerClientsOptions = Partial<
   z.output<typeof ListLawyerClientsQuerySchema>
 >;
 
-export type CreateLawyerClientRecordInput = LawyerClientCreatePayload;
+export type CreateLawyerClientRecordInput = LawyerClientCreatePayload & {
+  userId?: Types.ObjectId;
+};
 
 export type ManualCaseLawyerClientInput = {
   fullName?: string;
@@ -57,4 +59,3 @@ export type PopulatedLawyerClient = {
 
   represent?: string | null;
 };
-

@@ -32,13 +32,16 @@ export class UserRepository extends BaseRepository<User> {
       .exec();
   }
 
-  public findByPhone(phone: string) {
-    return this.model
-      .findOne({
-        phone,
-      })
-      .lean<UserRecord>()
-      .exec();
+  public findByPhone(phone: string, session?: ClientSession) {
+    const query = this.model.findOne({
+      phone,
+    });
+
+    if (session) {
+      query.session(session);
+    }
+
+    return query.lean<UserRecord>().exec();
   }
 
   public findAuthByEmail(email: string) {
