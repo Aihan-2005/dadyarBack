@@ -1180,4 +1180,3 @@ export class CaseService {
     return this.getCaseById(lawyerId, caseId);
   }
 }
-

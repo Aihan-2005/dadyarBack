@@ -495,5 +495,10 @@ CaseSchema.index({
   updatedAt: -1,
 });
 
-export const CaseModel = model("Case", CaseSchema);
+CaseSchema.index({
+  "clientAssignments.clientId": 1,
 
+  updatedAt: -1,
+});
+
+export const CaseModel = model("Case", CaseSchema);
