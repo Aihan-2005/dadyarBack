@@ -480,10 +480,10 @@ export class AuthService {
   }
 
   public async requestPasswordChange(
-    lawyerId: string,
+    userId: string,
     channel: "phone" | "email",
   ) {
-    const { phone, email } = await this.getPasswordChangeAccount(lawyerId);
+    const { phone, email } = await this.getPasswordChangeAccount(userId);
 
     const destination = channel === "phone" ? phone : email;
 
@@ -603,6 +603,16 @@ export class AuthService {
   public async signupClient(input: ClientSignupInput) {
     const phone = this.normalizePhone(input.phone)!;
 
+    await this.otpService.verifyOtp({
+      channel: "phone",
+
+      destination: phone,
+
+      purpose: OTP_PURPOSES.CLIENT_SIGNUP,
+
+      code: input.code,
+    });
+
     const existingUser = await this.userRepo.findByPhone(phone);
 
     if (existingUser) {
@@ -624,17 +634,6 @@ export class AuthService {
         "PHONE_ALREADY_EXISTS",
       );
     }
-
-    await this.otpService.verifyOtp({
-      channel: "phone",
-
-      destination: phone,
-
-      purpose: OTP_PURPOSES.CLIENT_SIGNUP,
-
-      code: input.code,
-    });
-
     const hashedPassword = await this.hashPassword(input.password);
 
     const phoneVerifiedAt = new Date();
