@@ -29,7 +29,7 @@ export const CasePaymentSchema = new Schema(
     clientId: {
       type: Schema.Types.ObjectId,
 
-      ref: "Client",
+      ref: "LawyerClient",
 
       required: true,
 

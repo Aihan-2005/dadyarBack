@@ -39,6 +39,12 @@ class ClientCaseRoute implements Route {
     );
 
     this.router.get(
+      "/:caseId/payments",
+
+      this.controller.getCasePayments,
+    );
+
+    this.router.get(
       "/:caseId",
 
       this.controller.getCaseById,

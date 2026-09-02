@@ -12,6 +12,7 @@ import { HttpException } from "../exceptions/httpException";
 import { CaseRepository } from "../repositories/case.repository";
 
 import { LawyerClientRepository } from "../repositories/lawyerClient.repository";
+import { CasePaymentRepository } from "../repositories/casePayment.repository";
 
 const LANGUAGE = env.LANGUAGE;
 
@@ -20,6 +21,8 @@ export class ClientCaseService {
     private readonly caseRepository = new CaseRepository(),
 
     private readonly lawyerClientRepository = new LawyerClientRepository(),
+
+    private readonly casePaymentRepository = new CasePaymentRepository(),
   ) {}
 
   private async getClientIds(userId: string): Promise<string[]> {
@@ -28,7 +31,7 @@ export class ClientCaseService {
     return records.map((record) => record._id.toString());
   }
 
-  private buildCaseResponse(
+  private getClientAssignment(
     foundCase: CaseRecord,
 
     clientIds: Set<string>,
@@ -46,6 +49,16 @@ export class ClientCaseService {
         "CASE_NOT_FOUND",
       );
     }
+
+    return assignment;
+  }
+
+  private buildCaseResponse(
+    foundCase: CaseRecord,
+
+    clientIds: Set<string>,
+  ) {
+    const assignment = this.getClientAssignment(foundCase, clientIds);
 
     return {
       caseId: foundCase._id.toString(),
@@ -186,5 +199,62 @@ export class ClientCaseService {
 
       new Set(clientIds),
     );
+  }
+
+  public async getCasePayments(
+    userId: string,
+
+    caseId: string,
+  ) {
+    const clientIds = await this.getClientIds(userId);
+
+    const foundCase = await this.caseRepository.findByIdForClientIds(
+      clientIds,
+
+      caseId,
+    );
+
+    if (!foundCase) {
+      throw new HttpException(
+        404,
+
+        MESSAGES.caseNotFound[LANGUAGE],
+
+        "CASE_NOT_FOUND",
+      );
+    }
+
+    const assignment = this.getClientAssignment(
+      foundCase,
+
+      new Set(clientIds),
+    );
+
+    const payments =
+      await this.casePaymentRepository.findByCaseIdForClientForLawyer(
+        foundCase.lawyerId.toString(),
+
+        foundCase._id.toString(),
+
+        assignment.clientId.toString(),
+      );
+
+    return payments.map((payment) => ({
+      paymentId: payment._id.toString(),
+
+      method: payment.method,
+
+      amount: payment.amount,
+
+      description: payment.description ?? undefined,
+
+      dueDate: payment.dueDate ?? undefined,
+
+      isPaid: payment.isPaid,
+
+      createdAt: payment.createdAt,
+
+      updatedAt: payment.updatedAt,
+    }));
   }
 }

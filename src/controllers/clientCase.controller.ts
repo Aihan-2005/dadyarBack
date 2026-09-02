@@ -87,4 +87,32 @@ export class ClientCaseController {
       return next(error);
     }
   };
+
+  public getCasePayments = async (
+    req: Request,
+
+    res: Response,
+
+    next: NextFunction,
+  ): Promise<Response | void> => {
+    try {
+      const userId = this.getUserId(req);
+
+      const { caseId } = ParamCaseIdSchema.parse(req.params);
+
+      const payments = await this.clientCaseService.getCasePayments(
+        userId,
+
+        caseId,
+      );
+
+      return res.status(200).json({
+        success: true,
+
+        data: payments,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  };
 }
