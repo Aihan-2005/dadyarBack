@@ -86,4 +86,20 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
       .lean<LawyerRecord>()
       .exec();
   }
+
+  public findByIds(ids: string[]) {
+    if (ids.length === 0) {
+      return Promise.resolve([]);
+    }
+
+    return this.model
+      .find({
+        _id: {
+          $in: ids.map((id) => this.toObjectId(id)),
+        },
+      })
+      .select("firstName lastName specialization")
+      .lean<LawyerRecord[]>()
+      .exec();
+  }
 }

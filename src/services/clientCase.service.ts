@@ -3,6 +3,8 @@ import type {
   FindCasesOptions,
 } from "../interfaces/case.interface";
 
+import type { LawyerRecord } from "../interfaces/lawyer.interface";
+
 import { env } from "../config/env";
 
 import { MESSAGES } from "../constants/messages.constants";
@@ -13,6 +15,7 @@ import { CaseRepository } from "../repositories/case.repository";
 
 import { LawyerClientRepository } from "../repositories/lawyerClient.repository";
 import { CasePaymentRepository } from "../repositories/casePayment.repository";
+import { LawyerRepository } from "../repositories/lawyer.repository";
 
 const LANGUAGE = env.LANGUAGE;
 
@@ -23,6 +26,8 @@ export class ClientCaseService {
     private readonly lawyerClientRepository = new LawyerClientRepository(),
 
     private readonly casePaymentRepository = new CasePaymentRepository(),
+
+    private readonly lawyerRepository = new LawyerRepository(),
   ) {}
 
   private async getClientIds(userId: string): Promise<string[]> {
@@ -57,13 +62,23 @@ export class ClientCaseService {
     foundCase: CaseRecord,
 
     clientIds: Set<string>,
+
+    lawyer: LawyerRecord,
   ) {
     const assignment = this.getClientAssignment(foundCase, clientIds);
 
     return {
       caseId: foundCase._id.toString(),
 
-      lawyerId: foundCase.lawyerId.toString(),
+      lawyer: {
+        id: lawyer._id.toString(),
+
+        firstName: lawyer.firstName,
+
+        lastName: lawyer.lastName,
+
+        specialization: lawyer.specialization,
+      },
 
       title: foundCase.title,
 
@@ -156,9 +171,32 @@ export class ClientCaseService {
 
     const clientIdSet = new Set(clientIds);
 
-    return {
-      items: items.map((item) => this.buildCaseResponse(item, clientIdSet)),
+    const lawyerIds = Array.from(
+      new Set(items.map((item) => item.lawyerId.toString())),
+    );
 
+    const lawyers = await this.lawyerRepository.findByIds(lawyerIds);
+
+    const lawyersById = new Map(
+      lawyers.map((lawyer) => [lawyer._id.toString(), lawyer]),
+    );
+
+    return {
+      items: items.map((item) => {
+        const lawyer = lawyersById.get(item.lawyerId.toString());
+
+        if (!lawyer) {
+          throw new HttpException(
+            500,
+
+            MESSAGES.serverError[LANGUAGE],
+
+            "CASE_LAWYER_NOT_FOUND",
+          );
+        }
+
+        return this.buildCaseResponse(item, clientIdSet, lawyer);
+      }),
       pagination: {
         page,
 
@@ -194,10 +232,26 @@ export class ClientCaseService {
       );
     }
 
+    const lawyer = await this.lawyerRepository.findById(
+      foundCase.lawyerId.toString(),
+    );
+
+    if (!lawyer) {
+      throw new HttpException(
+        500,
+
+        MESSAGES.serverError[LANGUAGE],
+
+        "CASE_LAWYER_NOT_FOUND",
+      );
+    }
+
     return this.buildCaseResponse(
       foundCase,
 
       new Set(clientIds),
+
+      lawyer,
     );
   }
 
