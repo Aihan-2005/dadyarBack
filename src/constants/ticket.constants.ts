@@ -1,4 +1,4 @@
-export const TICKET_TYPES = ["BUG", "SUGGESTION"] as const;
+export const TICKET_TYPES = ["BUG", "SUGGESTION", "OTHER"] as const;
 
 export const TICKET_STATUSES = [
   "OPEN",

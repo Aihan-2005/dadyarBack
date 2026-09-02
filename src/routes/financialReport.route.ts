@@ -4,7 +4,7 @@ import type { Route } from "../interfaces/routes.interface";
 
 import { FinancialReportController } from "../controllers/financialReport.controller";
 
-import requireAuth from "../middlewares/auth.middleware";
+import requireAuth, { requireRole } from "../middlewares/auth.middleware";
 
 export class FinancialReportRoute implements Route {
   public path = "/finance";
@@ -17,8 +17,12 @@ export class FinancialReportRoute implements Route {
     this.initializeRoutes();
   }
 
+  private authRoutes() {
+    this.router.use(requireAuth, requireRole("LAWYER"));
+  }
+
   private initializeRoutes(): void {
-    this.router.use(requireAuth);
+    this.authRoutes();
 
     // ---------------- Summary ----------------
 

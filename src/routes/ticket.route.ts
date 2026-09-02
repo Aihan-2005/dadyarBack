@@ -5,7 +5,7 @@ import TicketMessageController from "../controllers/ticketMessage.controller";
 
 import type { Route } from "../interfaces/routes.interface";
 
-import requireAuth from "../middlewares/auth.middleware";
+import requireAuth, { requireRole } from "../middlewares/auth.middleware";
 
 import { uploadAttachment } from "../middlewares/upload.middleware";
 
@@ -29,7 +29,7 @@ class TicketRoute implements Route {
   }
 
   private authRoutes() {
-    this.router.use(requireAuth);
+    this.router.use(requireAuth, requireRole("LAWYER"));
   }
 
   private initilizeRoutes() {

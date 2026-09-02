@@ -33,6 +33,8 @@ import { SmsService } from "../services/sms.service";
 import { EmailService } from "../services/email.service";
 
 import { OtpDeliveryService } from "../services/otpDelivery.service";
+import { UserRepository } from "../repositories/user.repository";
+import { LawyerClientRepository } from "../repositories/lawyerClient.repository";
 
 class AuthRoute implements Route {
   public readonly path = "/auth";
@@ -60,9 +62,18 @@ class AuthRoute implements Route {
       otpDeliveryService,
     );
 
+    const userRepository = new UserRepository();
+
     const lawyerRepository = new LawyerRepository();
 
-    const authService = new AuthService(lawyerRepository, otpService);
+    const lawyerClientRepository = new LawyerClientRepository();
+
+    const authService = new AuthService(
+      userRepository,
+      lawyerRepository,
+      lawyerClientRepository,
+      otpService,
+    );
 
     this.authController = new AuthController(authService);
 
@@ -88,6 +99,22 @@ class AuthRoute implements Route {
       otpLoginRateLimiter,
 
       this.authController.otpLogin,
+    );
+
+    this.router.post(
+      "/client/signup/otp/request",
+
+      otpRequestRateLimiter,
+
+      this.authController.requestClientSignupOtp,
+    );
+
+    this.router.post(
+      "/client/signup",
+
+      signupRateLimiter,
+
+      this.authController.clientSignup,
     );
 
     this.router.post(

@@ -9,21 +9,23 @@ import IndexRoute from "../src/routes/index.route";
 import LawyerRoute from "../src/routes/lawyer.route";
 import AuthRoute from "../src/routes/auth.route";
 import CaseRoute from "../src/routes/case.route";
-import ClientRoute from "../src/routes/client.route";
+import LawyerClientRoute from "../src/routes/lawyerClient.route";
 import { FinancialReportRoute } from "../src/routes/financialReport.route";
 import { ApiDocsRoute } from "../src/routes/apiDocs.route";
 import NotificationRoute from "../src/routes/notification.route";
 import TicketRoute from "../src/routes/ticket.route";
+import ClientCaseRoute from "../src/routes/clientCase.route";
 
 const routes: Route[] = [
   new IndexRoute(),
   new LawyerRoute(),
   new AuthRoute(),
   new CaseRoute(),
-  new ClientRoute(),
+  new LawyerClientRoute(),
   new FinancialReportRoute(),
   new NotificationRoute(),
   new TicketRoute(),
+  new ClientCaseRoute(),
 ];
 
 if (env.ENABLE_API_DOCS) {

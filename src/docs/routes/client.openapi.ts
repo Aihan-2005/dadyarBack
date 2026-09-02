@@ -8,12 +8,12 @@ import {
 } from "../schemas/client.openapi.schemas";
 
 import {
-  ClientPhoneQuerySchema,
-  CreateClientSchema,
-  ListClientsQuerySchema,
-  ParamClientIdSchema,
-  UpdateClientSchema,
-} from "../../validators/client.validator";
+  LawyerClientPhoneQuerySchema,
+  CreateLawyerClientSchema,
+  ListLawyerClientsQuerySchema,
+  LawyerClientIdParamSchema,
+  UpdateLawyerClientSchema,
+} from "../../validators/lawyerClient.validator";
 
 // ========================================================
 // Shared Responses
@@ -114,7 +114,7 @@ Optional empty values are normalized by the backend.
 
       content: {
         "application/json": {
-          schema: CreateClientSchema,
+          schema: CreateLawyerClientSchema,
         },
       },
     },
@@ -180,7 +180,7 @@ This response is returned with caching disabled.
   ],
 
   request: {
-    query: ListClientsQuerySchema,
+    query: ListLawyerClientsQuerySchema,
   },
 
   responses: {
@@ -257,7 +257,7 @@ This response is returned with caching disabled.
   ],
 
   request: {
-    query: ClientPhoneQuerySchema,
+    query: LawyerClientPhoneQuerySchema,
   },
 
   responses: {
@@ -322,7 +322,7 @@ This response is returned with caching disabled.
   ],
 
   request: {
-    params: ParamClientIdSchema,
+    params: LawyerClientIdParamSchema,
   },
 
   responses: {
@@ -396,14 +396,14 @@ The client's lawyer ownership cannot be changed.
   ],
 
   request: {
-    params: ParamClientIdSchema,
+    params: LawyerClientIdParamSchema,
 
     body: {
       required: true,
 
       content: {
         "application/json": {
-          schema: UpdateClientSchema,
+          schema: UpdateLawyerClientSchema,
         },
       },
     },

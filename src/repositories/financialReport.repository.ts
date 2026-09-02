@@ -11,7 +11,7 @@ import { CasePaymentModel } from "../models/casePayment.model";
 
 import { CaseExpenseModel } from "../models/caseExpense.model";
 
-import ClientModel from "../models/client.model";
+import LawyerClientModel from "../models/lawyerClient.model";
 
 export class FinancialReportRepository {
   // ---------------- Helpers ----------------
@@ -238,7 +238,7 @@ export class FinancialReportRepository {
 
     const now = new Date();
 
-    const [result] = await ClientModel.aggregate([
+    const [result] = await LawyerClientModel.aggregate([
       {
         $match: match,
       },
@@ -892,3 +892,4 @@ export class FinancialReportRepository {
     };
   }
 }
+

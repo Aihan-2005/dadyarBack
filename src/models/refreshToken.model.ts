@@ -1,46 +1,39 @@
-import {
-  model,
-  Schema,
-} from "mongoose";
+import { model, Schema } from "mongoose";
 
-import type {
-  RefreshToken,
-} from "../interfaces/token.interface";
+import type { RefreshToken } from "../interfaces/token.interface";
 
-export const RefreshTokenSchema =
-  new Schema<RefreshToken>(
-    {
-      userId: {
-        type:
-          Schema.Types.ObjectId,
+export const RefreshTokenSchema = new Schema<RefreshToken>(
+  {
+    userId: {
+      type: Schema.Types.ObjectId,
 
-        ref: "Lawyer",
+      ref: "User",
 
-        required: true,
+      required: true,
 
-        index: true,
-      },
-
-      jti: {
-        type: String,
-
-        required: true,
-
-        unique: true,
-      },
-
-      expiresAt: {
-        type: Date,
-
-        required: true,
-      },
+      index: true,
     },
-    {
-      timestamps: true,
 
-      versionKey: false,
+    jti: {
+      type: String,
+
+      required: true,
+
+      unique: true,
     },
-  );
+
+    expiresAt: {
+      type: Date,
+
+      required: true,
+    },
+  },
+  {
+    timestamps: true,
+
+    versionKey: false,
+  },
+);
 
 RefreshTokenSchema.index(
   {
@@ -51,8 +44,8 @@ RefreshTokenSchema.index(
   },
 );
 
-export const RefreshTokenModel =
-  model<RefreshToken>(
-    "RefreshToken",
-    RefreshTokenSchema,
-  );
+export const RefreshTokenModel = model<RefreshToken>(
+  "RefreshToken",
+  RefreshTokenSchema,
+);
+

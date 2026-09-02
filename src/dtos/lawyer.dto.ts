@@ -1,14 +1,13 @@
 import { Types } from "mongoose";
 
-import type {
-  LawyerRole,
-  LawyerStatus,
-} from "../constants/lawyer.constants";
+import type { LawyerRole, LawyerStatus } from "../constants/lawyer.constants";
 
 import {
   resolveLawyerRole,
   resolveLawyerStatus,
 } from "../constants/lawyer.constants";
+
+import type { UserRecord, UserRole } from "../interfaces/user.interface";
 
 import type {
   Education,
@@ -57,10 +56,14 @@ export interface LawyerProfileDTO {
 
 export interface PublicLawyerDTO {
   id: string;
+
   firstName: string;
   lastName: string;
+
   email: string | null;
-  role: LawyerRole;
+
+  role: UserRole;
+
   status: LawyerStatus;
 
   verification: {
@@ -83,6 +86,7 @@ export interface PublicLawyerDTO {
   profile: LawyerProfileDTO;
 
   lastLoginAt: string | null;
+
   createdAt: string | null;
   updatedAt: string | null;
 }
@@ -125,9 +129,7 @@ function mapEducation(item: Education): PublicEducationDTO {
   };
 }
 
-function mapExperience(
-  item: WorkExperience,
-): PublicExperienceDTO {
+function mapExperience(item: WorkExperience): PublicExperienceDTO {
   return {
     id: toId(item._id),
     title: item.title,
@@ -148,23 +150,26 @@ function mapSkill(item: Skill): PublicSkillDTO {
 
 export function toLawyerProfileDTO(
   lawyer: LawyerRecord,
+  user: UserRecord,
 ): LawyerProfileDTO {
   return {
     specialization: lawyer.specialization ?? "",
+
     licenseNumber: lawyer.licenseNumber ?? "",
+
     yearsOfExperience: lawyer.yearsOfExperience ?? 0,
-    phone: lawyer.phone ?? "",
+
+    phone: user.phone ?? "",
+
     website: lawyer.website ?? "",
+
     address: lawyer.address ?? "",
+
     bio: lawyer.bio ?? "",
 
-    education: (lawyer.education ?? []).map(
-      mapEducation,
-    ),
+    education: (lawyer.education ?? []).map(mapEducation),
 
-    experience: (lawyer.experience ?? []).map(
-      mapExperience,
-    ),
+    experience: (lawyer.experience ?? []).map(mapExperience),
 
     skills: (lawyer.skills ?? []).map(mapSkill),
 
@@ -174,51 +179,54 @@ export function toLawyerProfileDTO(
 
 export function toPublicLawyerDTO(
   lawyer: LawyerRecord,
+  user: UserRecord,
 ): PublicLawyerDTO {
-  const emailVerifiedAt = toISODate(
-    lawyer.emailVerifiedAt,
-  );
+  const emailVerifiedAt = toISODate(user.emailVerifiedAt);
 
-  const phoneVerifiedAt = toISODate(
-    lawyer.phoneVerifiedAt,
-  );
+  const phoneVerifiedAt = toISODate(user.phoneVerifiedAt);
 
-  const licenseVerifiedAt = toISODate(
-    lawyer.licenseVerifiedAt,
-  );
+  const licenseVerifiedAt = toISODate(lawyer.licenseVerifiedAt);
 
   return {
     id: toId(lawyer._id),
 
     firstName: lawyer.firstName,
+
     lastName: lawyer.lastName,
 
-    email: lawyer.email ?? null,
+    email: user.email ?? null,
 
-    role: resolveLawyerRole(lawyer.role),
+    role: user.role,
+
     status: resolveLawyerStatus(lawyer.status),
 
     verification: {
       email: {
         verified: emailVerifiedAt !== null,
+
         verifiedAt: emailVerifiedAt,
       },
 
       phone: {
         verified: phoneVerifiedAt !== null,
+
         verifiedAt: phoneVerifiedAt,
       },
 
       license: {
         verified: licenseVerifiedAt !== null,
+
         verifiedAt: licenseVerifiedAt,
       },
     },
 
-    profile: toLawyerProfileDTO(lawyer),
+    profile: toLawyerProfileDTO(lawyer, user),
 
-    lastLoginAt: toISODate(lawyer.lastLoginAt),
+    lastLoginAt: toISODate(user.lastLoginAt),
+
     createdAt: toISODate(lawyer.createdAt),
+
     updatedAt: toISODate(lawyer.updatedAt),
   };
 }
+

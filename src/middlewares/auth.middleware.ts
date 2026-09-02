@@ -1,14 +1,13 @@
 import type { NextFunction, Request, Response } from "express";
+import type { UserRole } from "../interfaces/user.interface";
 
 import { Types } from "mongoose";
 
 import { env } from "../config/env";
 
 import {
-  LAWYER_ROLES,
   LAWYER_STATUSES,
   isActiveLawyerStatus,
-  resolveLawyerRole,
   resolveLawyerStatus,
 } from "../constants/lawyer.constants";
 
@@ -19,11 +18,12 @@ import { HttpException } from "../exceptions/httpException";
 import { LawyerRepository } from "../repositories/lawyer.repository";
 
 import { TokenService } from "../services/token.service";
+import { UserRepository } from "../repositories/user.repository";
 
 const LANGUAGE = env.LANGUAGE;
 
 const tokenService = new TokenService();
-
+const userRepository = new UserRepository();
 const lawyerRepository = new LawyerRepository();
 
 export const requireAuth = async (
@@ -64,8 +64,7 @@ export const requireAuth = async (
   }
 
   try {
-    const account = await lawyerRepository.findAccessContextById(userId);
-
+    const account = await userRepository.findAccessContextById(userId);
     if (!account) {
       throw new HttpException(
         401,
@@ -74,25 +73,85 @@ export const requireAuth = async (
       );
     }
 
-    const role = resolveLawyerRole(account.role);
-
-    const status = resolveLawyerStatus(account.status);
-
-    if (role !== LAWYER_ROLES.LAWYER) {
+    if (account.status === "SUSPENDED") {
       throw new HttpException(
         403,
-        MESSAGES.invalidAccountRole[LANGUAGE],
-        "INVALID_ACCOUNT_ROLE",
-      );
-    }
 
-    if (status === LAWYER_STATUSES.SUSPENDED) {
-      throw new HttpException(
-        403,
         MESSAGES.accountSuspended[LANGUAGE],
+
         "ACCOUNT_SUSPENDED",
       );
     }
+
+    req.user = {
+      id: userId,
+
+      role: account.role,
+
+      status: account.status,
+    };
+
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const requireRole =
+  (...allowedRoles: UserRole[]) =>
+  (req: Request, _res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return next(
+        new HttpException(
+          401,
+
+          MESSAGES.unauthorized[LANGUAGE],
+
+          "UNAUTHORIZED",
+        ),
+      );
+    }
+
+    if (!allowedRoles.includes(req.user.role)) {
+      return next(
+        new HttpException(
+          403,
+
+          MESSAGES.invalidAccountRole[LANGUAGE],
+
+          "INVALID_ACCOUNT_ROLE",
+        ),
+      );
+    }
+
+    return next();
+  };
+
+export const requireActiveLawyer = async (
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+) => {
+  try {
+    if (!req.user) {
+      throw new HttpException(
+        401,
+        MESSAGES.unauthorized[LANGUAGE],
+        "UNAUTHORIZED",
+      );
+    }
+
+    const lawyer = await lawyerRepository.findById(req.user.id);
+
+    if (!lawyer) {
+      throw new HttpException(
+        401,
+        MESSAGES.unableToFindUser[LANGUAGE],
+        "LAWYER_PROFILE_NOT_FOUND",
+      );
+    }
+
+    const status = resolveLawyerStatus(lawyer.status);
 
     if (status === LAWYER_STATUSES.REJECTED) {
       throw new HttpException(
@@ -102,36 +161,18 @@ export const requireAuth = async (
       );
     }
 
-    req.user = {
-      id: userId,
-
-      role,
-
-      status,
-    };
+    if (!isActiveLawyerStatus(status)) {
+      throw new HttpException(
+        403,
+        MESSAGES.accountPendingVerification[LANGUAGE],
+        "ACCOUNT_NOT_ACTIVE",
+      );
+    }
 
     return next();
   } catch (error) {
     return next(error);
   }
-};
-
-export const requireActiveLawyer = (
-  req: Request,
-  _res: Response,
-  next: NextFunction,
-) => {
-  if (!req.user || !isActiveLawyerStatus(req.user.status)) {
-    return next(
-      new HttpException(
-        403,
-        MESSAGES.accountPendingVerification[LANGUAGE],
-        "ACCOUNT_NOT_ACTIVE",
-      ),
-    );
-  }
-
-  return next();
 };
 
 export default requireAuth;

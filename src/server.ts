@@ -7,13 +7,14 @@ import AuthRoute from "./routes/auth.route";
 import CaseRoute from "./routes/case.route";
 import IndexRoute from "./routes/index.route";
 import LawyerRoute from "./routes/lawyer.route";
-import ClientRoute from "./routes/client.route";
+import LawyerClientRoute from "./routes/lawyerClient.route";
 import { FinancialReportRoute } from "./routes/financialReport.route";
 import { env } from "./config/env";
 import { ApiDocsRoute } from "./routes/apiDocs.route";
 import { Route } from "./interfaces/routes.interface";
 import NotificationRoute from "./routes/notification.route";
 import TicketRoute from "./routes/ticket.route";
+import ClientCaseRoute from "./routes/clientCase.route";
 
 let isShuttingDown = false;
 
@@ -74,10 +75,11 @@ async function bootstrap(): Promise<void> {
       new LawyerRoute(),
       new AuthRoute(),
       new CaseRoute(),
-      new ClientRoute(),
+      new LawyerClientRoute(),
       new FinancialReportRoute(),
       new NotificationRoute(),
       new TicketRoute(),
+      new ClientCaseRoute(),
     ];
 
     if (env.ENABLE_API_DOCS) {

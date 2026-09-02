@@ -10,8 +10,10 @@ import { AuthService } from "../services/auth.service";
 
 import {
   ChangePasswordSchema,
+  ClientSignupSchema,
   LoginSchema,
   OtpLoginSchema,
+  RequestClientSignupOtpSchema,
   RequestOtpLoginSchema,
   RequestPasswordChangeSchema,
   SignupSchema,
@@ -255,9 +257,9 @@ export class AuthController {
     next: NextFunction,
   ): Promise<Response | void> => {
     try {
-      const lawyerId = req.user?.id;
+      const userId = req.user?.id;
 
-      if (!lawyerId) {
+      if (!userId) {
         throw new HttpException(
           401,
           MESSAGES.unauthorized[LANGUAGE],
@@ -265,7 +267,7 @@ export class AuthController {
         );
       }
 
-      const user = await this.authService.me(lawyerId);
+      const user = await this.authService.me(userId);
 
       this.disableCaching(res);
 
@@ -287,9 +289,9 @@ export class AuthController {
     next: NextFunction,
   ): Promise<Response | void> => {
     try {
-      const lawyerId = req.user?.id;
+      const userId = req.user?.id;
 
-      if (!lawyerId) {
+      if (!userId) {
         throw new HttpException(
           401,
           MESSAGES.unauthorized[LANGUAGE],
@@ -300,7 +302,7 @@ export class AuthController {
       const { channel } = RequestPasswordChangeSchema.parse(req.body ?? {});
 
       const result = await this.authService.requestPasswordChange(
-        lawyerId,
+        userId,
         channel,
       );
 
@@ -322,9 +324,9 @@ export class AuthController {
     next: NextFunction,
   ): Promise<Response | void> => {
     try {
-      const lawyerId = req.user?.id;
+      const userId = req.user?.id;
 
-      if (!lawyerId) {
+      if (!userId) {
         throw new HttpException(
           401,
           MESSAGES.unauthorized[LANGUAGE],
@@ -335,7 +337,7 @@ export class AuthController {
       const input = ChangePasswordSchema.parse(req.body ?? {});
 
       const { accessToken, refreshToken, accessTokenExpiresIn } =
-        await this.authService.changePassword(lawyerId, input);
+        await this.authService.changePassword(userId, input);
 
       this.disableCaching(res);
 
@@ -346,6 +348,70 @@ export class AuthController {
 
         data: {
           message: MESSAGES.passwordChangedSuccessfully[LANGUAGE],
+
+          accessToken,
+
+          accessTokenExpiresIn,
+        },
+      });
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  public requestClientSignupOtp = async (
+    req: Request,
+
+    res: Response,
+
+    next: NextFunction,
+  ): Promise<Response | void> => {
+    try {
+      const input = RequestClientSignupOtpSchema.parse(req.body ?? {});
+
+      const result = await this.authService.requestClientSignupOtp(input);
+
+      this.disableCaching(res);
+
+      return res.status(200).json({
+        success: true,
+
+        data: result,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  public clientSignup = async (
+    req: Request,
+
+    res: Response,
+
+    next: NextFunction,
+  ): Promise<Response | void> => {
+    try {
+      const input = ClientSignupSchema.parse(req.body ?? {});
+
+      const {
+        user,
+
+        accessToken,
+
+        refreshToken,
+
+        accessTokenExpiresIn,
+      } = await this.authService.signupClient(input);
+
+      this.disableCaching(res);
+
+      this.setRefreshCookie(res, refreshToken);
+
+      return res.status(201).json({
+        success: true,
+
+        data: {
+          user,
 
           accessToken,
 

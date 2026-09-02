@@ -1,20 +1,18 @@
 import "express";
 
-import type {
-  LawyerRole,
-  LawyerStatus,
-} from "../constants/lawyer.constants";
+import type { UserRole, UserStatus } from "./user.interface";
 
 declare global {
   namespace Express {
     interface Request {
       user?: {
         id: string;
-        role: LawyerRole;
-        status: LawyerStatus;
+        role: UserRole;
+        status: UserStatus;
       };
     }
   }
 }
 
 export {};
+

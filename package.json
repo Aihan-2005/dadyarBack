@@ -8,7 +8,9 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "vercel-build": "tsc",
-    "migrate:case-metadata": "npm run build && node dist/src/scripts/migrateCaseMetadata.js"
+    "migrate:case-metadata": "npm run build && node dist/src/scripts/migrateCaseMetadata.js",
+    "migrate:lawyer-auth": "npm run build && node dist/src/scripts/migrateLawyerAuth.js",
+    "migrate:lawyer-clients": "npm run build && node dist/src/scripts/migrateLawyerClients.js"
   },
   "keywords": [],
   "author": "",

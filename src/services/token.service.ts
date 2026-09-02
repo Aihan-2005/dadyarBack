@@ -4,11 +4,11 @@ import type { Request } from "express";
 
 import type { ClientSession } from "mongoose";
 
-import jwt, { type JwtPayload } from "jsonwebtoken";
+import type { UserRole } from "../interfaces/user.interface";
+
+import jwt from "jsonwebtoken";
 
 import { env } from "../config/env";
-
-import { LAWYER_ROLES } from "../constants/lawyer.constants";
 
 import { MESSAGES } from "../constants/messages.constants";
 
@@ -21,6 +21,7 @@ import type {
 } from "../interfaces/token.interface";
 
 import { RefreshTokenRepository } from "../repositories/refreshToken.repository";
+import { UserRoleSchema } from "../validators/user.validator";
 
 export class TokenService {
   private readonly repo = new RefreshTokenRepository();
@@ -57,10 +58,10 @@ export class TokenService {
     );
   }
 
-  public generateAccessToken(userId: string): string {
+  public generateAccessToken(userId: string, role: UserRole): string {
     return jwt.sign(
       {
-        role: LAWYER_ROLES.LAWYER,
+        role,
 
         type: "access",
       },
@@ -112,9 +113,10 @@ export class TokenService {
 
   public async issueTokenPair(
     userId: string,
+    role: UserRole,
     session?: ClientSession,
   ): Promise<TokenPair> {
-    const accessToken = this.generateAccessToken(userId);
+    const accessToken = this.generateAccessToken(userId, role);
 
     const refreshToken = await this.generateRefreshToken(userId, session);
 
@@ -138,13 +140,26 @@ export class TokenService {
       if (
         typeof decoded === "string" ||
         typeof decoded.sub !== "string" ||
-        decoded.type !== "access" ||
-        decoded.role !== LAWYER_ROLES.LAWYER
+        decoded.type !== "access"
       ) {
         throw this.invalidTokenException();
       }
 
-      return decoded as AccessTokenPayload;
+      const roleResult = UserRoleSchema.safeParse(decoded.role);
+
+      if (!roleResult.success) {
+        throw this.invalidTokenException();
+      }
+
+      return {
+        ...decoded,
+
+        sub: decoded.sub,
+
+        role: roleResult.data,
+
+        type: "access",
+      };
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
