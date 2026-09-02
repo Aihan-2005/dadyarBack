@@ -17,6 +17,8 @@ import {
   RequestOtpLoginSchema,
   RequestPasswordChangeSchema,
   SignupSchema,
+  ClientSignupSchema,
+  RequestClientSignupOtpSchema,
 } from "../../validators/auth.validator";
 
 // ========================================================
@@ -249,7 +251,10 @@ openApiRegistry.registerPath({
   summary: "Login",
 
   description: `
-Authenticates an existing lawyer account.
+Authenticates an existing Dadyar user account.
+
+LAWYER accounts additionally require an eligible lawyer professional profile.
+CLIENT and ADMIN accounts authenticate through their shared User identity.
 
 Exactly **one** login identifier must be supplied:
 
@@ -693,7 +698,10 @@ openApiRegistry.registerPath({
   summary: "Get current user",
 
   description: `
-Returns the current authenticated lawyer.
+Returns the current authenticated user.
+
+LAWYER accounts return the public lawyer representation.
+CLIENT and ADMIN accounts return the shared public user representation.
 
 This endpoint requires a valid access token:
 
@@ -1013,6 +1021,130 @@ The current client remains authenticated because a new token pair is returned af
         },
       },
     },
+
+    500: serverErrorResponse,
+  },
+});
+
+// ========================================================
+// POST /auth/client/signup/otp/request
+// ========================================================
+
+openApiRegistry.registerPath({
+  method: "post",
+
+  path: "/auth/client/signup/otp/request",
+
+  operationId: "requestClientSignupOtp",
+
+  tags: ["Authentication"],
+
+  summary: "Request client signup OTP",
+
+  description: `
+Requests the phone verification code required to create a CLIENT account.
+
+The phone number becomes the CLIENT User's verified identity.
+
+For account privacy, the endpoint does not reveal whether the phone number
+already belongs to an existing User.
+
+A successful request does not guarantee that an OTP was delivered.
+`,
+
+  request: {
+    body: {
+      required: true,
+
+      content: {
+        "application/json": {
+          schema: RequestClientSignupOtpSchema,
+        },
+      },
+    },
+  },
+
+  responses: {
+    200: {
+      description: "Client signup OTP request processed.",
+
+      headers: noCacheHeaders,
+
+      content: {
+        "application/json": {
+          schema: OtpRequestSuccessSchema,
+        },
+      },
+    },
+
+    400: badRequestResponse,
+
+    429: tooManyRequestsResponse,
+
+    502: badGatewayResponse,
+
+    500: serverErrorResponse,
+  },
+});
+
+// ========================================================
+// POST /auth/client/signup
+// ========================================================
+
+openApiRegistry.registerPath({
+  method: "post",
+
+  path: "/auth/client/signup",
+
+  operationId: "signupClient",
+
+  tags: ["Authentication"],
+
+  summary: "Create a client account",
+
+  description: `
+Creates a CLIENT User using a previously verified phone OTP.
+
+After successful verification:
+
+1. a User with role CLIENT is created
+2. phoneVerifiedAt is set
+3. existing LawyerClient records with the same verified phone are linked
+4. an authentication session is created
+
+The refresh token is stored in the HttpOnly refresh-token cookie.
+`,
+
+  request: {
+    body: {
+      required: true,
+
+      content: {
+        "application/json": {
+          schema: ClientSignupSchema,
+        },
+      },
+    },
+  },
+
+  responses: {
+    201: {
+      description: "Client account created successfully.",
+
+      headers: authCookieHeaders,
+
+      content: {
+        "application/json": {
+          schema: AuthSessionSuccessSchema,
+        },
+      },
+    },
+
+    400: badRequestResponse,
+
+    409: conflictResponse,
+
+    429: tooManyRequestsResponse,
 
     500: serverErrorResponse,
   },

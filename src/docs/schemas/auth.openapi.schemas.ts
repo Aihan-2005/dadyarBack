@@ -12,6 +12,7 @@ import {
   DateTimeResponseSchema,
   ObjectIdResponseSchema,
 } from "./common.openapi";
+import { USER_ROLES, USER_STATUSES } from "../../constants/user.constants";
 
 // ========================================================
 // Lawyer Role / Status
@@ -178,6 +179,42 @@ export const PublicLawyerSchema = openApiRegistry.register(
   }),
 );
 
+const UserVerificationItemSchema = z.object({
+  verified: z.boolean(),
+
+  verifiedAt: DateTimeResponseSchema.nullable(),
+});
+
+export const PublicUserSchema = openApiRegistry.register(
+  "PublicUser",
+
+  z.object({
+    id: ObjectIdResponseSchema,
+
+    email: z.string().nullable(),
+
+    phone: z.string().nullable(),
+
+    role: z.enum(USER_ROLES),
+
+    status: z.enum(USER_STATUSES),
+
+    verification: z.object({
+      email: UserVerificationItemSchema,
+
+      phone: UserVerificationItemSchema,
+    }),
+
+    lastLoginAt: DateTimeResponseSchema.nullable(),
+  }),
+);
+
+export const AuthUserResponseSchema = openApiRegistry.register(
+  "AuthUserResponse",
+
+  z.union([PublicLawyerSchema, PublicUserSchema]),
+);
+
 // ========================================================
 // Login / Signup
 // ========================================================
@@ -186,7 +223,7 @@ export const AuthSessionDataSchema = openApiRegistry.register(
   "AuthSessionData",
 
   z.object({
-    user: PublicLawyerSchema,
+    user: AuthUserResponseSchema,
 
     accessToken: z.string(),
 
@@ -277,7 +314,7 @@ export const MeSuccessSchema = openApiRegistry.register(
     success: z.literal(true),
 
     data: z.object({
-      user: PublicLawyerSchema,
+      user: AuthUserResponseSchema,
     }),
   }),
 );
