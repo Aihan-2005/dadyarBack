@@ -159,7 +159,7 @@ openApiRegistry.registerPath({
 
   tags: ["Authentication"],
 
-  summary: "Create an account",
+  summary: "Create a lawyer account",
 
   description: `
 Creates a new lawyer account and immediately creates an authentication session.
@@ -267,15 +267,21 @@ Do not submit both.
 
 The response body contains:
 
-- the public lawyer profile
+- the authenticated user's public representation
 - an access token
 - the access-token lifetime in seconds
+
+LAWYER accounts return the public lawyer representation.
+CLIENT and ADMIN accounts return the shared public user representation.
 
 The refresh token is stored in the HttpOnly \`dadyar_refresh_token\` cookie and is never exposed in the JSON response.
 
 ### Account restrictions
 
-Suspended and rejected accounts cannot authenticate.
+User accounts with status SUSPENDED cannot authenticate.
+
+LAWYER accounts are additionally blocked when their professional Lawyer
+profile is SUSPENDED or REJECTED.
 
 ### Rate limit
 
@@ -445,7 +451,11 @@ openApiRegistry.registerPath({
   summary: "Login using OTP",
 
   description: `
-Authenticates a lawyer using their registered phone number or email address and a previously requested one-time verification code.
+Authenticates an existing Dadyar user using their registered phone number
+or email address and a previously requested one-time verification code.
+
+LAWYER accounts additionally require an eligible professional Lawyer profile.
+CLIENT and ADMIN accounts authenticate through their shared User identity.
 
 ### Identifier
 
@@ -489,7 +499,7 @@ Successful OTP authentication creates exactly the same session as password login
 
 The JSON response contains:
 
-- the public lawyer profile
+- the authenticated user's public representation
 - an access token
 - the access-token lifetime
 
@@ -497,7 +507,10 @@ The refresh token is stored in the HttpOnly \`dadyar_refresh_token\` cookie and 
 
 ### Account restrictions
 
-Suspended and rejected accounts cannot authenticate even if a valid OTP was previously created.
+User accounts with status SUSPENDED cannot authenticate.
+
+LAWYER accounts are additionally blocked when their professional Lawyer
+profile is SUSPENDED or REJECTED.
 `,
 
   request: {
@@ -709,7 +722,11 @@ This endpoint requires a valid access token:
 
 The account is checked against the database on every authenticated request.
 
-Suspended or rejected accounts are denied even if they still possess an otherwise valid access token.
+Users with account status SUSPENDED are denied even if they still possess
+an otherwise valid access token.
+
+LAWYER accounts are additionally denied when their professional Lawyer
+profile is SUSPENDED or REJECTED.
 `,
 
   security: [
@@ -757,7 +774,7 @@ openApiRegistry.registerPath({
   summary: "Request password-change OTP",
 
   description: `
-Sends a one-time verification code for changing the authenticated lawyer's password.
+Sends a one-time verification code for changing the authenticated user's password.
 
 This endpoint requires a valid access token.
 
@@ -862,7 +879,7 @@ This endpoint is protected by:
 
     400: {
       description:
-        "The authenticated account does not have a phone number or the request is otherwise invalid.",
+        "The authenticated account does not have the selected contact method or the request is otherwise invalid.",
 
       content: {
         "application/json": {
@@ -910,7 +927,7 @@ openApiRegistry.registerPath({
   summary: "Change password using OTP",
 
   description: `
-Changes the authenticated lawyer's password after verifying a password-change OTP.
+Changes the authenticated user's password after verifying a password-change OTP.
 
 This endpoint requires a valid access token.
 
@@ -996,7 +1013,7 @@ The current client remains authenticated because a new token pair is returned af
 
     400: {
       description:
-        "Invalid request, invalid OTP, expired OTP, or missing account phone number.",
+        "Invalid request, invalid OTP, expired OTP, or missing selected account contact method.",
 
       content: {
         "application/json": {
