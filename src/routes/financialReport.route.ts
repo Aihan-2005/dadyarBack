@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-import type { Route } from "../interfaces/routes.interface";
+import type { Route } from "../interfaces/route.interface";
 
 import { FinancialReportController } from "../controllers/financialReport.controller";
 

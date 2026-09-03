@@ -3,7 +3,7 @@ import App from "../src/app";
 import { env } from "../src/config/env";
 import { Database } from "../src/config/db";
 
-import type { Route } from "../src/interfaces/routes.interface";
+import type { Route } from "../src/interfaces/route.interface";
 
 import IndexRoute from "../src/routes/index.route";
 import LawyerRoute from "../src/routes/lawyer.route";

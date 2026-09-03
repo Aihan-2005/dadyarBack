@@ -2,7 +2,7 @@ import { Router } from "express";
 
 import { LawyerController } from "../controllers/lawyer.controller";
 
-import type { Route } from "../interfaces/routes.interface";
+import type { Route } from "../interfaces/route.interface";
 
 import requireAuth, { requireRole } from "../middlewares/auth.middleware";
 

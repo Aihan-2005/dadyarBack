@@ -2,7 +2,7 @@ import { Router } from "express";
 
 import swaggerUi from "swagger-ui-express";
 
-import type { Route } from "../interfaces/routes.interface";
+import type { Route } from "../interfaces/route.interface";
 
 import { openApiDocument } from "../docs/openapi";
 

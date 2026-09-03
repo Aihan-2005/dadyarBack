@@ -1,7 +1,7 @@
 import { Router } from "express";
 import NotificationController from "../controllers/notification.controller";
 import { NotificationService } from "../services/notification.service";
-import { Route } from "../interfaces/routes.interface";
+import { Route } from "../interfaces/route.interface";
 import requireAuth, { requireRole } from "../middlewares/auth.middleware";
 
 class NotificationRoute implements Route {
@@ -42,4 +42,3 @@ class NotificationRoute implements Route {
 }
 
 export default NotificationRoute;
-
