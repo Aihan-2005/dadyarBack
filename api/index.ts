@@ -15,6 +15,7 @@ import { ApiDocsRoute } from "../src/routes/apiDocs.route";
 import NotificationRoute from "../src/routes/notification.route";
 import TicketRoute from "../src/routes/ticket.route";
 import ClientCaseRoute from "../src/routes/clientCase.route";
+import { AdminRoute } from "../src/routes/admin.route";
 
 const routes: Route[] = [
   new IndexRoute(),
@@ -26,6 +27,7 @@ const routes: Route[] = [
   new NotificationRoute(),
   new TicketRoute(),
   new ClientCaseRoute(),
+  new AdminRoute(),
 ];
 
 if (env.ENABLE_API_DOCS) {

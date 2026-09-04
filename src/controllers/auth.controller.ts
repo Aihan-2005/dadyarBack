@@ -105,7 +105,7 @@ export class AuthController {
     next: NextFunction,
   ): Promise<Response | void> => {
     try {
-      const input = await LoginSchema.parseAsync(req.body ?? {});
+      const input = LoginSchema.parse(req.body ?? {});
 
       const { user, accessToken, refreshToken, accessTokenExpiresIn } =
         await this.authService.login(input);

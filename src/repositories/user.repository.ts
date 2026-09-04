@@ -4,10 +4,12 @@ import { DEFAULT_USER_STATUS } from "../constants/user.constants";
 
 import type {
   CreateUserData,
+  AdminUserListOptions,
   User,
   UserAccessContext,
   UserAuthRecord,
   UserRecord,
+  UserRole,
 } from "../interfaces/user.interface";
 
 import { UserModel } from "../models/user.model";
@@ -164,6 +166,34 @@ export class UserRepository extends BaseRepository<User> {
         new: true,
         runValidators: true,
         session,
+      })
+      .lean<UserRecord>()
+      .exec();
+  }
+
+  public findByRole(role: UserRole, options: AdminUserListOptions = {}) {
+    const page = options.page ?? 1;
+    const limit = options.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    return this.model
+      .find({ role })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean<UserRecord[]>()
+      .exec();
+  }
+
+  public countByRole(role: UserRole) {
+    return this.model.countDocuments({ role }).exec();
+  }
+
+  public findByIdAndRole(id: string, role: UserRole) {
+    return this.model
+      .findOne({
+        _id: this.toObjectId(id),
+        role,
       })
       .lean<UserRecord>()
       .exec();

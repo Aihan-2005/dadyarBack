@@ -15,6 +15,7 @@ import { Route } from "./interfaces/route.interface";
 import NotificationRoute from "./routes/notification.route";
 import TicketRoute from "./routes/ticket.route";
 import ClientCaseRoute from "./routes/clientCase.route";
+import { AdminRoute } from "./routes/admin.route";
 
 let isShuttingDown = false;
 
@@ -80,6 +81,7 @@ async function bootstrap(): Promise<void> {
       new NotificationRoute(),
       new TicketRoute(),
       new ClientCaseRoute(),
+      new AdminRoute(),
     ];
 
     if (env.ENABLE_API_DOCS) {
