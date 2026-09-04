@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { LAWYER_STATUSES } from "../constants/lawyer.constants";
 import { MongoIdSchema } from "./common.validator";
+import { USER_STATUSES } from "../constants/user.constants";
 
 export const AdminUserListQuerySchema = z
   .object({
@@ -19,5 +20,11 @@ export const AdminUserIdParamSchema = z
 export const AdminUpdateLawyerStatusSchema = z
   .object({
     status: z.enum(LAWYER_STATUSES),
+  })
+  .strict();
+
+export const AdminUpdateUserStatusSchema = z
+  .object({
+    status: z.enum(USER_STATUSES),
   })
   .strict();

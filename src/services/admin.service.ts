@@ -1,6 +1,6 @@
 import { toPublicUserDTO } from "../dtos/user.dto";
 import type { AdminUserListOptions } from "../interfaces/admin.interface";
-import type { UserRole } from "../interfaces/user.interface";
+import type { UserRole, UserStatus } from "../interfaces/user.interface";
 import { UserRepository } from "../repositories/user.repository";
 
 import { env } from "../config/env";
@@ -11,8 +11,8 @@ import {
   type LawyerStatus,
 } from "../constants/lawyer.constants";
 
-import { toPublicLawyerDTO } from "../dtos/lawyer.dto";
 import { LawyerRepository } from "../repositories/lawyer.repository";
+import { toAdminLawyerDTO } from "../dtos/admin.dto";
 
 const LANGUAGE = env.LANGUAGE;
 
@@ -71,7 +71,7 @@ export class AdminService {
       );
     }
 
-    return toPublicLawyerDTO(lawyer, user);
+    return toAdminLawyerDTO(lawyer, user);
   }
 
   public async updateLawyerStatus(lawyerId: string, status: LawyerStatus) {
@@ -120,6 +120,28 @@ export class AdminService {
       );
     }
 
-    return toPublicLawyerDTO(updatedLawyer, user);
+    return toAdminLawyerDTO(updatedLawyer, user);
+  }
+
+  public async updateUserAccountStatus(
+    userId: string,
+    role: UserRole,
+    status: UserStatus,
+  ) {
+    const user = await this.userRepository.updateStatusByIdAndRole(
+      userId,
+      role,
+      status,
+    );
+
+    if (!user) {
+      throw new HttpException(
+        404,
+        MESSAGES.noUserWithId[LANGUAGE],
+        "USER_NOT_FOUND",
+      );
+    }
+
+    return toPublicUserDTO(user);
   }
 }

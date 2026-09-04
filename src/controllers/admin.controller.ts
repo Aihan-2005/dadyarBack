@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from "express";
 import { AdminService } from "../services/admin.service";
 import {
   AdminUpdateLawyerStatusSchema,
+  AdminUpdateUserStatusSchema,
   AdminUserIdParamSchema,
   AdminUserListQuerySchema,
 } from "../validators/admin.validator";
@@ -69,6 +70,31 @@ export class AdminController {
     }
   };
 
+  public updateLawyerAccountStatus = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<Response | void> => {
+    try {
+      const { id } = AdminUserIdParamSchema.parse(req.params);
+
+      const { status } = AdminUpdateUserStatusSchema.parse(req.body ?? {});
+
+      const user = await this.adminService.updateUserAccountStatus(
+        id,
+        "LAWYER",
+        status,
+      );
+
+      return res.status(200).json({
+        success: true,
+        data: user,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  };
+
   public listClients = async (
     req: Request,
     res: Response,
@@ -98,6 +124,31 @@ export class AdminController {
       const { id } = AdminUserIdParamSchema.parse(req.params);
 
       const user = await this.adminService.getUserByRole(id, "CLIENT");
+
+      return res.status(200).json({
+        success: true,
+        data: user,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  public updateClientAccountStatus = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<Response | void> => {
+    try {
+      const { id } = AdminUserIdParamSchema.parse(req.params);
+
+      const { status } = AdminUpdateUserStatusSchema.parse(req.body ?? {});
+
+      const user = await this.adminService.updateUserAccountStatus(
+        id,
+        "CLIENT",
+        status,
+      );
 
       return res.status(200).json({
         success: true,

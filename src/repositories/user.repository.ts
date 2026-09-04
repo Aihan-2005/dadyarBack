@@ -7,6 +7,7 @@ import type {
   UserAuthRecord,
   UserRecord,
   UserRole,
+  UserStatus,
 } from "../interfaces/user.interface";
 
 import type { AdminUserListOptions } from "../interfaces/admin.interface";
@@ -193,6 +194,31 @@ export class UserRepository extends BaseRepository<User> {
         _id: this.toObjectId(id),
         role,
       })
+      .lean<UserRecord>()
+      .exec();
+  }
+
+  public updateStatusByIdAndRole(
+    id: string,
+    role: UserRole,
+    status: UserStatus,
+  ) {
+    return this.model
+      .findOneAndUpdate(
+        {
+          _id: this.toObjectId(id),
+          role,
+        },
+        {
+          $set: {
+            status,
+          },
+        },
+        {
+          new: true,
+          runValidators: true,
+        },
+      )
       .lean<UserRecord>()
       .exec();
   }
