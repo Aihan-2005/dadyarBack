@@ -12,4 +12,8 @@ export abstract class BaseRepository<T> {
 
     return new Types.ObjectId(id);
   }
+
+  protected escapeRegex(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
 }

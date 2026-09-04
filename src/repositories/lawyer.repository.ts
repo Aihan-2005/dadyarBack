@@ -25,10 +25,6 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
     super(LawyerModel);
   }
 
-  private escapeRegex(value: string): string {
-    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  }
-
   public findByLicenseNumber(licenseNumber: string) {
     return this.model
       .findOne({

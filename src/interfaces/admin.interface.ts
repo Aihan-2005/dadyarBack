@@ -1,13 +1,17 @@
 import type { z } from "zod";
 
 import {
+  AdminClientListQuerySchema,
   AdminLawyerListQuerySchema,
-  AdminUserListQuerySchema,
 } from "../validators/admin.validator";
+
 import type { UserRecord } from "./user.interface";
+
 import type { LawyerRecord } from "./lawyer.interface";
 
-export type AdminUserListOptions = z.output<typeof AdminUserListQuerySchema>;
+export type AdminClientListOptions = z.output<
+  typeof AdminClientListQuerySchema
+>;
 
 export type AdminLawyerListOptions = z.output<
   typeof AdminLawyerListQuerySchema

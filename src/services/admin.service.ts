@@ -1,7 +1,7 @@
 import { toPublicUserDTO } from "../dtos/user.dto";
 import type {
+  AdminClientListOptions,
   AdminLawyerListOptions,
-  AdminUserListOptions,
 } from "../interfaces/admin.interface";
 import type { UserRole, UserStatus } from "../interfaces/user.interface";
 import { UserRepository } from "../repositories/user.repository";
@@ -16,7 +16,11 @@ import {
 
 import { LawyerRepository } from "../repositories/lawyer.repository";
 
-import { toAdminLawyerDTO, toAdminLawyerListItemDTO } from "../dtos/admin.dto";
+import {
+  toAdminClientListItemDTO,
+  toAdminLawyerDTO,
+  toAdminLawyerListItemDTO,
+} from "../dtos/admin.dto";
 
 const LANGUAGE = env.LANGUAGE;
 
@@ -26,19 +30,23 @@ export class AdminService {
     private readonly lawyerRepository = new LawyerRepository(),
   ) {}
 
-  public async listUsersByRole(role: UserRole, options: AdminUserListOptions) {
-    const [users, total] = await Promise.all([
-      this.userRepository.findByRole(role, options),
-      this.userRepository.countByRole(role),
+  public async listClients(options: AdminClientListOptions) {
+    const [clients, total] = await Promise.all([
+      this.userRepository.findClientsForAdmin(options),
+
+      this.userRepository.countClientsForAdmin(options),
     ]);
 
     return {
-      items: users.map(toPublicUserDTO),
+      items: clients.map(toAdminClientListItemDTO),
 
       pagination: {
         page: options.page,
+
         limit: options.limit,
+
         total,
+
         totalPages: Math.ceil(total / options.limit),
       },
     };

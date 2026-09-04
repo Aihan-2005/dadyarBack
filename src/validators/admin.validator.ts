@@ -26,6 +26,18 @@ export const AdminLawyerListQuerySchema = z
   })
   .strict();
 
+export const AdminClientListQuerySchema = z
+  .object({
+    search: z.string().trim().max(100).optional(),
+
+    accountStatus: z.enum(USER_STATUSES).optional(),
+
+    page: z.coerce.number().int().min(1).default(1),
+
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+  })
+  .strict();
+
 export const AdminUserIdParamSchema = z
   .object({
     id: MongoIdSchema,

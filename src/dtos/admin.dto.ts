@@ -5,6 +5,7 @@ import { toPublicLawyerDTO, type PublicLawyerDTO } from "./lawyer.dto";
 import type { LawyerRecord } from "../interfaces/lawyer.interface";
 
 import type { UserRecord, UserStatus } from "../interfaces/user.interface";
+import { PublicUserDTO, toPublicUserDTO } from "./user.dto";
 
 export interface AdminLawyerDTO extends Omit<PublicLawyerDTO, "status"> {
   accountStatus: UserStatus;
@@ -78,5 +79,29 @@ export function toAdminLawyerListItemDTO(
     lastLoginAt: lawyerDTO.lastLoginAt,
 
     createdAt: lawyerDTO.createdAt,
+  };
+}
+
+// ---------------- Client list ----------------
+
+export interface AdminClientListItemDTO extends Omit<PublicUserDTO, "status"> {
+  accountStatus: UserStatus;
+
+  createdAt: string | null;
+}
+
+export function toAdminClientListItemDTO(
+  user: UserRecord,
+): AdminClientListItemDTO {
+  const userDTO = toPublicUserDTO(user);
+
+  const { status, ...rest } = userDTO;
+
+  return {
+    ...rest,
+
+    accountStatus: status,
+
+    createdAt: user.createdAt?.toISOString() ?? null,
   };
 }

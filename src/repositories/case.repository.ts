@@ -21,10 +21,6 @@ export class CaseRepository extends BaseRepository<Case> {
     super(CaseModel);
   }
 
-  private escapeRegex(value: string): string {
-    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  }
-
   private normalizeDigits(value: string): string {
     return value
       .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))

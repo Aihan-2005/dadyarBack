@@ -1,4 +1,4 @@
-import type { ClientSession } from "mongoose";
+import type { ClientSession, QueryFilter } from "mongoose";
 
 import type {
   CreateUserData,
@@ -10,7 +10,7 @@ import type {
   UserStatus,
 } from "../interfaces/user.interface";
 
-import type { AdminUserListOptions } from "../interfaces/admin.interface";
+import type { AdminClientListOptions } from "../interfaces/admin.interface";
 
 import { DEFAULT_USER_STATUS } from "../constants/user.constants";
 import { UserModel } from "../models/user.model";
@@ -20,6 +20,38 @@ import { BaseRepository } from "./base.repository";
 export class UserRepository extends BaseRepository<User> {
   constructor() {
     super(UserModel);
+  }
+
+  private buildAdminClientFilter(
+    options: AdminClientListOptions,
+  ): QueryFilter<User> {
+    const filter: QueryFilter<User> = {
+      role: "CLIENT",
+    };
+
+    if (options.accountStatus) {
+      filter.status = options.accountStatus;
+    }
+
+    const search = options.search?.trim();
+
+    if (search) {
+      const pattern = this.escapeRegex(search);
+
+      const regex = new RegExp(pattern, "i");
+
+      filter.$or = [
+        {
+          email: regex,
+        },
+
+        {
+          phone: regex,
+        },
+      ];
+    }
+
+    return filter;
   }
 
   public findById(id: string) {
@@ -172,22 +204,6 @@ export class UserRepository extends BaseRepository<User> {
       .exec();
   }
 
-  public findByRole(role: UserRole, options: AdminUserListOptions) {
-    const skip = (options.page - 1) * options.limit;
-
-    return this.model
-      .find({ role })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(options.limit)
-      .lean<UserRecord[]>()
-      .exec();
-  }
-
-  public countByRole(role: UserRole) {
-    return this.model.countDocuments({ role }).exec();
-  }
-
   public findByIdAndRole(id: string, role: UserRole) {
     return this.model
       .findOne({
@@ -221,5 +237,27 @@ export class UserRepository extends BaseRepository<User> {
       )
       .lean<UserRecord>()
       .exec();
+  }
+
+  public findClientsForAdmin(options: AdminClientListOptions) {
+    const skip = (options.page - 1) * options.limit;
+
+    const filter = this.buildAdminClientFilter(options);
+
+    return this.model
+      .find(filter)
+      .sort({
+        createdAt: -1,
+      })
+      .skip(skip)
+      .limit(options.limit)
+      .lean<UserRecord[]>()
+      .exec();
+  }
+
+  public countClientsForAdmin(options: AdminClientListOptions) {
+    const filter = this.buildAdminClientFilter(options);
+
+    return this.model.countDocuments(filter).exec();
   }
 }

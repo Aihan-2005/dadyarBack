@@ -16,14 +16,6 @@ export class LawyerClientRepository extends BaseRepository<LawyerClient> {
     super(LawyerClientModel);
   }
 
-  private escapeRegex(value: string) {
-    return value.replace(
-      /[.*+?^${}()|[\]\\]/g,
-
-      "\\$&",
-    );
-  }
-
   private buildSearchQuery(
     lawyerId: string,
 
