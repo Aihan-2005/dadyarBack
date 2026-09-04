@@ -13,6 +13,7 @@ import { TicketService } from "../services/ticket.service";
 import {
   CreateTicketSchema,
   ParamTicketIdSchema,
+  UpdateTicketStatusSchema,
 } from "../validators/ticket.validator";
 
 const LANGUAGE = env.LANGUAGE;
@@ -117,6 +118,63 @@ class TicketController {
       });
     } catch (error) {
       next(error);
+    }
+  };
+
+  public listTicketsForAdmin = async (
+    _req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<Response | void> => {
+    try {
+      const tickets = await this.ticketService.listAllTickets();
+
+      return res.status(200).json({
+        success: true,
+        data: tickets,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  public getTicketForAdmin = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<Response | void> => {
+    try {
+      const { id } = ParamTicketIdSchema.parse(req.params);
+
+      const ticket = await this.ticketService.getTicketById(id);
+
+      return res.status(200).json({
+        success: true,
+        data: ticket,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  public updateTicketStatusForAdmin = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<Response | void> => {
+    try {
+      const { id } = ParamTicketIdSchema.parse(req.params);
+
+      const { status } = UpdateTicketStatusSchema.parse(req.body ?? {});
+
+      const ticket = await this.ticketService.updateTicketStatus(id, status);
+
+      return res.status(200).json({
+        success: true,
+        data: ticket,
+      });
+    } catch (error) {
+      return next(error);
     }
   };
 }

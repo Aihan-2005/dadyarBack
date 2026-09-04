@@ -22,10 +22,10 @@ const LANGUAGE = env.LANGUAGE;
 class TicketMessageController {
   constructor(private readonly ticketMessageService: TicketMessageService) {}
 
-  private getLawyerId(req: Request): string {
-    const lawyerId = req.user?.id;
+  private getAuthenticatedUserId(req: Request): string {
+    const userId = req.user?.id;
 
-    if (!lawyerId) {
+    if (!userId) {
       throw new HttpException(
         401,
         MESSAGES.unauthorized[LANGUAGE],
@@ -33,7 +33,7 @@ class TicketMessageController {
       );
     }
 
-    return lawyerId;
+    return userId;
   }
 
   private getAttachment(
@@ -58,7 +58,7 @@ class TicketMessageController {
     next: NextFunction,
   ): Promise<Response | void> => {
     try {
-      const lawyerId = this.getLawyerId(req);
+      const lawyerId = this.getAuthenticatedUserId(req);
 
       const { id } = ParamTicketIdSchema.parse(req.params);
 
@@ -83,7 +83,7 @@ class TicketMessageController {
     next: NextFunction,
   ): Promise<Response | void> => {
     try {
-      const lawyerId = this.getLawyerId(req);
+      const lawyerId = this.getAuthenticatedUserId(req);
 
       const { id } = ParamTicketIdSchema.parse(req.params);
 
@@ -114,7 +114,7 @@ class TicketMessageController {
     next: NextFunction,
   ): Promise<Response | void> => {
     try {
-      const lawyerId = this.getLawyerId(req);
+      const lawyerId = this.getAuthenticatedUserId(req);
 
       const { id, messageId } = ParamTicketMessageIdSchema.parse(req.params);
 
@@ -133,6 +133,78 @@ class TicketMessageController {
       });
     } catch (error) {
       next(error);
+    }
+  };
+
+  public listMessagesForAdmin = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<Response | void> => {
+    try {
+      const { id } = ParamTicketIdSchema.parse(req.params);
+
+      const messages = await this.ticketMessageService.listMessagesForAdmin(id);
+
+      return res.status(200).json({
+        success: true,
+        data: messages,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  public addAdminMessage = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<Response | void> => {
+    try {
+      const adminId = this.getAuthenticatedUserId(req);
+
+      const { id } = ParamTicketIdSchema.parse(req.params);
+
+      const input = CreateTicketMessageSchema.parse(req.body ?? {});
+
+      const attachment = this.getAttachment(req.file);
+
+      const message = await this.ticketMessageService.addAdminMessage(
+        adminId,
+        id,
+        input,
+        attachment,
+      );
+
+      return res.status(201).json({
+        success: true,
+        data: message,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  public getAttachmentDownloadUrlForAdmin = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<Response | void> => {
+    try {
+      const { id, messageId } = ParamTicketMessageIdSchema.parse(req.params);
+
+      const result =
+        await this.ticketMessageService.getAttachmentDownloadUrlForAdmin(
+          id,
+          messageId,
+        );
+
+      return res.status(200).json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      return next(error);
     }
   };
 }
