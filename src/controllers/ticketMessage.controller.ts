@@ -108,28 +108,31 @@ class TicketMessageController {
     }
   };
 
-  public getAttachmentDownloadUrlForAdmin = async (
+  public getAttachmentDownloadUrl = async (
     req: Request,
     res: Response,
     next: NextFunction,
   ): Promise<Response | void> => {
     try {
+      const lawyerId = this.getAuthenticatedUserId(req);
+
       const { id, messageId } = ParamTicketMessageIdSchema.parse(req.params);
 
-      const url =
-        await this.ticketMessageService.getAttachmentDownloadUrlForAdmin(
-          id,
-          messageId,
-        );
+      const url = await this.ticketMessageService.getAttachmentDownloadUrl(
+        lawyerId,
+        id,
+        messageId,
+      );
 
       return res.status(200).json({
         success: true,
+
         data: {
           url,
         },
       });
     } catch (error) {
-      return next(error);
+      next(error);
     }
   };
 
@@ -176,6 +179,29 @@ class TicketMessageController {
       return res.status(201).json({
         success: true,
         data: message,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  public getAttachmentDownloadUrlForAdmin = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<Response | void> => {
+    try {
+      const { id, messageId } = ParamTicketMessageIdSchema.parse(req.params);
+
+      const result =
+        await this.ticketMessageService.getAttachmentDownloadUrlForAdmin(
+          id,
+          messageId,
+        );
+
+      return res.status(200).json({
+        success: true,
+        data: result,
       });
     } catch (error) {
       return next(error);
