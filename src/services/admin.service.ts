@@ -1,5 +1,8 @@
 import { toPublicUserDTO } from "../dtos/user.dto";
-import type { AdminUserListOptions } from "../interfaces/admin.interface";
+import type {
+  AdminLawyerListOptions,
+  AdminUserListOptions,
+} from "../interfaces/admin.interface";
 import type { UserRole, UserStatus } from "../interfaces/user.interface";
 import { UserRepository } from "../repositories/user.repository";
 
@@ -12,7 +15,8 @@ import {
 } from "../constants/lawyer.constants";
 
 import { LawyerRepository } from "../repositories/lawyer.repository";
-import { toAdminLawyerDTO } from "../dtos/admin.dto";
+
+import { toAdminLawyerDTO, toAdminLawyerListItemDTO } from "../dtos/admin.dto";
 
 const LANGUAGE = env.LANGUAGE;
 
@@ -54,6 +58,26 @@ export class AdminService {
     }
 
     return toPublicUserDTO(user);
+  }
+
+  public async listLawyers(options: AdminLawyerListOptions) {
+    const result = await this.lawyerRepository.findForAdmin(options);
+
+    return {
+      items: result.items.map((lawyer) =>
+        toAdminLawyerListItemDTO(lawyer, lawyer.user),
+      ),
+
+      pagination: {
+        page: options.page,
+
+        limit: options.limit,
+
+        total: result.total,
+
+        totalPages: Math.ceil(result.total / options.limit),
+      },
+    };
   }
 
   public async getLawyerById(lawyerId: string) {

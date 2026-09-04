@@ -26,3 +26,57 @@ export function toAdminLawyerDTO(
     lawyerStatus,
   };
 }
+
+// ---------------- Lawyer list ----------------
+
+export interface AdminLawyerListItemDTO {
+  id: string;
+
+  firstName: string;
+  lastName: string;
+
+  email: string | null;
+  phone: string | null;
+
+  licenseNumber: string;
+  specialization: string;
+
+  accountStatus: UserStatus;
+  lawyerStatus: LawyerStatus;
+
+  verification: AdminLawyerDTO["verification"];
+
+  lastLoginAt: string | null;
+  createdAt: string | null;
+}
+
+export function toAdminLawyerListItemDTO(
+  lawyer: LawyerRecord,
+  user: UserRecord,
+): AdminLawyerListItemDTO {
+  const lawyerDTO = toAdminLawyerDTO(lawyer, user);
+
+  return {
+    id: lawyerDTO.id,
+
+    firstName: lawyerDTO.firstName,
+    lastName: lawyerDTO.lastName,
+
+    email: lawyerDTO.email,
+    phone: lawyerDTO.profile.phone || null,
+
+    licenseNumber: lawyerDTO.profile.licenseNumber,
+
+    specialization: lawyerDTO.profile.specialization,
+
+    accountStatus: lawyerDTO.accountStatus,
+
+    lawyerStatus: lawyerDTO.lawyerStatus,
+
+    verification: lawyerDTO.verification,
+
+    lastLoginAt: lawyerDTO.lastLoginAt,
+
+    createdAt: lawyerDTO.createdAt,
+  };
+}

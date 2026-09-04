@@ -13,9 +13,20 @@ import type {
 import LawyerModel from "../models/lawyer.model";
 import { BaseRepository } from "./base.repository";
 
+import type {
+  AdminLawyerListAggregateResult,
+  AdminLawyerListOptions,
+} from "../interfaces/admin.interface";
+
+import { UserModel } from "../models/user.model";
+
 export class LawyerRepository extends BaseRepository<Lawyer> {
   constructor() {
     super(LawyerModel);
+  }
+
+  private escapeRegex(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
 
   public findByLicenseNumber(licenseNumber: string) {
@@ -131,5 +142,134 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
       })
       .lean<LawyerRecord>()
       .exec();
+  }
+
+  public async findForAdmin(options: AdminLawyerListOptions) {
+    const skip = (options.page - 1) * options.limit;
+
+    const match: Record<string, unknown> = {
+      "user.role": "LAWYER",
+    };
+
+    if (options.lawyerStatus) {
+      match.status = options.lawyerStatus;
+    }
+
+    if (options.accountStatus) {
+      match["user.status"] = options.accountStatus;
+    }
+
+    const search = options.search?.trim();
+
+    if (search) {
+      const pattern = this.escapeRegex(search);
+
+      const regex = new RegExp(pattern, "i");
+
+      match.$or = [
+        {
+          firstName: regex,
+        },
+
+        {
+          lastName: regex,
+        },
+
+        {
+          licenseNumber: regex,
+        },
+
+        {
+          specialization: regex,
+        },
+
+        {
+          "user.email": regex,
+        },
+
+        {
+          "user.phone": regex,
+        },
+
+        {
+          $expr: {
+            $regexMatch: {
+              input: {
+                $concat: ["$firstName", " ", "$lastName"],
+              },
+
+              regex: pattern,
+
+              options: "i",
+            },
+          },
+        },
+      ];
+    }
+
+    const [result] = await this.model
+      .aggregate<AdminLawyerListAggregateResult>([
+        {
+          $lookup: {
+            from: UserModel.collection.name,
+
+            localField: "_id",
+
+            foreignField: "_id",
+
+            as: "user",
+          },
+        },
+
+        {
+          $unwind: "$user",
+        },
+
+        {
+          $project: {
+            "user.password": 0,
+            "user.__v": 0,
+          },
+        },
+
+        {
+          $match: match,
+        },
+
+        {
+          $sort: {
+            createdAt: -1,
+          },
+        },
+
+        {
+          $facet: {
+            items: [
+              {
+                $skip: skip,
+              },
+
+              {
+                $limit: options.limit,
+              },
+            ],
+
+            total: [
+              {
+                $count: "count",
+              },
+            ],
+          },
+        },
+      ])
+      .exec();
+
+    const total = result?.total[0]?.count ?? 0;
+
+    return {
+      items: result?.items ?? [],
+
+      total,
+    };
   }
 }

@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { AdminService } from "../services/admin.service";
 import {
+  AdminLawyerListQuerySchema,
   AdminUpdateLawyerStatusSchema,
   AdminUpdateUserStatusSchema,
   AdminUserIdParamSchema,
@@ -16,13 +17,15 @@ export class AdminController {
     next: NextFunction,
   ): Promise<Response | void> => {
     try {
-      const query = AdminUserListQuerySchema.parse(req.query);
+      const query = AdminLawyerListQuerySchema.parse(req.query);
 
-      const result = await this.adminService.listUsersByRole("LAWYER", query);
+      const result = await this.adminService.listLawyers(query);
 
       return res.status(200).json({
         success: true,
+
         data: result.items,
+
         pagination: result.pagination,
       });
     } catch (error) {
