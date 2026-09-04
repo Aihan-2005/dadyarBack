@@ -84,24 +84,19 @@ export function toAdminLawyerListItemDTO(
 
 // ---------------- Client list ----------------
 
-export interface AdminClientListItemDTO extends Omit<PublicUserDTO, "status"> {
+export interface AdminClientDTO extends Omit<PublicUserDTO, "status"> {
   accountStatus: UserStatus;
-
   createdAt: string | null;
 }
 
-export function toAdminClientListItemDTO(
-  user: UserRecord,
-): AdminClientListItemDTO {
+export function toAdminClientDTO(user: UserRecord): AdminClientDTO {
   const userDTO = toPublicUserDTO(user);
 
   const { status, ...rest } = userDTO;
 
   return {
     ...rest,
-
     accountStatus: status,
-
     createdAt: user.createdAt?.toISOString() ?? null,
   };
 }

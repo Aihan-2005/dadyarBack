@@ -17,7 +17,7 @@ import {
 import { LawyerRepository } from "../repositories/lawyer.repository";
 
 import {
-  toAdminClientListItemDTO,
+  toAdminClientDTO,
   toAdminLawyerDTO,
   toAdminLawyerListItemDTO,
 } from "../dtos/admin.dto";
@@ -33,39 +33,19 @@ export class AdminService {
   public async listClients(options: AdminClientListOptions) {
     const [clients, total] = await Promise.all([
       this.userRepository.findClientsForAdmin(options),
-
       this.userRepository.countClientsForAdmin(options),
     ]);
 
     return {
-      items: clients.map(toAdminClientListItemDTO),
+      items: clients.map(toAdminClientDTO),
 
       pagination: {
         page: options.page,
-
         limit: options.limit,
-
         total,
-
         totalPages: Math.ceil(total / options.limit),
       },
     };
-  }
-
-  public async getUserByRole(userId: string, role: UserRole) {
-    const user = await this.userRepository.findByIdAndRole(userId, role);
-
-    if (!user) {
-      throw new HttpException(
-        404,
-
-        MESSAGES.noUserWithId[LANGUAGE],
-
-        "User_NOT_FOUND",
-      );
-    }
-
-    return toPublicUserDTO(user);
   }
 
   public async listLawyers(options: AdminLawyerListOptions) {
@@ -175,5 +155,22 @@ export class AdminService {
     }
 
     return toPublicUserDTO(user);
+  }
+
+  public async getClientById(clientId: string) {
+    const client = await this.userRepository.findByIdAndRole(
+      clientId,
+      "CLIENT",
+    );
+
+    if (!client) {
+      throw new HttpException(
+        404,
+        MESSAGES.noUserWithId[LANGUAGE],
+        "CLIENT_NOT_FOUND",
+      );
+    }
+
+    return toAdminClientDTO(client);
   }
 }

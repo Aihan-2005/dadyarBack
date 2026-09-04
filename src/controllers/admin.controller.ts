@@ -128,11 +128,11 @@ export class AdminController {
     try {
       const { id } = AdminUserIdParamSchema.parse(req.params);
 
-      const user = await this.adminService.getUserByRole(id, "CLIENT");
+      const client = await this.adminService.getClientById(id);
 
       return res.status(200).json({
         success: true,
-        data: user,
+        data: client,
       });
     } catch (error) {
       return next(error);
