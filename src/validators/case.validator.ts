@@ -24,7 +24,7 @@ import {
   normalizePersianDigits,
   PhoneSchema,
   RequiredString,
-} from "./commen.validator";
+} from "./common.validator";
 
 const LANGUAGE = env.LANGUAGE;
 

@@ -7,7 +7,7 @@ import {
   PasswordSchema,
   PhoneSchema,
   requireExactlyOneIdentifier,
-} from "./commen.validator";
+} from "./common.validator";
 
 export const UserRoleSchema = z.enum(USER_ROLES);
 

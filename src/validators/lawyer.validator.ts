@@ -4,7 +4,7 @@ import {
   cleanOptionalString,
   normalizePersianDigits,
   PhoneSchema,
-} from "./commen.validator";
+} from "./common.validator";
 
 const profileTextSchema = (maxLength: number) =>
   z.preprocess(

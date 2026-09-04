@@ -11,7 +11,7 @@ import {
   cleanOptionalString,
   MongoIdSchema,
   normalizePersianDigits,
-} from "./commen.validator";
+} from "./common.validator";
 
 const LANGUAGE = env.LANGUAGE;
 
@@ -91,4 +91,3 @@ export const CasePaymentInputSchema = z
       });
     }
   });
-

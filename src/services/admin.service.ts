@@ -2,7 +2,6 @@ import { toPublicUserDTO } from "../dtos/user.dto";
 import type { AdminUserListOptions } from "../interfaces/admin.interface";
 import type { UserRole } from "../interfaces/user.interface";
 import { UserRepository } from "../repositories/user.repository";
-import { AdminUserListQuerySchema } from "../validators/admin.validator";
 
 import { env } from "../config/env";
 import { MESSAGES } from "../constants/messages.constants";

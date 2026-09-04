@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { MongoIdSchema, RequiredString } from "./commen.validator";
+import { MongoIdSchema, RequiredString } from "./common.validator";
 
 export const CreateTicketMessageSchema = z.object({
   message: RequiredString.max(5000),

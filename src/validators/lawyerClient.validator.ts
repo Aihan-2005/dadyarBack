@@ -9,7 +9,7 @@ import {
   cleanOptionalString,
   normalizePersianDigits,
   PhoneSchema,
-} from "./commen.validator";
+} from "./common.validator";
 
 const LANGUAGE = env.LANGUAGE;
 

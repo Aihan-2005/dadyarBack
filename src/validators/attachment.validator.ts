@@ -6,7 +6,7 @@ import {
   ATTACHMENT_EXTENSIONS,
   ATTACHMENT_MAX_SIZE,
 } from "../constants/attachment.constants";
-import { RequiredString } from "./commen.validator";
+import { RequiredString } from "./common.validator";
 
 const AttachmentSizeSchema = z
   .number()

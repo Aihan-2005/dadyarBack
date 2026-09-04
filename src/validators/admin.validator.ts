@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MongoIdSchema } from "./commen.validator";
+import { MongoIdSchema } from "./common.validator";
 
 export const AdminUserListQuerySchema = z
   .object({

@@ -12,7 +12,7 @@ import {
   PasswordSchema,
   PhoneSchema,
   requireExactlyOneIdentifier,
-} from "./commen.validator";
+} from "./common.validator";
 
 const LANGUAGE = env.LANGUAGE;
 

@@ -4,7 +4,7 @@ import {
   cleanOptionalString,
   MongoIdSchema,
   normalizePersianDigits,
-} from "./commen.validator";
+} from "./common.validator";
 
 // ---------------- Helpers ----------------
 
@@ -79,4 +79,3 @@ export const CaseExpenseInputSchema = z
     isPaid: z.boolean(),
   })
   .strict();
-

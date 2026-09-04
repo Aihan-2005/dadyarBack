@@ -8,7 +8,7 @@ import {
   MongoIdSchema,
   OptionalString,
   RequiredString,
-} from "./commen.validator";
+} from "./common.validator";
 
 export const NotificationPrioritySchema = z.enum(NOTIFICATION_PRIORITIES);
 
@@ -38,4 +38,3 @@ export const CreateReminderSchema = z.object({
 export const ParamNotificationIdSchema = z.object({
   id: MongoIdSchema,
 });
-

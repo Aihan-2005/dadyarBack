@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MongoIdSchema } from "./commen.validator";
+import { MongoIdSchema } from "./common.validator";
 
 export const FinancialClientReportQuerySchema = z
   .object({
@@ -26,4 +26,3 @@ export const FinancialClientIdParamSchema = z
     clientId: MongoIdSchema,
   })
   .strict();
-
