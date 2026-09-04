@@ -1,5 +1,3 @@
-import { Types } from "mongoose";
-
 import { z } from "zod";
 
 import {
@@ -20,34 +18,15 @@ import {
 import { CasePaymentInputSchema } from "./casePayment.validator";
 
 import { CaseExpenseInputSchema } from "./caseExpense.validator";
+import {
+  cleanOptionalString,
+  MongoIdSchema,
+  normalizePersianDigits,
+  PhoneSchema,
+  RequiredString,
+} from "./commen.validator";
 
 const LANGUAGE = env.LANGUAGE;
-
-export const MongoIdSchema = z
-  .string()
-  .trim()
-  .refine((value) => Types.ObjectId.isValid(value), {
-    message: MESSAGES.invalidObjectId[LANGUAGE],
-  });
-
-const RequiredString = z.string().trim().min(1);
-
-const cleanOptionalString = (maxLength: number) =>
-  z.preprocess(
-    (value) => {
-      if (value === undefined || value === null) {
-        return undefined;
-      }
-
-      if (typeof value === "string" && value.trim() === "") {
-        return undefined;
-      }
-
-      return value;
-    },
-
-    z.string().trim().max(maxLength).optional(),
-  );
 
 const OptionalString = cleanOptionalString(2000);
 
@@ -56,6 +35,8 @@ const LongOptionalString = cleanOptionalString(5000);
 const OptionalRoleSchema = cleanOptionalString(100);
 
 const OptionalRepresentSchema = cleanOptionalString(200);
+
+const OptionalFullNameSchema = cleanOptionalString(200);
 
 const OptionalIdentityDocumentSchema = z.preprocess(
   (value) => {
@@ -88,20 +69,6 @@ const OptionalDateSchema = z.preprocess(
   },
 
   z.coerce.date().optional(),
-);
-
-const normalizePersianDigits = (value: string): string =>
-  value
-    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
-    .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)));
-
-const PhoneSchema = z.preprocess(
-  (value: unknown) =>
-    typeof value === "string" ? normalizePersianDigits(value.trim()) : value,
-
-  RequiredString.regex(/^09\d{9}$/, {
-    message: MESSAGES.invalidPhoneFormat[LANGUAGE],
-  }),
 );
 
 const MoneySchema = z.preprocess(
@@ -194,7 +161,7 @@ export const ManualCaseClientSchema = z
 
     assignedAmount: MoneySchema.optional().default(0),
 
-    fullName: RequiredString.max(200).optional(),
+    fullName: OptionalFullNameSchema,
 
     nationalId: OptionalLawyerClientIdentitySchema,
 
@@ -398,4 +365,3 @@ export const ListCasesQuerySchema = z
     limit: z.coerce.number().int().min(1).max(100).default(20),
   })
   .strict();
-

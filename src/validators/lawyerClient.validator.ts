@@ -5,26 +5,13 @@ import { z } from "zod";
 import { env } from "../config/env";
 
 import { MESSAGES } from "../constants/messages.constants";
+import {
+  cleanOptionalString,
+  normalizePersianDigits,
+  PhoneSchema,
+} from "./commen.validator";
 
 const LANGUAGE = env.LANGUAGE;
-
-function normalizeDigits(value: string): string {
-  const persianDigits = "۰۱۲۳۴۵۶۷۸۹";
-
-  const arabicDigits = "٠١٢٣٤٥٦٧٨٩";
-
-  return value
-    .replace(
-      /[۰-۹]/g,
-
-      (character) => String(persianDigits.indexOf(character)),
-    )
-    .replace(
-      /[٠-٩]/g,
-
-      (character) => String(arabicDigits.indexOf(character)),
-    );
-}
 
 function optionalTrimmedString(value: unknown): unknown {
   if (value === undefined || value === null) {
@@ -86,20 +73,6 @@ function clearablePersonalPassword(value: unknown): unknown {
 
 const RequiredFullNameSchema = z.string().trim().min(1).max(200);
 
-const PhoneSchema = z.preprocess(
-  (value) => {
-    if (typeof value !== "string") {
-      return value;
-    }
-
-    return normalizeDigits(value.trim());
-  },
-
-  z.string().regex(/^09\d{9}$/, {
-    message: MESSAGES.invalidPhoneFormat[LANGUAGE],
-  }),
-);
-
 export const OptionalNationalIdSchema = z.preprocess(
   (value) => {
     if (value === undefined || value === null) {
@@ -110,7 +83,7 @@ export const OptionalNationalIdSchema = z.preprocess(
       return value;
     }
 
-    const normalized = normalizeDigits(value.trim());
+    const normalized = normalizePersianDigits(value.trim());
 
     return normalized === "" ? undefined : normalized;
   },
@@ -131,7 +104,7 @@ export const OptionalLawyerClientIdentitySchema = z.preprocess(
       return value;
     }
 
-    const normalized = normalizeDigits(value.trim());
+    const normalized = normalizePersianDigits(value.trim());
 
     return normalized === "" ? undefined : normalized;
   },
@@ -152,7 +125,7 @@ const OptionalHomeNumberSchema = z.preprocess(
       return value;
     }
 
-    const normalized = normalizeDigits(value.trim());
+    const normalized = normalizePersianDigits(value.trim());
 
     return normalized === "" ? undefined : normalized;
   },
@@ -181,23 +154,11 @@ const OptionalBirthdaySchema = z.preprocess(
     .optional(),
 );
 
-const OptionalAddressSchema = z.preprocess(
-  optionalTrimmedString,
+const OptionalAddressSchema = cleanOptionalString(500);
 
-  z.string().max(500).optional(),
-);
+const OptionalRepresentSchema = cleanOptionalString(200);
 
-const OptionalRepresentSchema = z.preprocess(
-  optionalTrimmedString,
-
-  z.string().max(200).optional(),
-);
-
-const OptionalDescriptionSchema = z.preprocess(
-  optionalTrimmedString,
-
-  z.string().max(1000).optional(),
-);
+const OptionalDescriptionSchema = cleanOptionalString(1000);
 
 const PersonalPasswordSchema = z
   .string()
@@ -234,7 +195,7 @@ export const ClearableNationalIdSchema = z.preprocess(
       return value;
     }
 
-    const normalized = normalizeDigits(value.trim());
+    const normalized = normalizePersianDigits(value.trim());
 
     return normalized === "" ? null : normalized;
   },
@@ -256,7 +217,7 @@ const ClearableLawyerClientIdentitySchema = z.preprocess(
       return value;
     }
 
-    const normalized = normalizeDigits(value.trim());
+    const normalized = normalizePersianDigits(value.trim());
 
     return normalized === "" ? null : normalized;
   },
@@ -278,7 +239,7 @@ const ClearableHomeNumberSchema = z.preprocess(
       return value;
     }
 
-    const normalized = normalizeDigits(value.trim());
+    const normalized = normalizePersianDigits(value.trim());
 
     return normalized === "" ? null : normalized;
   },

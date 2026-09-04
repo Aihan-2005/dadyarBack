@@ -2,9 +2,7 @@ import { z } from "zod";
 
 import { TICKET_STATUSES, TICKET_TYPES } from "../constants/ticket.constants";
 
-import { MongoIdSchema } from "./case.validator";
-
-const RequiredString = z.string().trim().min(1);
+import { MongoIdSchema, RequiredString } from "./commen.validator";
 
 export const TicketTypeSchema = z.enum(TICKET_TYPES);
 

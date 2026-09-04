@@ -4,11 +4,11 @@ import {
   NOTIFICATION_STATUSES,
   NOTIFICATION_TARGETS,
 } from "../constants/notification.constants";
-import { MongoIdSchema } from "./case.validator";
-
-const RequiredString = z.string().trim().min(1);
-
-const OptionalString = z.string().trim().optional();
+import {
+  MongoIdSchema,
+  OptionalString,
+  RequiredString,
+} from "./commen.validator";
 
 export const NotificationPrioritySchema = z.enum(NOTIFICATION_PRIORITIES);
 
@@ -28,7 +28,7 @@ export const CreateReminderSchema = z.object({
   caseId: MongoIdSchema.optional(),
 
   caseName: OptionalString,
-    clientId: OptionalString,
+  clientId: OptionalString,
 
   clientName: OptionalString,
 
@@ -38,3 +38,4 @@ export const CreateReminderSchema = z.object({
 export const ParamNotificationIdSchema = z.object({
   id: MongoIdSchema,
 });
+

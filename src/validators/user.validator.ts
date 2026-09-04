@@ -2,30 +2,24 @@ import { z } from "zod";
 
 import { USER_ROLES, USER_STATUSES } from "../constants/user.constants";
 
-import { env } from "../config/env";
-
-import { MESSAGES } from "../constants/messages.constants";
-
-const LANGUAGE = env.LANGUAGE;
+import {
+  EmailSchema,
+  PasswordSchema,
+  PhoneSchema,
+  requireExactlyOneIdentifier,
+} from "./commen.validator";
 
 export const UserRoleSchema = z.enum(USER_ROLES);
 
 export const UserStatusSchema = z.enum(USER_STATUSES);
 
-const UserEmailSchema = z.email().trim().toLowerCase();
-
-const UserPhoneSchema = z
-  .string()
-  .trim()
-  .regex(/^09\d{9}$/);
-
 export const CreateUserDataSchema = z
   .object({
-    email: UserEmailSchema.optional(),
+    email: EmailSchema.optional(),
 
-    phone: UserPhoneSchema.optional(),
+    phone: PhoneSchema.optional(),
 
-    password: z.string().min(1),
+    password: PasswordSchema,
 
     role: UserRoleSchema,
 
@@ -33,24 +27,4 @@ export const CreateUserDataSchema = z
 
     phoneVerifiedAt: z.date().nullable().optional(),
   })
-  .superRefine((data, context) => {
-    if (!data.email && !data.phone) {
-      context.addIssue({
-        code: "custom",
-
-        path: ["email"],
-
-        message: MESSAGES.noEmailNorPhone[LANGUAGE],
-      });
-    }
-  });
-
-export const AdminListUserQuerySchema = z
-  .object({
-    search: z.string().trim().max(100).optional(),
-
-    page: z.coerce.number().int().min(1).default(1),
-
-    limit: z.coerce.number().int().min(1).max(100).default(20),
-  })
-  .strict();
+  .superRefine(requireExactlyOneIdentifier);

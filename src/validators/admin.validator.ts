@@ -1,23 +1,5 @@
-import { Types } from "mongoose";
-
 import { z } from "zod";
-
-import { env } from "../config/env";
-
-import { MESSAGES } from "../constants/messages.constants";
-
-const LANGUAGE = env.LANGUAGE;
-
-export const MongoIdSchema = z
-  .string()
-  .trim()
-  .refine(
-    (value) => Types.ObjectId.isValid(value),
-
-    {
-      message: MESSAGES.invalidObjectId[LANGUAGE],
-    },
-  );
+import { MongoIdSchema } from "./commen.validator";
 
 export const AdminUserListQuerySchema = z
   .object({

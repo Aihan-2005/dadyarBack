@@ -6,62 +6,19 @@ import { env } from "../config/env";
 
 import { MESSAGES } from "../constants/messages.constants";
 import { OTP_CHANNEL } from "../constants/otp.constants";
+import {
+  EmailSchema,
+  normalizePersianDigits,
+  PasswordSchema,
+  PhoneSchema,
+  requireExactlyOneIdentifier,
+} from "./commen.validator";
 
 const LANGUAGE = env.LANGUAGE;
 
-function normalizeDigits(value: string): string {
-  const persianDigits = "۰۱۲۳۴۵۶۷۸۹";
-
-  const arabicDigits = "٠١٢٣٤٥٦٧٨٩";
-
-  return value
-    .replace(/[۰-۹]/g, (character) => String(persianDigits.indexOf(character)))
-    .replace(/[٠-٩]/g, (character) => String(arabicDigits.indexOf(character)));
-}
-
-function requireExactlyOneIdentifier(
-  data: {
-    phone?: string;
-    email?: string;
-  },
-  context: z.RefinementCtx,
-): void {
-  const identifierCount =
-    Number(Boolean(data.email)) + Number(Boolean(data.phone));
-
-  if (identifierCount !== 1) {
-    context.addIssue({
-      code: "custom",
-
-      path: ["email"],
-
-      message: MESSAGES.identifierExactlyOneRequired[LANGUAGE],
-    });
-  }
-}
-
 const RequiredNameSchema = z.string().trim().min(1).max(100);
 
-const EmailSchema = z.email().trim().toLowerCase();
-
-const PhoneSchema = z.preprocess(
-  (value) => {
-    if (typeof value === "string") {
-      return normalizeDigits(value.trim());
-    }
-
-    return value;
-  },
-  z.string().regex(/^09\d{9}$/),
-);
-
-const PasswordSchema = z
-  .string()
-  .min(8, "رمز عبور باید حداقل ۸ کاراکتر باشد")
-  .refine((value) => Buffer.byteLength(value, "utf8") <= 72, {
-    message: MESSAGES.passwordTooLong[LANGUAGE],
-  });
-
+// BUG: THIS IS DANGEROUS IT SHOULD BE FIXED
 const LoginPasswordSchema = z
   .string()
   .min(1)
@@ -82,17 +39,7 @@ export const SignupSchema = z
     password: PasswordSchema,
   })
   .strict()
-  .superRefine((data, context) => {
-    if (!data.email && !data.phone) {
-      context.addIssue({
-        code: "custom",
-
-        path: ["email"],
-
-        message: MESSAGES.noEmailNorPhone[LANGUAGE],
-      });
-    }
-  });
+  .superRefine(requireExactlyOneIdentifier);
 
 export const LoginSchema = z
   .object({
@@ -108,7 +55,7 @@ export const LoginSchema = z
 const OtpCodeSchema = z.preprocess(
   (value) => {
     if (typeof value === "string") {
-      return normalizeDigits(value.trim());
+      return normalizePersianDigits(value.trim());
     }
 
     return value;

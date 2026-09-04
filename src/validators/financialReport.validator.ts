@@ -1,17 +1,5 @@
-import { Types } from "mongoose";
 import { z } from "zod";
-
-import { env } from "../config/env";
-import { MESSAGES } from "../constants/messages.constants";
-
-const LANGUAGE = env.LANGUAGE;
-
-const MongoIdSchema = z
-  .string()
-  .trim()
-  .refine((value) => Types.ObjectId.isValid(value), {
-    message: MESSAGES.invalidObjectId[LANGUAGE],
-  });
+import { MongoIdSchema } from "./commen.validator";
 
 export const FinancialClientReportQuerySchema = z
   .object({
@@ -29,9 +17,7 @@ export const FinancialClientCasesQuerySchema = z
 
     limit: z.coerce.number().int().min(1).max(100).default(10),
 
-    paymentType: z
-      .enum(["CASH", "NON_CASH", "BOTH"])
-      .optional(),
+    paymentType: z.enum(["CASH", "NON_CASH", "BOTH"]).optional(),
   })
   .strict();
 
@@ -40,3 +26,4 @@ export const FinancialClientIdParamSchema = z
     clientId: MongoIdSchema,
   })
   .strict();
+

@@ -1,30 +1,10 @@
 import { z } from "zod";
 import { SKILL_LEVELS } from "../constants/lawyer.constants";
-
-const PERSIAN_DIGITS = "۰۱۲۳۴۵۶۷۸۹";
-const ARABIC_DIGITS = "٠١٢٣٤٥٦٧٨٩";
-
-const normalizePersianDigits = (value: string): string =>
-  value
-    .replace(/[۰-۹]/g, (character) => String(PERSIAN_DIGITS.indexOf(character)))
-    .replace(/[٠-٩]/g, (character) => String(ARABIC_DIGITS.indexOf(character)));
-
-const cleanOptionalString = (maxLength: number) =>
-  z.preprocess(
-    (value) => {
-      if (value === undefined || value === null) {
-        return undefined;
-      }
-
-      if (typeof value === "string" && value.trim() === "") {
-        return undefined;
-      }
-
-      return value;
-    },
-
-    z.string().trim().max(maxLength).optional(),
-  );
+import {
+  cleanOptionalString,
+  normalizePersianDigits,
+  PhoneSchema,
+} from "./commen.validator";
 
 const profileTextSchema = (maxLength: number) =>
   z.preprocess(
@@ -39,22 +19,7 @@ const profileTextSchema = (maxLength: number) =>
     z.string().trim().max(maxLength),
   );
 
-const optionalPhoneSchema = z.preprocess(
-  (value) => {
-    if (value === undefined || value === null) {
-      return undefined;
-    }
-
-    const normalized = normalizePersianDigits(String(value)).trim();
-
-    return normalized === "" ? undefined : normalized;
-  },
-
-  z
-    .string()
-    .regex(/^09\d{9}$/, "شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود")
-    .optional(),
-);
+const optionalPhoneSchema = PhoneSchema.optional();
 
 const optionalWebsiteSchema = z.preprocess(
   (value) => {
@@ -256,4 +221,3 @@ export const LawyerProfileSchema = z
 export const SkillLevelsSchema = z.enum(
   SKILL_LEVELS.map(String) as ["1", "2", "3", "4", "5"],
 );
-

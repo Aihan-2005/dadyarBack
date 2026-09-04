@@ -1,260 +1,94 @@
-import {
-  Types,
-} from "mongoose";
+import { Types } from "mongoose";
 
-import {
-  z,
-} from "zod";
+import { z } from "zod";
 
-import {
-  env,
-} from "../config/env";
+import { env } from "../config/env";
 
-import {
-  PAYMENT_METHODS,
-} from "../constants/casePayment.constants";
+import { PAYMENT_METHODS } from "../constants/casePayment.constants";
 
+import { MESSAGES } from "../constants/messages.constants";
 import {
-  MESSAGES,
-} from "../constants/messages.constants";
+  cleanOptionalString,
+  MongoIdSchema,
+  normalizePersianDigits,
+} from "./commen.validator";
 
-const LANGUAGE =
-  env.LANGUAGE;
+const LANGUAGE = env.LANGUAGE;
 
 // ---------------- Helpers ----------------
 
-export const MongoIdSchema =
-  z
-    .string()
-    .trim()
-    .refine(
-      (
-        value
-      ) =>
-        Types.ObjectId.isValid(
-          value
-        ),
-      {
-        message:
-          MESSAGES
-            .invalidObjectId[
-            LANGUAGE
-          ],
-      }
-    );
+const normalizeMoneyInput = (value: string): string =>
+  normalizePersianDigits(value)
+    .replace(/[٬,\s]/g, "")
+    .replace(/ریال|تومان|ت/g, "")
+    .trim();
 
-const normalizeDigits =
-  (
-    value:
-      string
-  ): string =>
-    value
-      .replace(
-        /[۰-۹]/g,
-        (
-          digit
-        ) =>
-          String(
-            "۰۱۲۳۴۵۶۷۸۹"
-              .indexOf(
-                digit
-              )
-          )
-      )
-      .replace(
-        /[٠-٩]/g,
-        (
-          digit
-        ) =>
-          String(
-            "٠١٢٣٤٥٦٧٨٩"
-              .indexOf(
-                digit
-              )
-          )
-      );
-
-const normalizeMoneyInput =
-  (
-    value:
-      string
-  ): string =>
-    normalizeDigits(
-      value
-    )
-      .replace(
-        /[٬,\s]/g,
-        ""
-      )
-      .replace(
-        /ریال|تومان|ت/g,
-        ""
-      )
-      .trim();
-
-const MoneySchema =
-  z.preprocess(
-    (
-      value
-    ) => {
-      if (
-        typeof value !==
-        "string"
-      ) {
-        return value;
-      }
-
-      const normalized =
-        normalizeMoneyInput(
-          value
-        );
-
-      if (!normalized) {
-        return value;
-      }
-
-      const parsed =
-        Number(
-          normalized
-        );
-
-      return Number.isFinite(
-        parsed
-      )
-        ? parsed
-        : value;
-    },
-
-    z
-      .number()
-      .int()
-      .positive()
-  );
-
-const OptionalDescriptionSchema =
-  z.preprocess(
-    (
-      value
-    ) => {
-      if (
-        value ===
-          undefined ||
-        value ===
-          null
-      ) {
-        return undefined;
-      }
-
-      if (
-        typeof value ===
-        "string"
-      ) {
-        const trimmed =
-          value.trim();
-
-        return trimmed ===
-          ""
-          ? undefined
-          : trimmed;
-      }
-
+const MoneySchema = z.preprocess(
+  (value) => {
+    if (typeof value !== "string") {
       return value;
-    },
+    }
 
-    z
-      .string()
-      .max(
-        1000
-      )
-      .optional()
-  );
+    const normalized = normalizeMoneyInput(value);
 
-const OptionalDueDateSchema =
-  z.preprocess(
-    (
-      value
-    ) => {
-      if (
-        value ===
-          undefined ||
-        value ===
-          null ||
-        value ===
-          ""
-      ) {
-        return undefined;
-      }
-
+    if (!normalized) {
       return value;
-    },
+    }
 
-    z.coerce
-      .date()
-      .optional()
-  );
+    const parsed = Number(normalized);
+
+    return Number.isFinite(parsed) ? parsed : value;
+  },
+
+  z.number().int().positive(),
+);
+
+const OptionalDescriptionSchema = cleanOptionalString(1000);
+
+const OptionalDueDateSchema = z.preprocess(
+  (value) => {
+    if (value === undefined || value === null || value === "") {
+      return undefined;
+    }
+
+    return value;
+  },
+
+  z.coerce.date().optional(),
+);
 
 // ---------------- Method ----------------
 
-export const PaymentMethodSchema =
-  z.enum(
-    Object.values(
-      PAYMENT_METHODS
-    ) as [
-      "CASH",
-      "NON_CASH",
-    ]
-  );
+export const PaymentMethodSchema = z.enum(
+  Object.values(PAYMENT_METHODS) as ["CASH", "NON_CASH"],
+);
 
 // ---------------- Case Payment Input ----------------
 
-export const CasePaymentInputSchema =
-  z
-    .object({
-      paymentId:
-        MongoIdSchema
-          .optional(),
+export const CasePaymentInputSchema = z
+  .object({
+    paymentId: MongoIdSchema.optional(),
 
-      method:
-        PaymentMethodSchema,
+    method: PaymentMethodSchema,
 
-      amount:
-        MoneySchema,
+    amount: MoneySchema,
 
-      description:
-        OptionalDescriptionSchema,
+    description: OptionalDescriptionSchema,
 
-      dueDate:
-        OptionalDueDateSchema,
+    dueDate: OptionalDueDateSchema,
 
-      isPaid:
-        z.boolean(),
-    })
-    .strict()
-    .superRefine(
-      (
-        data,
-        context
-      ) => {
-        if (
-          data.method ===
-            PAYMENT_METHODS
-              .NON_CASH &&
-          !data.description
-        ) {
-          context.addIssue({
-            code:
-              "custom",
+    isPaid: z.boolean(),
+  })
+  .strict()
+  .superRefine((data, context) => {
+    if (data.method === PAYMENT_METHODS.NON_CASH && !data.description) {
+      context.addIssue({
+        code: "custom",
 
-            path: [
-              "description",
-            ],
+        path: ["description"],
 
-            message:
-              MESSAGES
-                .nonCashPaymentDescriptionRequired[
-                LANGUAGE
-              ],
-          });
-        }
-      }
-    );
+        message: MESSAGES.nonCashPaymentDescriptionRequired[LANGUAGE],
+      });
+    }
+  });
+
