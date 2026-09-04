@@ -171,16 +171,14 @@ export class UserRepository extends BaseRepository<User> {
       .exec();
   }
 
-  public findByRole(role: UserRole, options: AdminUserListOptions = {}) {
-    const page = options.page ?? 1;
-    const limit = options.limit ?? 20;
-    const skip = (page - 1) * limit;
+  public findByRole(role: UserRole, options: AdminUserListOptions) {
+    const skip = (options.page - 1) * options.limit;
 
     return this.model
       .find({ role })
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit)
+      .limit(options.limit)
       .lean<UserRecord[]>()
       .exec();
   }

@@ -1,6 +1,4 @@
 import { z } from "zod";
-import { AdminListUserQuerySchema } from "../validators/user.validator";
+import { AdminUserListQuerySchema } from "../validators/admin.validator";
 
-export type AdminUserListOptions = Partial<
-  z.output<typeof AdminListUserQuerySchema>
->;
+export type AdminUserListOptions = z.output<typeof AdminUserListQuerySchema>;

@@ -19,15 +19,14 @@ export class AdminService {
       this.userRepository.countByRole(role),
     ]);
 
-    const { page, limit } = AdminUserListQuerySchema.parse(options);
-
     return {
       items: users.map(toPublicUserDTO),
+
       pagination: {
-        page,
-        limit,
+        page: options.page,
+        limit: options.limit,
         total,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil(total / options.limit),
       },
     };
   }
