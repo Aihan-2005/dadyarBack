@@ -1,10 +1,7 @@
 import type { ClientSession } from "mongoose";
 
-import { DEFAULT_USER_STATUS } from "../constants/user.constants";
-
 import type {
   CreateUserData,
-  AdminUserListOptions,
   User,
   UserAccessContext,
   UserAuthRecord,
@@ -12,6 +9,9 @@ import type {
   UserRole,
 } from "../interfaces/user.interface";
 
+import type { AdminUserListOptions } from "../interfaces/admin.interface";
+
+import { DEFAULT_USER_STATUS } from "../constants/user.constants";
 import { UserModel } from "../models/user.model";
 
 import { BaseRepository } from "./base.repository";
