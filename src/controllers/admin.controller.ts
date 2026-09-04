@@ -12,38 +12,46 @@ export class AdminController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ) => {
-    const query = AdminUserListQuerySchema.parse(req.query);
+  ): Promise<Response | void> => {
+    try {
+      const query = AdminUserListQuerySchema.parse(req.query);
 
-    const result = await this.adminService.listUsersByRole("LAWYER", query);
+      const result = await this.adminService.listUsersByRole("LAWYER", query);
 
-    return res.status(200).json({
-      success: true,
-      data: result.items,
-      pagination: result.pagination,
-    });
+      return res.status(200).json({
+        success: true,
+        data: result.items,
+        pagination: result.pagination,
+      });
+    } catch (error) {
+      return next(error);
+    }
   };
 
   public getLawyer = async (
     req: Request,
     res: Response,
     next: NextFunction,
-  ) => {
-    const { id } = AdminUserIdParamSchema.parse(req.params);
+  ): Promise<Response | void> => {
+    try {
+      const { id } = AdminUserIdParamSchema.parse(req.params);
 
-    const user = await this.adminService.getUserByRole(id, "LAWYER");
+      const user = await this.adminService.getUserByRole(id, "LAWYER");
 
-    return res.status(200).json({
-      success: true,
-      data: user,
-    });
+      return res.status(200).json({
+        success: true,
+        data: user,
+      });
+    } catch (error) {
+      return next(error);
+    }
   };
 
   public listClients = async (
     req: Request,
     res: Response,
     next: NextFunction,
-  ) => {
+  ): Promise<Response | void> => {
     try {
       const query = AdminUserListQuerySchema.parse(req.query);
 
@@ -63,7 +71,7 @@ export class AdminController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ) => {
+  ): Promise<Response | void> => {
     try {
       const { id } = AdminUserIdParamSchema.parse(req.params);
 
