@@ -193,7 +193,7 @@ class TicketMessageController {
     try {
       const { id, messageId } = ParamTicketMessageIdSchema.parse(req.params);
 
-      const result =
+      const url =
         await this.ticketMessageService.getAttachmentDownloadUrlForAdmin(
           id,
           messageId,
@@ -201,7 +201,9 @@ class TicketMessageController {
 
       return res.status(200).json({
         success: true,
-        data: result,
+        data: {
+          url,
+        },
       });
     } catch (error) {
       return next(error);
