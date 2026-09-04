@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { AdminService } from "../services/admin.service";
 import {
+  AdminUpdateLawyerStatusSchema,
   AdminUserIdParamSchema,
   AdminUserListQuerySchema,
 } from "../validators/admin.validator";
@@ -36,11 +37,32 @@ export class AdminController {
     try {
       const { id } = AdminUserIdParamSchema.parse(req.params);
 
-      const user = await this.adminService.getUserByRole(id, "LAWYER");
+      const lawyer = await this.adminService.getLawyerById(id);
 
       return res.status(200).json({
         success: true,
-        data: user,
+        data: lawyer,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  public updateLawyerStatus = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<Response | void> => {
+    try {
+      const { id } = AdminUserIdParamSchema.parse(req.params);
+
+      const { status } = AdminUpdateLawyerStatusSchema.parse(req.body ?? {});
+
+      const lawyer = await this.adminService.updateLawyerStatus(id, status);
+
+      return res.status(200).json({
+        success: true,
+        data: lawyer,
       });
     } catch (error) {
       return next(error);

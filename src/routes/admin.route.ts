@@ -32,6 +32,11 @@ export class AdminRoute implements Route {
 
     this.router.get("/lawyers", this.adminController.listLawyers);
 
+    this.router.patch(
+      "/lawyers/:id/status",
+      this.adminController.updateLawyerStatus,
+    );
+
     this.router.get("/lawyers/:id", this.adminController.getLawyer);
 
     // ---------------- Clients ----------------

@@ -6,11 +6,21 @@ import { UserRepository } from "../repositories/user.repository";
 import { env } from "../config/env";
 import { MESSAGES } from "../constants/messages.constants";
 import { HttpException } from "../exceptions/httpException";
+import {
+  LAWYER_STATUSES,
+  type LawyerStatus,
+} from "../constants/lawyer.constants";
+
+import { toPublicLawyerDTO } from "../dtos/lawyer.dto";
+import { LawyerRepository } from "../repositories/lawyer.repository";
 
 const LANGUAGE = env.LANGUAGE;
 
 export class AdminService {
-  constructor(private readonly userRepository = new UserRepository()) {}
+  constructor(
+    private readonly userRepository = new UserRepository(),
+    private readonly lawyerRepository = new LawyerRepository(),
+  ) {}
 
   public async listUsersByRole(role: UserRole, options: AdminUserListOptions) {
     const [users, total] = await Promise.all([
@@ -44,5 +54,72 @@ export class AdminService {
     }
 
     return toPublicUserDTO(user);
+  }
+
+  public async getLawyerById(lawyerId: string) {
+    const [user, lawyer] = await Promise.all([
+      this.userRepository.findByIdAndRole(lawyerId, "LAWYER"),
+
+      this.lawyerRepository.findById(lawyerId),
+    ]);
+
+    if (!user || !lawyer) {
+      throw new HttpException(
+        404,
+        MESSAGES.noUserWithId[LANGUAGE],
+        "LAWYER_NOT_FOUND",
+      );
+    }
+
+    return toPublicLawyerDTO(lawyer, user);
+  }
+
+  public async updateLawyerStatus(lawyerId: string, status: LawyerStatus) {
+    const [user, lawyer] = await Promise.all([
+      this.userRepository.findByIdAndRole(lawyerId, "LAWYER"),
+
+      this.lawyerRepository.findById(lawyerId),
+    ]);
+
+    if (!user || !lawyer) {
+      throw new HttpException(
+        404,
+        MESSAGES.noUserWithId[LANGUAGE],
+        "LAWYER_NOT_FOUND",
+      );
+    }
+
+    let licenseVerifiedAt: Date | null | undefined;
+
+    switch (status) {
+      case LAWYER_STATUSES.ACTIVE:
+        licenseVerifiedAt = lawyer.licenseVerifiedAt ?? new Date();
+        break;
+
+      case LAWYER_STATUSES.PENDING_VERIFICATION:
+      case LAWYER_STATUSES.REJECTED:
+        licenseVerifiedAt = null;
+        break;
+
+      case LAWYER_STATUSES.SUSPENDED:
+        licenseVerifiedAt = undefined;
+        break;
+    }
+
+    const updatedLawyer = await this.lawyerRepository.updateStatusById(
+      lawyerId,
+      status,
+      licenseVerifiedAt,
+    );
+
+    if (!updatedLawyer) {
+      throw new HttpException(
+        404,
+        MESSAGES.noUserWithId[LANGUAGE],
+        "LAWYER_NOT_FOUND",
+      );
+    }
+
+    return toPublicLawyerDTO(updatedLawyer, user);
   }
 }

@@ -1,5 +1,8 @@
 import type { ClientSession, Types, UpdateQuery } from "mongoose";
-import { DEFAULT_LAWYER_STATUS } from "../constants/lawyer.constants";
+import {
+  DEFAULT_LAWYER_STATUS,
+  type LawyerStatus,
+} from "../constants/lawyer.constants";
 
 import type {
   CreateLawyerData,
@@ -100,6 +103,33 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
       })
       .select("firstName lastName specialization")
       .lean<LawyerRecord[]>()
+      .exec();
+  }
+
+  public updateStatusById(
+    id: string,
+    status: LawyerStatus,
+    licenseVerifiedAt?: Date | null,
+  ) {
+    const update: UpdateQuery<Lawyer> = {
+      $set: {
+        status,
+      },
+    };
+
+    if (licenseVerifiedAt !== undefined) {
+      update.$set = {
+        ...update.$set,
+        licenseVerifiedAt,
+      };
+    }
+
+    return this.model
+      .findByIdAndUpdate(this.toObjectId(id), update, {
+        new: true,
+        runValidators: true,
+      })
+      .lean<LawyerRecord>()
       .exec();
   }
 }
