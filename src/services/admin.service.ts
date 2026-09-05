@@ -1,11 +1,22 @@
-import { toPublicUserDTO } from "../dtos/user.dto";
+import mongoose from "mongoose";
 import type {
   AdminClientListOptions,
   AdminLawyerListOptions,
 } from "../interfaces/admin.interface";
+
 import type { UserRole, UserStatus } from "../interfaces/user.interface";
+
 import { UserRepository } from "../repositories/user.repository";
 
+import { LawyerRepository } from "../repositories/lawyer.repository";
+
+import { TicketRepository } from "../repositories/ticket.repository";
+
+import { TokenService } from "./token.service";
+
+import { PasswordUtils } from "../utils/password.util";
+
+import { toPublicUserDTO } from "../dtos/user.dto";
 import { env } from "../config/env";
 import { MESSAGES } from "../constants/messages.constants";
 import { HttpException } from "../exceptions/httpException";
@@ -14,14 +25,11 @@ import {
   type LawyerStatus,
 } from "../constants/lawyer.constants";
 
-import { LawyerRepository } from "../repositories/lawyer.repository";
-
 import {
   toAdminClientDTO,
   toAdminLawyerDTO,
   toAdminLawyerListItemDTO,
 } from "../dtos/admin.dto";
-import { TicketRepository } from "../repositories/ticket.repository";
 
 const LANGUAGE = env.LANGUAGE;
 
@@ -32,6 +40,10 @@ export class AdminService {
     private readonly lawyerRepository = new LawyerRepository(),
 
     private readonly ticketRepository = new TicketRepository(),
+
+    private readonly tokenService = new TokenService(),
+
+    private readonly passwordUtils = new PasswordUtils(),
   ) {}
 
   public async listClients(options: AdminClientListOptions) {
@@ -194,5 +206,38 @@ export class AdminService {
 
       tickets: ticketStats,
     };
+  }
+
+  public async resetUserPassword(
+    userId: string,
+    role: UserRole,
+    newPassword: string,
+  ): Promise<void> {
+    const hashedPassword = await this.passwordUtils.hashPassword(newPassword);
+
+    const session = await mongoose.startSession();
+
+    try {
+      await session.withTransaction(async () => {
+        const result = await this.userRepository.updatePasswordByIdAndRole(
+          userId,
+          role,
+          hashedPassword,
+          session,
+        );
+
+        if (result.matchedCount === 0) {
+          throw new HttpException(
+            404,
+            MESSAGES.noUserWithId[LANGUAGE],
+            "USER_NOT_FOUND",
+          );
+        }
+
+        await this.tokenService.revokeAllUserSessions(userId, session);
+      });
+    } finally {
+      await session.endSession();
+    }
   }
 }

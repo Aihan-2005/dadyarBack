@@ -3,6 +3,7 @@ import { AdminService } from "../services/admin.service";
 import {
   AdminClientListQuerySchema,
   AdminLawyerListQuerySchema,
+  AdminResetUserPasswordSchema,
   AdminUpdateLawyerStatusSchema,
   AdminUpdateUserStatusSchema,
   AdminUserIdParamSchema,
@@ -10,6 +11,22 @@ import {
 
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
+
+  private async resetUserPassword(
+    req: Request,
+    res: Response,
+    role: "LAWYER" | "CLIENT",
+  ): Promise<Response> {
+    const { id } = AdminUserIdParamSchema.parse(req.params);
+
+    const { newPassword } = AdminResetUserPasswordSchema.parse(req.body ?? {});
+
+    await this.adminService.resetUserPassword(id, role, newPassword);
+
+    return res.status(200).json({
+      success: true,
+    });
+  }
 
   public listLawyers = async (
     req: Request,
@@ -120,6 +137,18 @@ export class AdminController {
     }
   };
 
+  public resetLawyerPassword = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<Response | void> => {
+    try {
+      return await this.resetUserPassword(req, res, "LAWYER");
+    } catch (error) {
+      return next(error);
+    }
+  };
+
   public getClient = async (
     req: Request,
     res: Response,
@@ -159,6 +188,18 @@ export class AdminController {
         success: true,
         data: user,
       });
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  public resetClientPassword = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<Response | void> => {
+    try {
+      return await this.resetUserPassword(req, res, "CLIENT");
     } catch (error) {
       return next(error);
     }

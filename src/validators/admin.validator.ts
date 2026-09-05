@@ -3,7 +3,7 @@ import { z } from "zod";
 import { LAWYER_STATUSES } from "../constants/lawyer.constants";
 import { USER_STATUSES } from "../constants/user.constants";
 
-import { MongoIdSchema } from "./common.validator";
+import { MongoIdSchema, PasswordSchema } from "./common.validator";
 
 export const AdminUserListQuerySchema = z
   .object({
@@ -53,5 +53,11 @@ export const AdminUpdateLawyerStatusSchema = z
 export const AdminUpdateUserStatusSchema = z
   .object({
     status: z.enum(USER_STATUSES),
+  })
+  .strict();
+
+export const AdminResetUserPasswordSchema = z
+  .object({
+    newPassword: PasswordSchema,
   })
   .strict();

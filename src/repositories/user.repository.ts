@@ -322,4 +322,28 @@ export class UserRepository extends BaseRepository<User> {
       },
     };
   }
+
+  public updatePasswordByIdAndRole(
+    id: string,
+    role: UserRole,
+    password: string,
+    session?: ClientSession,
+  ) {
+    return this.model
+      .updateOne(
+        {
+          _id: this.toObjectId(id),
+          role,
+        },
+        {
+          $set: {
+            password,
+          },
+        },
+        {
+          session,
+        },
+      )
+      .exec();
+  }
 }

@@ -46,6 +46,11 @@ export class AdminRoute implements Route {
       this.adminController.updateLawyerAccountStatus,
     );
 
+    this.router.patch(
+      "/lawyers/:id/password",
+      this.adminController.resetLawyerPassword,
+    );
+
     this.router.get("/lawyers/:id", this.adminController.getLawyer);
 
     // ---------------- Clients ----------------
@@ -55,6 +60,11 @@ export class AdminRoute implements Route {
     this.router.patch(
       "/clients/:id/account-status",
       this.adminController.updateClientAccountStatus,
+    );
+
+    this.router.patch(
+      "/clients/:id/password",
+      this.adminController.resetClientPassword,
     );
 
     this.router.get("/clients/:id", this.adminController.getClient);
