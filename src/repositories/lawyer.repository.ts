@@ -1,5 +1,9 @@
 import type { ClientSession, Types, UpdateQuery } from "mongoose";
-import { DEFAULT_LAWYER_STATUS } from "../constants/lawyer.constants";
+import {
+  DEFAULT_LAWYER_STATUS,
+  LAWYER_STATUSES,
+  type LawyerStatus,
+} from "../constants/lawyer.constants";
 
 import type {
   CreateLawyerData,
@@ -7,8 +11,20 @@ import type {
   LawyerRecord,
 } from "../interfaces/lawyer.interface";
 
+import type {
+  AdminLawyerStats,
+  AdminLawyerStatusCount,
+} from "../interfaces/admin.interface";
+
 import LawyerModel from "../models/lawyer.model";
 import { BaseRepository } from "./base.repository";
+
+import type {
+  AdminLawyerListAggregateResult,
+  AdminLawyerListOptions,
+} from "../interfaces/admin.interface";
+
+import { UserModel } from "../models/user.model";
 
 export class LawyerRepository extends BaseRepository<Lawyer> {
   constructor() {
@@ -101,5 +117,194 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
       .select("firstName lastName specialization")
       .lean<LawyerRecord[]>()
       .exec();
+  }
+
+  public updateStatusById(
+    id: string,
+    status: LawyerStatus,
+    licenseVerifiedAt?: Date | null,
+  ) {
+    const update: UpdateQuery<Lawyer> = {
+      $set: {
+        status,
+      },
+    };
+
+    if (licenseVerifiedAt !== undefined) {
+      update.$set = {
+        ...update.$set,
+        licenseVerifiedAt,
+      };
+    }
+
+    return this.model
+      .findByIdAndUpdate(this.toObjectId(id), update, {
+        new: true,
+        runValidators: true,
+      })
+      .lean<LawyerRecord>()
+      .exec();
+  }
+
+  public async findForAdmin(options: AdminLawyerListOptions) {
+    const skip = (options.page - 1) * options.limit;
+
+    const match: Record<string, unknown> = {
+      "user.role": "LAWYER",
+    };
+
+    if (options.lawyerStatus) {
+      match.status = options.lawyerStatus;
+    }
+
+    if (options.accountStatus) {
+      match["user.status"] = options.accountStatus;
+    }
+
+    const search = options.search?.trim();
+
+    if (search) {
+      const pattern = this.escapeRegex(search);
+
+      const regex = new RegExp(pattern, "i");
+
+      match.$or = [
+        {
+          firstName: regex,
+        },
+
+        {
+          lastName: regex,
+        },
+
+        {
+          licenseNumber: regex,
+        },
+
+        {
+          specialization: regex,
+        },
+
+        {
+          "user.email": regex,
+        },
+
+        {
+          "user.phone": regex,
+        },
+
+        {
+          $expr: {
+            $regexMatch: {
+              input: {
+                $concat: ["$firstName", " ", "$lastName"],
+              },
+
+              regex: pattern,
+
+              options: "i",
+            },
+          },
+        },
+      ];
+    }
+
+    const [result] = await this.model
+      .aggregate<AdminLawyerListAggregateResult>([
+        {
+          $lookup: {
+            from: UserModel.collection.name,
+
+            localField: "_id",
+
+            foreignField: "_id",
+
+            as: "user",
+          },
+        },
+
+        {
+          $unwind: "$user",
+        },
+
+        {
+          $project: {
+            "user.password": 0,
+            "user.__v": 0,
+          },
+        },
+
+        {
+          $match: match,
+        },
+
+        {
+          $sort: {
+            createdAt: -1,
+          },
+        },
+
+        {
+          $facet: {
+            items: [
+              {
+                $skip: skip,
+              },
+
+              {
+                $limit: options.limit,
+              },
+            ],
+
+            total: [
+              {
+                $count: "count",
+              },
+            ],
+          },
+        },
+      ])
+      .exec();
+
+    const total = result?.total[0]?.count ?? 0;
+
+    return {
+      items: result?.items ?? [],
+
+      total,
+    };
+  }
+
+  public async getAdminDashboardStats(): Promise<AdminLawyerStats> {
+    const counts = await this.model
+      .aggregate<AdminLawyerStatusCount>([
+        {
+          $group: {
+            _id: "$status",
+
+            count: {
+              $sum: 1,
+            },
+          },
+        },
+      ])
+      .exec();
+
+    const getCount = (status: LawyerStatus): number =>
+      counts.find((item) => item._id === status)?.count ?? 0;
+
+    const statusCount: Record<string, number> = {};
+    let total = 0;
+
+    Object.values(LAWYER_STATUSES).forEach((status) => {
+      const count = getCount(status);
+      total += count;
+      statusCount[this.screamingSnakeToCamel(status)] = count;
+    });
+
+    return {
+      total,
+      ...statusCount,
+    } as AdminLawyerStats;
   }
 }

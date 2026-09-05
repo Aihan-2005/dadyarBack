@@ -1,9 +1,8 @@
 import App from "../src/app";
 
-import { env } from "../src/config/env";
 import { Database } from "../src/config/db";
 
-import type { Route } from "../src/interfaces/routes.interface";
+import type { Route } from "../src/interfaces/route.interface";
 
 import IndexRoute from "../src/routes/index.route";
 import LawyerRoute from "../src/routes/lawyer.route";
@@ -15,6 +14,7 @@ import { ApiDocsRoute } from "../src/routes/apiDocs.route";
 import NotificationRoute from "../src/routes/notification.route";
 import TicketRoute from "../src/routes/ticket.route";
 import ClientCaseRoute from "../src/routes/clientCase.route";
+import { AdminRoute } from "../src/routes/admin.route";
 
 const routes: Route[] = [
   new IndexRoute(),
@@ -26,11 +26,9 @@ const routes: Route[] = [
   new NotificationRoute(),
   new TicketRoute(),
   new ClientCaseRoute(),
+  new AdminRoute(),
+  new ApiDocsRoute(),
 ];
-
-if (env.ENABLE_API_DOCS) {
-  routes.push(new ApiDocsRoute());
-}
 
 const app = new App(routes);
 

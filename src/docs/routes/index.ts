@@ -6,3 +6,4 @@ import "./client.openapi";
 import "./finance.openapi";
 import "./ticket.openapi";
 import "./clientCase.openapi";
+import "./admin.openapi";

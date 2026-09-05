@@ -4,7 +4,7 @@ import CaseController from "../controllers/case.controller";
 
 import { CaseService } from "../services/case.service";
 
-import { Route } from "../interfaces/routes.interface";
+import { Route } from "../interfaces/route.interface";
 
 import requireAuth, { requireRole } from "../middlewares/auth.middleware";
 
@@ -151,4 +151,3 @@ class CaseRoute implements Route {
 }
 
 export default CaseRoute;
-

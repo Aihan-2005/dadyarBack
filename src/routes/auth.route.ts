@@ -10,7 +10,7 @@ import { OtpService } from "../services/otp.service";
 
 import { AuthController } from "../controllers/auth.controller";
 
-import type { Route } from "../interfaces/routes.interface";
+import type { Route } from "../interfaces/route.interface";
 
 import requireAuth from "../middlewares/auth.middleware";
 

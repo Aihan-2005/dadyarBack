@@ -12,4 +12,14 @@ export abstract class BaseRepository<T> {
 
     return new Types.ObjectId(id);
   }
+
+  protected escapeRegex(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  protected screamingSnakeToCamel(value: string): string {
+    return value
+      .toLowerCase()
+      .replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
+  }
 }

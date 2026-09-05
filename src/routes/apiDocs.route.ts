@@ -2,9 +2,13 @@ import { Router } from "express";
 
 import swaggerUi from "swagger-ui-express";
 
-import type { Route } from "../interfaces/routes.interface";
+import { env } from "../config/env";
 
 import { openApiDocument } from "../docs/openapi";
+
+import type { Route } from "../interfaces/route.interface";
+
+import { requireAuth, requireRole } from "../middlewares/auth.middleware";
 
 export class ApiDocsRoute implements Route {
   public path = "/docs";
@@ -16,15 +20,13 @@ export class ApiDocsRoute implements Route {
   }
 
   private initializeRoutes(): void {
+    this.initializeProtection();
+
     // ---------------- Raw OpenAPI JSON ----------------
 
-    this.router.get(
-      "/openapi.json",
-
-      (_req, res) => {
-        return res.status(200).json(openApiDocument);
-      },
-    );
+    this.router.get("/openapi.json", (_req, res) => {
+      return res.status(200).json(openApiDocument);
+    });
 
     // ---------------- Swagger UI ----------------
 
@@ -42,5 +44,13 @@ export class ApiDocsRoute implements Route {
         },
       }),
     );
+  }
+
+  private initializeProtection(): void {
+    if (env.ENABLE_API_DOCS) {
+      return;
+    }
+
+    this.router.use(requireAuth, requireRole("ADMIN"));
   }
 }

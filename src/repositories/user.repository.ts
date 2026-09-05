@@ -1,6 +1,4 @@
-import type { ClientSession } from "mongoose";
-
-import { DEFAULT_USER_STATUS } from "../constants/user.constants";
+import type { ClientSession, QueryFilter } from "mongoose";
 
 import type {
   CreateUserData,
@@ -8,8 +6,17 @@ import type {
   UserAccessContext,
   UserAuthRecord,
   UserRecord,
+  UserRole,
+  UserStatus,
 } from "../interfaces/user.interface";
 
+import type {
+  AdminAccountStats,
+  AdminClientListOptions,
+  AdminUserStatusCount,
+} from "../interfaces/admin.interface";
+
+import { DEFAULT_USER_STATUS } from "../constants/user.constants";
 import { UserModel } from "../models/user.model";
 
 import { BaseRepository } from "./base.repository";
@@ -17,6 +24,38 @@ import { BaseRepository } from "./base.repository";
 export class UserRepository extends BaseRepository<User> {
   constructor() {
     super(UserModel);
+  }
+
+  private buildAdminClientFilter(
+    options: AdminClientListOptions,
+  ): QueryFilter<User> {
+    const filter: QueryFilter<User> = {
+      role: "CLIENT",
+    };
+
+    if (options.accountStatus) {
+      filter.status = options.accountStatus;
+    }
+
+    const search = options.search?.trim();
+
+    if (search) {
+      const pattern = this.escapeRegex(search);
+
+      const regex = new RegExp(pattern, "i");
+
+      filter.$or = [
+        {
+          email: regex,
+        },
+
+        {
+          phone: regex,
+        },
+      ];
+    }
+
+    return filter;
   }
 
   public findById(id: string) {
@@ -166,6 +205,145 @@ export class UserRepository extends BaseRepository<User> {
         session,
       })
       .lean<UserRecord>()
+      .exec();
+  }
+
+  public findByIdAndRole(id: string, role: UserRole) {
+    return this.model
+      .findOne({
+        _id: this.toObjectId(id),
+        role,
+      })
+      .lean<UserRecord>()
+      .exec();
+  }
+
+  public updateStatusByIdAndRole(
+    id: string,
+    role: UserRole,
+    status: UserStatus,
+  ) {
+    return this.model
+      .findOneAndUpdate(
+        {
+          _id: this.toObjectId(id),
+          role,
+        },
+        {
+          $set: {
+            status,
+          },
+        },
+        {
+          new: true,
+          runValidators: true,
+        },
+      )
+      .lean<UserRecord>()
+      .exec();
+  }
+
+  public findClientsForAdmin(options: AdminClientListOptions) {
+    const skip = (options.page - 1) * options.limit;
+
+    const filter = this.buildAdminClientFilter(options);
+
+    return this.model
+      .find(filter)
+      .sort({
+        createdAt: -1,
+      })
+      .skip(skip)
+      .limit(options.limit)
+      .lean<UserRecord[]>()
+      .exec();
+  }
+
+  public countClientsForAdmin(options: AdminClientListOptions) {
+    const filter = this.buildAdminClientFilter(options);
+
+    return this.model.countDocuments(filter).exec();
+  }
+
+  public async getAdminDashboardStats(): Promise<AdminAccountStats> {
+    const counts = await this.model
+      .aggregate<AdminUserStatusCount>([
+        {
+          $match: {
+            role: {
+              $in: ["CLIENT", "LAWYER"],
+            },
+          },
+        },
+
+        {
+          $group: {
+            _id: {
+              role: "$role",
+              status: "$status",
+            },
+
+            count: {
+              $sum: 1,
+            },
+          },
+        },
+      ])
+      .exec();
+
+    const getCount = (role: UserRole, status: UserStatus): number =>
+      counts.find(
+        (item) => item._id.role === role && item._id.status === status,
+      )?.count ?? 0;
+
+    const activeClients = getCount("CLIENT", "ACTIVE");
+
+    const suspendedClients = getCount("CLIENT", "SUSPENDED");
+
+    const activeLawyers = getCount("LAWYER", "ACTIVE");
+
+    const suspendedLawyers = getCount("LAWYER", "SUSPENDED");
+
+    return {
+      clients: {
+        total: activeClients + suspendedClients,
+
+        active: activeClients,
+
+        suspended: suspendedClients,
+      },
+
+      lawyers: {
+        total: activeLawyers + suspendedLawyers,
+
+        active: activeLawyers,
+
+        suspended: suspendedLawyers,
+      },
+    };
+  }
+
+  public updatePasswordByIdAndRole(
+    id: string,
+    role: UserRole,
+    password: string,
+    session?: ClientSession,
+  ) {
+    return this.model
+      .updateOne(
+        {
+          _id: this.toObjectId(id),
+          role,
+        },
+        {
+          $set: {
+            password,
+          },
+        },
+        {
+          session,
+        },
+      )
       .exec();
   }
 }

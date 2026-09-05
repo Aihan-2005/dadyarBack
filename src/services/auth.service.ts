@@ -1,5 +1,3 @@
-import bcrypt from "bcrypt";
-
 import { env } from "../config/env";
 
 import type {
@@ -36,12 +34,11 @@ import { LawyerClientRepository } from "../repositories/lawyerClient.repository"
 import { UserRecord, UserRole, UserStatus } from "../interfaces/user.interface";
 import { LawyerRecord } from "../interfaces/lawyer.interface";
 import { toPublicUserDTO } from "../dtos/user.dto";
+import { PasswordUtils } from "../utils/password.util";
 
 const LANGUAGE = env.LANGUAGE;
 
 export class AuthService {
-  private readonly tokenService = new TokenService();
-
   constructor(
     private readonly userRepo: UserRepository,
 
@@ -50,6 +47,10 @@ export class AuthService {
     private readonly lawyerClientRepo: LawyerClientRepository,
 
     private readonly otpService: OtpService,
+
+    private readonly tokenService = new TokenService(),
+
+    private readonly passwordUtils = new PasswordUtils(),
   ) {}
 
   private normalizeEmail(email?: string | null): string | undefined {
@@ -58,14 +59,6 @@ export class AuthService {
 
   private normalizePhone(phone?: string | null): string | undefined {
     return phone?.trim();
-  }
-
-  private hashPassword(password: string) {
-    return bcrypt.hash(password, 12);
-  }
-
-  private comparePassword(plainPassword: string, hashedPassword: string) {
-    return bcrypt.compare(plainPassword, hashedPassword);
   }
 
   private assertUserCanAuthenticate(user: { status: UserStatus }): void {
@@ -312,7 +305,9 @@ export class AuthService {
   public async signup(input: SignupInput) {
     await this.ensureUserDoesNotExist(input);
 
-    const hashedPassword = await this.hashPassword(input.password);
+    const hashedPassword = await this.passwordUtils.hashPassword(
+      input.password,
+    );
 
     const session = await mongoose.startSession();
 
@@ -395,7 +390,7 @@ export class AuthService {
       );
     }
 
-    const passwordMatches = await this.comparePassword(
+    const passwordMatches = await this.passwordUtils.comparePassword(
       input.password,
       authUser.password,
     );
@@ -529,7 +524,9 @@ export class AuthService {
       code: input.code,
     });
 
-    const hashedPassword = await this.hashPassword(input.newPassword);
+    const hashedPassword = await this.passwordUtils.hashPassword(
+      input.newPassword,
+    );
 
     const session = await mongoose.startSession();
 
@@ -634,7 +631,9 @@ export class AuthService {
         "PHONE_ALREADY_EXISTS",
       );
     }
-    const hashedPassword = await this.hashPassword(input.password);
+    const hashedPassword = await this.passwordUtils.hashPassword(
+      input.password,
+    );
 
     const phoneVerifiedAt = new Date();
 
