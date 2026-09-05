@@ -299,7 +299,7 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
     Object.values(LAWYER_STATUSES).forEach((status) => {
       const count = getCount(status);
       total += count;
-      statusCount[status.toLowerCase()] = count;
+      statusCount[this.screamingSnakeToCamel(status)] = count;
     });
 
     return {

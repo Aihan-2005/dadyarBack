@@ -120,7 +120,7 @@ export class TicketRepository extends BaseRepository<Ticket> {
     TICKET_STATUSES.forEach((status) => {
       const count = getCount(status);
       total += count;
-      statusCount[status.toLowerCase()] = count;
+      statusCount[this.screamingSnakeToCamel(status)] = count;
     });
 
     return {
