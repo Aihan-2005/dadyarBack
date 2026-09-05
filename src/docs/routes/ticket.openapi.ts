@@ -432,3 +432,71 @@ The returned S3 URL currently expires after 600 seconds.
     500: serverErrorResponse,
   },
 });
+
+// ========================================================
+// PATCH /tickets/{id}/close
+// ========================================================
+
+openApiRegistry.registerPath({
+  method: "patch",
+
+  path: "/tickets/{id}/close",
+
+  operationId: "closeTicket",
+
+  tags: ["Tickets"],
+
+  summary: "Close a support ticket",
+
+  description: `
+Closes a support ticket belonging to the authenticated lawyer.
+
+The authenticated lawyer must own the ticket.
+
+The operation sets:
+
+\`status = CLOSED\`
+
+Lawyers cannot use this endpoint to assign arbitrary ticket statuses such as:
+
+- \`IN_PROGRESS\`
+- \`WAITING_FOR_LAWYER\`
+- \`RESOLVED\`
+
+Those status-management operations remain an administrative responsibility.
+
+Closing is idempotent. Calling the endpoint for an already-closed ticket still leaves the ticket in \`CLOSED\` state.
+
+After a ticket is closed, neither the lawyer nor an administrator can add additional ticket messages through the existing message endpoints.
+`,
+
+  security: [
+    {
+      bearerAuth: [],
+    },
+  ],
+
+  request: {
+    params: ParamTicketIdSchema,
+  },
+
+  responses: {
+    200: {
+      description: "Ticket closed successfully.",
+
+      content: {
+        "application/json": {
+          schema: TicketSuccessSchema,
+        },
+      },
+    },
+
+    400: badRequestResponse,
+
+    401: unauthorizedResponse,
+
+    404: notFoundResponse,
+
+    500: serverErrorResponse,
+  },
+});

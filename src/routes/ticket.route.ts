@@ -50,6 +50,8 @@ class TicketRoute implements Route {
       this.ticketMessageController.addMessage,
     );
 
+    this.router.patch("/:id/close", this.ticketController.closeTicket);
+
     this.router.get("/:id", this.ticketController.getTicket);
   }
 }

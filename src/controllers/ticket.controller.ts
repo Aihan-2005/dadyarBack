@@ -121,6 +121,27 @@ class TicketController {
     }
   };
 
+  public closeTicket = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<Response | void> => {
+    try {
+      const lawyerId = this.getLawyerId(req);
+
+      const { id } = ParamTicketIdSchema.parse(req.params);
+
+      const ticket = await this.ticketService.closeTicket(lawyerId, id);
+
+      return res.status(200).json({
+        success: true,
+        data: ticket,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  };
+
   public listTicketsForAdmin = async (
     _req: Request,
     res: Response,
