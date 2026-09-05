@@ -1,6 +1,5 @@
 import App from "../src/app";
 
-import { env } from "../src/config/env";
 import { Database } from "../src/config/db";
 
 import type { Route } from "../src/interfaces/route.interface";
@@ -28,11 +27,8 @@ const routes: Route[] = [
   new TicketRoute(),
   new ClientCaseRoute(),
   new AdminRoute(),
+  new ApiDocsRoute(),
 ];
-
-if (env.ENABLE_API_DOCS) {
-  routes.push(new ApiDocsRoute());
-}
 
 const app = new App(routes);
 

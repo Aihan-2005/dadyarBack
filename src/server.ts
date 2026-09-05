@@ -82,11 +82,8 @@ async function bootstrap(): Promise<void> {
       new TicketRoute(),
       new ClientCaseRoute(),
       new AdminRoute(),
+      new ApiDocsRoute(),
     ];
-
-    if (env.ENABLE_API_DOCS) {
-      routes.push(new ApiDocsRoute());
-    }
 
     const app = new App(routes);
 
