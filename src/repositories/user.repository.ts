@@ -10,7 +10,11 @@ import type {
   UserStatus,
 } from "../interfaces/user.interface";
 
-import type { AdminClientListOptions } from "../interfaces/admin.interface";
+import type {
+  AdminAccountStats,
+  AdminClientListOptions,
+  AdminUserStatusCount,
+} from "../interfaces/admin.interface";
 
 import { DEFAULT_USER_STATUS } from "../constants/user.constants";
 import { UserModel } from "../models/user.model";
@@ -259,5 +263,63 @@ export class UserRepository extends BaseRepository<User> {
     const filter = this.buildAdminClientFilter(options);
 
     return this.model.countDocuments(filter).exec();
+  }
+
+  public async getAdminDashboardStats(): Promise<AdminAccountStats> {
+    const counts = await this.model
+      .aggregate<AdminUserStatusCount>([
+        {
+          $match: {
+            role: {
+              $in: ["CLIENT", "LAWYER"],
+            },
+          },
+        },
+
+        {
+          $group: {
+            _id: {
+              role: "$role",
+              status: "$status",
+            },
+
+            count: {
+              $sum: 1,
+            },
+          },
+        },
+      ])
+      .exec();
+
+    const getCount = (role: UserRole, status: UserStatus): number =>
+      counts.find(
+        (item) => item._id.role === role && item._id.status === status,
+      )?.count ?? 0;
+
+    const activeClients = getCount("CLIENT", "ACTIVE");
+
+    const suspendedClients = getCount("CLIENT", "SUSPENDED");
+
+    const activeLawyers = getCount("LAWYER", "ACTIVE");
+
+    const suspendedLawyers = getCount("LAWYER", "SUSPENDED");
+
+    return {
+      clients: {
+        total: activeClients + suspendedClients,
+
+        active: activeClients,
+
+        suspended: suspendedClients,
+      },
+
+      lawyers: {
+        total: activeLawyers + suspendedLawyers,
+
+        active: activeLawyers,
+
+        suspended: suspendedLawyers,
+      },
+    };
   }
 }

@@ -163,4 +163,21 @@ export class AdminController {
       return next(error);
     }
   };
+
+  public getDashboard = async (
+    _req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<Response | void> => {
+    try {
+      const dashboard = await this.adminService.getDashboard();
+
+      return res.status(200).json({
+        success: true,
+        data: dashboard,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  };
 }

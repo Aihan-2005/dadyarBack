@@ -1,6 +1,7 @@
 import type { ClientSession, Types, UpdateQuery } from "mongoose";
 import {
   DEFAULT_LAWYER_STATUS,
+  LAWYER_STATUSES,
   type LawyerStatus,
 } from "../constants/lawyer.constants";
 
@@ -9,6 +10,11 @@ import type {
   Lawyer,
   LawyerRecord,
 } from "../interfaces/lawyer.interface";
+
+import type {
+  AdminLawyerStats,
+  AdminLawyerStatusCount,
+} from "../interfaces/admin.interface";
 
 import LawyerModel from "../models/lawyer.model";
 import { BaseRepository } from "./base.repository";
@@ -267,5 +273,38 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
 
       total,
     };
+  }
+
+  public async getAdminDashboardStats(): Promise<AdminLawyerStats> {
+    const counts = await this.model
+      .aggregate<AdminLawyerStatusCount>([
+        {
+          $group: {
+            _id: "$status",
+
+            count: {
+              $sum: 1,
+            },
+          },
+        },
+      ])
+      .exec();
+
+    const getCount = (status: LawyerStatus): number =>
+      counts.find((item) => item._id === status)?.count ?? 0;
+
+    const statusCount: Record<string, number> = {};
+    let total = 0;
+
+    Object.values(LAWYER_STATUSES).forEach((status) => {
+      const count = getCount(status);
+      total += count;
+      statusCount[status.toLowerCase()] = count;
+    });
+
+    return {
+      total,
+      ...statusCount,
+    } as AdminLawyerStats;
   }
 }

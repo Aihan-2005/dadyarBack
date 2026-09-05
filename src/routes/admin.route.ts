@@ -28,6 +28,10 @@ export class AdminRoute implements Route {
   private initializeRoutes(): void {
     this.router.use(requireAuth, requireRole("ADMIN"));
 
+    // ---------------- Dashboard ----------------
+
+    this.router.get("/dashboard", this.adminController.getDashboard);
+
     // ---------------- Lawyers ----------------
 
     this.router.get("/lawyers", this.adminController.listLawyers);

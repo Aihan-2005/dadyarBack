@@ -21,13 +21,17 @@ import {
   toAdminLawyerDTO,
   toAdminLawyerListItemDTO,
 } from "../dtos/admin.dto";
+import { TicketRepository } from "../repositories/ticket.repository";
 
 const LANGUAGE = env.LANGUAGE;
 
 export class AdminService {
   constructor(
     private readonly userRepository = new UserRepository(),
+
     private readonly lawyerRepository = new LawyerRepository(),
+
+    private readonly ticketRepository = new TicketRepository(),
   ) {}
 
   public async listClients(options: AdminClientListOptions) {
@@ -172,5 +176,23 @@ export class AdminService {
     }
 
     return toAdminClientDTO(client);
+  }
+
+  public async getDashboard() {
+    const [accountStats, lawyerStats, ticketStats] = await Promise.all([
+      this.userRepository.getAdminDashboardStats(),
+
+      this.lawyerRepository.getAdminDashboardStats(),
+
+      this.ticketRepository.getAdminDashboardStats(),
+    ]);
+
+    return {
+      accounts: accountStats,
+
+      lawyerProfiles: lawyerStats,
+
+      tickets: ticketStats,
+    };
   }
 }

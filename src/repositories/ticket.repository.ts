@@ -1,6 +1,14 @@
 import type { ClientSession } from "mongoose";
 import type { CreateTicketData, Ticket } from "../interfaces/ticket.interface";
-import type { TicketStatus } from "../constants/ticket.constants";
+import {
+  TICKET_STATUSES,
+  type TicketStatus,
+} from "../constants/ticket.constants";
+
+import type {
+  AdminTicketStats,
+  AdminTicketStatusCount,
+} from "../interfaces/admin.interface";
 
 import { TicketModel } from "../models/ticket.model";
 
@@ -86,5 +94,38 @@ export class TicketRepository extends BaseRepository<Ticket> {
     });
 
     return ticket;
+  }
+
+  public async getAdminDashboardStats(): Promise<AdminTicketStats> {
+    const counts = await this.model
+      .aggregate<AdminTicketStatusCount>([
+        {
+          $group: {
+            _id: "$status",
+
+            count: {
+              $sum: 1,
+            },
+          },
+        },
+      ])
+      .exec();
+
+    const getCount = (status: TicketStatus): number =>
+      counts.find((item) => item._id === status)?.count ?? 0;
+
+    const statusCount: Record<string, number> = {};
+    let total = 0;
+
+    TICKET_STATUSES.forEach((status) => {
+      const count = getCount(status);
+      total += count;
+      statusCount[status.toLowerCase()] = count;
+    });
+
+    return {
+      total,
+      ...statusCount,
+    } as AdminTicketStats;
   }
 }
