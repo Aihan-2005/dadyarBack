@@ -128,4 +128,26 @@ export class TicketRepository extends BaseRepository<Ticket> {
       ...statusCount,
     } as AdminTicketStats;
   }
+
+  public closeForLawyer(lawyerId: string, ticketId: string) {
+    return this.model
+      .findOneAndUpdate(
+        {
+          _id: this.toObjectId(ticketId),
+
+          lawyerId: this.toObjectId(lawyerId),
+        },
+        {
+          $set: {
+            status: "CLOSED",
+          },
+        },
+        {
+          new: true,
+          runValidators: true,
+        },
+      )
+      .lean()
+      .exec();
+  }
 }

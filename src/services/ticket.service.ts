@@ -70,8 +70,7 @@ export class TicketService {
     const session = await mongoose.startSession();
 
     let uploadedAttachment:
-      | Awaited<ReturnType<AttachmentService["uploadAttachment"]>>
-      | undefined;
+      Awaited<ReturnType<AttachmentService["uploadAttachment"]>> | undefined;
 
     try {
       if (attachment) {
@@ -142,6 +141,23 @@ export class TicketService {
 
   public getTicket(lawyerId: string, ticketId: string) {
     return this.ensureTicketBelongsToLawyer(lawyerId, ticketId);
+  }
+
+  public async closeTicket(lawyerId: string, ticketId: string) {
+    const ticket = await this.ticketRepository.closeForLawyer(
+      lawyerId,
+      ticketId,
+    );
+
+    if (!ticket) {
+      throw new HttpException(
+        404,
+        MESSAGES.ticketNotFound[LANGUAGE],
+        "TICKET_NOT_FOUND",
+      );
+    }
+
+    return ticket;
   }
 
   // ---------------------------- ADMIN ---------------------------------
