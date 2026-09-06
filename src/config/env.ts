@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 import { z } from "zod";
+import { SMS_PROVIDERS, SmsProviderName } from "../constants/sms.constants";
 
 dotenv.config();
 
@@ -128,6 +129,14 @@ const envSchema = z.object({
   S3_ACCESS_KEY: z.string().trim().min(1),
 
   S3_SECRET_KEY: z.string().trim().min(1),
+
+  SMS_PROVIDER: z.enum(Object.values(SMS_PROVIDERS)).default("MELIPAYAMAK"),
+
+  MELIPAYAMAK_USERNAME: z.string().trim().min(1).optional(),
+
+  MELIPAYAMAK_PASSWORD: z.string().trim().min(1).optional(),
+
+  MELIPAYAMAK_OTP_BODY_ID: z.coerce.number().int().positive().optional(),
 });
 
 class Env {
@@ -198,6 +207,14 @@ class Env {
   public readonly S3_ACCESS_KEY: string;
 
   public readonly S3_SECRET_KEY: string;
+
+  public readonly SMS_PROVIDER: SmsProviderName;
+
+  public readonly MELIPAYAMAK_USERNAME: string | undefined;
+
+  public readonly MELIPAYAMAK_PASSWORD: string | undefined;
+
+  public readonly MELIPAYAMAK_OTP_BODY_ID: number | undefined;
 
   constructor(processEnv = process.env) {
     const parsed = envSchema.safeParse(processEnv);
@@ -279,6 +296,14 @@ class Env {
     this.S3_ACCESS_KEY = data.S3_ACCESS_KEY;
 
     this.S3_SECRET_KEY = data.S3_SECRET_KEY;
+
+    this.SMS_PROVIDER = data.SMS_PROVIDER;
+
+    this.MELIPAYAMAK_USERNAME = data.MELIPAYAMAK_USERNAME;
+
+    this.MELIPAYAMAK_PASSWORD = data.MELIPAYAMAK_PASSWORD;
+
+    this.MELIPAYAMAK_OTP_BODY_ID = data.MELIPAYAMAK_OTP_BODY_ID;
   }
 }
 

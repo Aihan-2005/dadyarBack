@@ -35,6 +35,7 @@ import { EmailService } from "../services/email.service";
 import { OtpDeliveryService } from "../services/otpDelivery.service";
 import { UserRepository } from "../repositories/user.repository";
 import { LawyerClientRepository } from "../repositories/lawyerClient.repository";
+import { createSmsProvider } from "../providers/sms/smsProvider.factory";
 
 class AuthRoute implements Route {
   public readonly path = "/auth";
@@ -50,7 +51,9 @@ class AuthRoute implements Route {
 
     const otpCooldownStore = new RedisOtpCooldownStore(redisDatabase);
 
-    const smsService = new SmsService();
+    const smsProvider = createSmsProvider();
+
+    const smsService = new SmsService(smsProvider);
 
     const emailService = new EmailService();
 
