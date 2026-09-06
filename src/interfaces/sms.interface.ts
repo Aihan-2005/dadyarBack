@@ -1,20 +1,15 @@
-export interface SmsTemplateParameter {
-  name: string;
-  value: string;
-}
+import type { SmsProviderName } from "../constants/sms.constants";
 
-export interface SendTemplateSmsInput {
+export interface SendOtpSmsInput {
   phone: string;
 
-  templateId: number;
-
-  parameters: ReadonlyArray<SmsTemplateParameter>;
+  code: string;
 }
 
 export interface SmsSendResult {
-  provider: "SMS_IR";
+  provider: SmsProviderName;
 
-  messageId: number;
+  messageId: string;
 
-  cost: number;
+  cost?: number;
 }

@@ -1,10 +1,10 @@
 import type {
-  SendTemplateSmsInput,
+  SendOtpSmsInput,
   SmsSendResult,
 } from "../../interfaces/sms.interface";
 
 export interface SmsProvider {
   isAvailable(): boolean;
 
-  sendTemplate(input: SendTemplateSmsInput): Promise<SmsSendResult>;
+  sendOtp(input: SendOtpSmsInput): Promise<SmsSendResult>;
 }

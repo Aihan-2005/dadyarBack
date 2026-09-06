@@ -1,7 +1,5 @@
 import { HttpException } from "../exceptions/httpException";
 
-import { env } from "../config/env";
-
 import type {
   OtpDelivery,
   SendOtpDeliveryInput,
@@ -28,18 +26,10 @@ export class OtpDeliveryService implements OtpDelivery {
         );
       }
 
-      await this.smsService.sendTemplate({
+      await this.smsService.sendOtp({
         phone: input.destination,
 
-        templateId: env.SMSIR_OTP_TEMPLATE_ID!,
-
-        parameters: [
-          {
-            name: "Code",
-
-            value: input.code,
-          },
-        ],
+        code: input.code,
       });
 
       return;

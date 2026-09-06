@@ -5,7 +5,7 @@ import { env } from "../../config/env";
 import { SmsProviderException } from "../../exceptions/smsProvider.exception";
 
 import type {
-  SendTemplateSmsInput,
+  SendOtpSmsInput,
   SmsSendResult,
 } from "../../interfaces/sms.interface";
 
@@ -16,6 +16,9 @@ export class SmsIrProvider implements SmsProvider {
 
   constructor(
     private readonly apiKey: string | undefined = env.SMSIR_API_KEY,
+
+    private readonly otpTemplateId:
+      number | undefined = env.SMSIR_OTP_TEMPLATE_ID,
   ) {}
 
   private getClient(): Smsir {
@@ -36,23 +39,29 @@ export class SmsIrProvider implements SmsProvider {
   }
 
   public isAvailable(): boolean {
-    return Boolean(this.apiKey);
+    return Boolean(this.apiKey && this.otpTemplateId);
   }
 
-  public async sendTemplate(
-    input: SendTemplateSmsInput,
-  ): Promise<SmsSendResult> {
+  public async sendOtp(input: SendOtpSmsInput): Promise<SmsSendResult> {
     try {
+      if (!this.otpTemplateId) {
+        throw new SmsProviderException(
+          "SMS.ir OTP template is not configured",
+          "SMS_IR",
+        );
+      }
+
       const client = this.getClient();
 
       const response = await client.SendVerifyCode(
         input.phone,
-        input.templateId,
-        input.parameters.map((parameter) => ({
-          name: parameter.name,
-
-          value: parameter.value,
-        })),
+        this.otpTemplateId,
+        [
+          {
+            name: "Code",
+            value: input.code,
+          },
+        ],
       );
 
       const payload = response.data;
@@ -69,9 +78,9 @@ export class SmsIrProvider implements SmsProvider {
       return {
         provider: "SMS_IR",
 
-        messageId,
+        messageId: messageId.toString(),
 
-        cost: payload.data?.cost ?? 0,
+        cost: payload.data?.cost,
       };
     } catch (error) {
       if (error instanceof SmsProviderException) {
