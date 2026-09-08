@@ -6,6 +6,7 @@ import {
 } from "../constants/ticket.constants";
 
 import type {
+  AdminTicketListRecord,
   AdminTicketStats,
   AdminTicketStatusCount,
 } from "../interfaces/admin.interface";
@@ -13,6 +14,7 @@ import type {
 import { TicketModel } from "../models/ticket.model";
 
 import { BaseRepository } from "./base.repository";
+import { TicketMessageModel } from "../models/ticketMessage.model";
 
 export class TicketRepository extends BaseRepository<Ticket> {
   constructor() {
@@ -44,11 +46,59 @@ export class TicketRepository extends BaseRepository<Ticket> {
 
   public findAll() {
     return this.model
-      .find()
-      .sort({
-        createdAt: -1,
-      })
-      .lean()
+      .aggregate<AdminTicketListRecord>([
+        {
+          $lookup: {
+            from: TicketMessageModel.collection.name,
+
+            let: {
+              ticketId: "$_id",
+            },
+
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $eq: ["$ticketId", "$$ticketId"],
+                  },
+                },
+              },
+
+              {
+                $count: "count",
+              },
+            ],
+
+            as: "messageStats",
+          },
+        },
+
+        {
+          $addFields: {
+            messageCount: {
+              $ifNull: [
+                {
+                  $arrayElemAt: ["$messageStats.count", 0],
+                },
+
+                0,
+              ],
+            },
+          },
+        },
+
+        {
+          $project: {
+            messageStats: 0,
+          },
+        },
+
+        {
+          $sort: {
+            createdAt: -1,
+          },
+        },
+      ])
       .exec();
   }
 

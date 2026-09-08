@@ -75,6 +75,24 @@ export const TicketResponseSchema = openApiRegistry.register(
   }),
 );
 
+export const AdminTicketListItemResponseSchema = openApiRegistry.register(
+  "AdminTicketListItemResponse",
+
+  TicketResponseSchema.extend({
+    messageCount: z.number().int().nonnegative(),
+  }),
+);
+
+export const AdminTicketListSuccessSchema = openApiRegistry.register(
+  "AdminTicketListSuccess",
+
+  z.object({
+    success: z.literal(true),
+
+    data: z.array(AdminTicketListItemResponseSchema),
+  }),
+);
+
 export const TicketSuccessSchema = openApiRegistry.register(
   "TicketSuccess",
   z.object({

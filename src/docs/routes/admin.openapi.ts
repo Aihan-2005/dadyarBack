@@ -14,7 +14,7 @@ import {
 import {
   CreateTicketMessageMultipartSchema,
   TicketAttachmentUrlSuccessSchema,
-  TicketListSuccessSchema,
+  AdminTicketListSuccessSchema,
   TicketMessageListSuccessSchema,
   TicketMessageSuccessSchema,
   TicketSuccessSchema,
@@ -1088,6 +1088,12 @@ openApiRegistry.registerPath({
   description: `
 Returns all support tickets across all lawyers.
 
+Each ticket additionally includes:
+
+- \`messageCount\` — total number of messages currently associated with the ticket.
+
+The ticket's original description is persisted as the first LAWYER message and is therefore included in this count.
+
 Unlike the lawyer-facing:
 
 \`GET /tickets\`
@@ -1109,7 +1115,7 @@ The current admin ticket list is not paginated.
 
       content: {
         "application/json": {
-          schema: TicketListSuccessSchema,
+          schema: AdminTicketListSuccessSchema,
         },
       },
     },
