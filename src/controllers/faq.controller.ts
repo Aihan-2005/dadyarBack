@@ -28,18 +28,23 @@ export class FAQController {
     }
   };
 
-  public listFAQ = async (req: Request, res: Response, next: NextFunction) => {
+  public listFAQ = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<Response | void> => {
     try {
-      const searchOptions = ListFAQSchema.parse(req.body ?? {});
+      const searchOptions = ListFAQSchema.parse(req.query);
 
-      const questions = await this.service.listFAQ(searchOptions);
+      const result = await this.service.listFAQ(searchOptions);
 
-      res.status(200).json({
+      return res.status(200).json({
         success: true,
-        data: questions,
+        data: result.items,
+        pagination: result.pagination,
       });
     } catch (error) {
-      next(error);
+      return next(error);
     }
   };
 

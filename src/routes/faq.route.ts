@@ -21,7 +21,7 @@ export class FAQRoute implements Route {
       requireRole("ADMIN"),
       this.controller.createFAQ,
     );
-    this.router.post(
+    this.router.delete(
       "/:id",
       requireAuth,
       requireRole("ADMIN"),

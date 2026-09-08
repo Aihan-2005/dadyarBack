@@ -11,6 +11,31 @@ export class FAQRepository extends BaseRepository<FAQ> {
     super(FAQModel);
   }
 
+  private buildListQuery(options: ListFAQOptions) {
+    const search = this.escapeRegex(options.search ?? "");
+
+    if (!search) {
+      return {};
+    }
+
+    return {
+      $or: [
+        {
+          question: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+        {
+          answer: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+      ],
+    };
+  }
+
   public create(data: CreateFAQInput) {
     return this.model.create(data);
   }
@@ -25,18 +50,12 @@ export class FAQRepository extends BaseRepository<FAQ> {
   }
 
   public listFAQ(options: ListFAQOptions) {
-    const search = this.escapeRegex(options.search || "");
+    const query = this.buildListQuery(options);
 
-    const query = {
-      $or: [
-        { question: { $regex: search, $options: "i" } },
-        { answer: { $regex: search, $options: "i" } },
-      ],
-    };
     const skip = (options.page - 1) * options.limit;
 
     return this.model
-      .find(search ? query : {})
+      .find(query)
       .sort({
         updatedAt: -1,
       })
@@ -44,5 +63,11 @@ export class FAQRepository extends BaseRepository<FAQ> {
       .limit(options.limit)
       .lean<FAQ[]>()
       .exec();
+  }
+
+  public countFAQ(options: ListFAQOptions) {
+    const query = this.buildListQuery(options);
+
+    return this.model.countDocuments(query).exec();
   }
 }
