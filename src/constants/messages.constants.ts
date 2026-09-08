@@ -408,4 +408,9 @@ export const MESSAGES = {
     en: "This ticket message does not have an attachment",
     fa: "این پیام تیکت فایل پیوست ندارد",
   },
+
+  faqNotFound: {
+    en: "FAQ was not found",
+    fa: "سوال متداول موردنظر یافت نشد",
+  },
 };
