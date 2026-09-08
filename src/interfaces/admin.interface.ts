@@ -12,6 +12,7 @@ import type { LawyerStatus } from "../constants/lawyer.constants";
 import type { TicketStatus } from "../constants/ticket.constants";
 
 import type { UserRole, UserStatus } from "./user.interface";
+import type { Ticket } from "./ticket.interface";
 
 // ---------------- Dashboard aggregation rows ----------------
 
@@ -87,4 +88,8 @@ export type AdminLawyerListAggregateResult = {
   total: Array<{
     count: number;
   }>;
+};
+
+export type AdminTicketListRecord = Ticket & {
+  messageCount: number;
 };
