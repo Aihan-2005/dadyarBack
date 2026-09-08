@@ -16,6 +16,7 @@ import NotificationRoute from "./routes/notification.route";
 import TicketRoute from "./routes/ticket.route";
 import ClientCaseRoute from "./routes/clientCase.route";
 import { AdminRoute } from "./routes/admin.route";
+import { FAQRoute } from "./routes/faq.route";
 
 let isShuttingDown = false;
 
@@ -83,6 +84,7 @@ async function bootstrap(): Promise<void> {
       new ClientCaseRoute(),
       new AdminRoute(),
       new ApiDocsRoute(),
+      new FAQRoute(),
     ];
 
     const app = new App(routes);

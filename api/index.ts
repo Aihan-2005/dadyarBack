@@ -15,6 +15,7 @@ import NotificationRoute from "../src/routes/notification.route";
 import TicketRoute from "../src/routes/ticket.route";
 import ClientCaseRoute from "../src/routes/clientCase.route";
 import { AdminRoute } from "../src/routes/admin.route";
+import { FAQRoute } from "../src/routes/faq.route";
 
 const routes: Route[] = [
   new IndexRoute(),
@@ -28,6 +29,7 @@ const routes: Route[] = [
   new ClientCaseRoute(),
   new AdminRoute(),
   new ApiDocsRoute(),
+  new FAQRoute(),
 ];
 
 const app = new App(routes);
