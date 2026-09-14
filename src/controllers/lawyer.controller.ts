@@ -4,8 +4,13 @@ import type {
   Response,
 } from "express";
 
-import { env } from "../config/env";
-import { MESSAGES } from "../constants/messages.constants";
+import {
+  env,
+} from "../config/env";
+
+import {
+  MESSAGES,
+} from "../constants/messages.constants";
 
 import {
   HttpException,
@@ -16,10 +21,13 @@ import {
 } from "../services/lawyer.service";
 
 import {
+  LawyerDirectoryIdParamSchema,
+  LawyerDirectoryListQuerySchema,
   LawyerProfileSchema,
 } from "../validators/lawyer.validator";
 
-const LANGUAGE = env.LANGUAGE;
+const LANGUAGE =
+  env.LANGUAGE;
 
 export class LawyerController {
   constructor(
@@ -28,17 +36,22 @@ export class LawyerController {
   ) {}
 
   private getLawyerId(
-    req: Request,
+    req:
+      Request,
   ): string {
     const lawyerId =
       req.user?.id;
 
-    if (!lawyerId) {
+    if (
+      !lawyerId
+    ) {
       throw new HttpException(
         401,
+
         MESSAGES.unauthorized[
           LANGUAGE
         ],
+
         "UNAUTHORIZED",
       );
     }
@@ -46,108 +59,261 @@ export class LawyerController {
     return lawyerId;
   }
 
-  public me = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<
-    Response | void
-  > => {
-    try {
-      const lawyerId =
-        this.getLawyerId(req);
 
-      const lawyer =
-        await this.lawyerService
-          .findById(lawyerId);
+  
+  public listClientDirectory =
+    async (
+      req:
+        Request,
 
-      if (!lawyer) {
-        throw new HttpException(
-          404,
-          MESSAGES.noUserWithId[
-            LANGUAGE
-          ],
-          "LAWYER_NOT_FOUND",
+      res:
+        Response,
+
+      next:
+        NextFunction,
+    ): Promise<
+      | Response
+      | void
+    > => {
+      try {
+        const query =
+          LawyerDirectoryListQuerySchema.parse(
+            req.query,
+          );
+
+        const result =
+          await this.lawyerService.listClientDirectory(
+            query,
+          );
+
+        return res
+          .status(
+            200,
+          )
+          .json({
+            success:
+              true,
+
+            data:
+              result.items,
+
+            pagination:
+              result.pagination,
+          });
+      } catch (
+        error
+      ) {
+        return next(
+          error,
         );
       }
+    };
 
-      return res
-        .status(200)
-        .json({
-          success: true,
-          data: lawyer,
-        });
-    } catch (error) {
-      return next(error);
-    }
-  };
+  public getClientDirectoryLawyer =
+    async (
+      req:
+        Request,
 
-  public getProfile = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<
-    Response | void
-  > => {
-    try {
-      const lawyerId =
-        this.getLawyerId(req);
+      res:
+        Response,
 
-      const profile =
-        await this.lawyerService
-          .findProfileById(
+      next:
+        NextFunction,
+    ): Promise<
+      | Response
+      | void
+    > => {
+      try {
+        const {
+          id,
+        } =
+          LawyerDirectoryIdParamSchema.parse(
+            req.params,
+          );
+
+        const lawyer =
+          await this.lawyerService.getClientDirectoryLawyer(
+            id,
+          );
+
+        return res
+          .status(
+            200,
+          )
+          .json({
+            success:
+              true,
+
+            data:
+              lawyer,
+          });
+      } catch (
+        error
+      ) {
+        return next(
+          error,
+        );
+      }
+    };
+
+
+    
+  public me =
+    async (
+      req:
+        Request,
+
+      res:
+        Response,
+
+      next:
+        NextFunction,
+    ): Promise<
+      | Response
+      | void
+    > => {
+      try {
+        const lawyerId =
+          this.getLawyerId(
+            req,
+          );
+
+        const lawyer =
+          await this.lawyerService.findById(
             lawyerId,
           );
 
-      return res
-        .status(200)
-        .json({
-          success: true,
+        if (
+          !lawyer
+        ) {
+          throw new HttpException(
+            404,
 
-          data: {
-            profile,
-          },
-        });
-    } catch (error) {
-      return next(error);
-    }
-  };
+            MESSAGES.noUserWithId[
+              LANGUAGE
+            ],
 
-  public updateProfile = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<
-    Response | void
-  > => {
-    try {
-      const lawyerId =
-        this.getLawyerId(req);
+            "LAWYER_NOT_FOUND",
+          );
+        }
 
-      const input =
-        await LawyerProfileSchema
-          .parseAsync(
-            req.body ?? {},
+        return res
+          .status(
+            200,
+          )
+          .json({
+            success:
+              true,
+
+            data:
+              lawyer,
+          });
+      } catch (
+        error
+      ) {
+        return next(
+          error,
+        );
+      }
+    };
+
+  public getProfile =
+    async (
+      req:
+        Request,
+
+      res:
+        Response,
+
+      next:
+        NextFunction,
+    ): Promise<
+      | Response
+      | void
+    > => {
+      try {
+        const lawyerId =
+          this.getLawyerId(
+            req,
           );
 
-      const profile =
-        await this.lawyerService
-          .updateProfile(
+        const profile =
+          await this.lawyerService.findProfileById(
             lawyerId,
+          );
+
+        return res
+          .status(
+            200,
+          )
+          .json({
+            success:
+              true,
+
+            data: {
+              profile,
+            },
+          });
+      } catch (
+        error
+      ) {
+        return next(
+          error,
+        );
+      }
+    };
+
+  public updateProfile =
+    async (
+      req:
+        Request,
+
+      res:
+        Response,
+
+      next:
+        NextFunction,
+    ): Promise<
+      | Response
+      | void
+    > => {
+      try {
+        const lawyerId =
+          this.getLawyerId(
+            req,
+          );
+
+        const input =
+          await LawyerProfileSchema.parseAsync(
+            req.body ??
+              {},
+          );
+
+        const profile =
+          await this.lawyerService.updateProfile(
+            lawyerId,
+
             input,
           );
 
-      return res
-        .status(200)
-        .json({
-          success: true,
+        return res
+          .status(
+            200,
+          )
+          .json({
+            success:
+              true,
 
-          data: {
-            profile,
-          },
-        });
-    } catch (error) {
-      return next(error);
-    }
-  };
+            data: {
+              profile,
+            },
+          });
+      } catch (
+        error
+      ) {
+        return next(
+          error,
+        );
+      }
+    };
 }

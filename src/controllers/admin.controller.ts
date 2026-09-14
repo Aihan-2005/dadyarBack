@@ -1,224 +1,780 @@
-import type { Request, Response, NextFunction } from "express";
-import { AdminService } from "../services/admin.service";
+import type {
+  NextFunction,
+  Request,
+  Response,
+} from "express";
+
+import {
+  AdminService,
+} from "../services/admin.service";
+
 import {
   AdminClientListQuerySchema,
+  AdminCreateLawyerSchema,
   AdminLawyerListQuerySchema,
+  AdminPublishClientLawyerSchema,
   AdminResetUserPasswordSchema,
+  AdminUpdateClientLawyerSchema,
   AdminUpdateLawyerStatusSchema,
   AdminUpdateUserStatusSchema,
   AdminUserIdParamSchema,
 } from "../validators/admin.validator";
 
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly adminService:
+      AdminService,
+  ) {}
 
   private async resetUserPassword(
-    req: Request,
-    res: Response,
-    role: "LAWYER" | "CLIENT",
+    req:
+      Request,
+
+    res:
+      Response,
+
+    role:
+      | "LAWYER"
+      | "CLIENT",
   ): Promise<Response> {
-    const { id } = AdminUserIdParamSchema.parse(req.params);
+    const {
+      id,
+    } =
+      AdminUserIdParamSchema.parse(
+        req.params,
+      );
 
-    const { newPassword } = AdminResetUserPasswordSchema.parse(req.body ?? {});
+    const {
+      newPassword,
+    } =
+      AdminResetUserPasswordSchema.parse(
+        req.body ??
+          {},
+      );
 
-    await this.adminService.resetUserPassword(id, role, newPassword);
+    await this.adminService.resetUserPassword(
+      id,
 
-    return res.status(200).json({
-      success: true,
-    });
+      role,
+
+      newPassword,
+    );
+
+    return res
+      .status(200)
+      .json({
+        success:
+          true,
+      });
   }
 
-  public listLawyers = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<Response | void> => {
-    try {
-      const query = AdminLawyerListQuerySchema.parse(req.query);
 
-      const result = await this.adminService.listLawyers(query);
+  
+  public createLawyer =
+    async (
+      req:
+        Request,
 
-      return res.status(200).json({
-        success: true,
+      res:
+        Response,
 
-        data: result.items,
+      next:
+        NextFunction,
+    ): Promise<
+      | Response
+      | void
+    > => {
+      try {
+        const input =
+          AdminCreateLawyerSchema.parse(
+            req.body ??
+              {},
+          );
 
-        pagination: result.pagination,
-      });
-    } catch (error) {
-      return next(error);
-    }
-  };
+        const lawyer =
+          await this.adminService.createLawyer(
+            input,
+          );
 
-  public getLawyer = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<Response | void> => {
-    try {
-      const { id } = AdminUserIdParamSchema.parse(req.params);
+        return res
+          .status(
+            201,
+          )
+          .json({
+            success:
+              true,
 
-      const lawyer = await this.adminService.getLawyerById(id);
+            data:
+              lawyer,
+          });
+      } catch (
+        error
+      ) {
+        return next(
+          error,
+        );
+      }
+    };
 
-      return res.status(200).json({
-        success: true,
-        data: lawyer,
-      });
-    } catch (error) {
-      return next(error);
-    }
-  };
+  public listLawyers =
+    async (
+      req:
+        Request,
 
-  public updateLawyerStatus = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<Response | void> => {
-    try {
-      const { id } = AdminUserIdParamSchema.parse(req.params);
+      res:
+        Response,
 
-      const { status } = AdminUpdateLawyerStatusSchema.parse(req.body ?? {});
+      next:
+        NextFunction,
+    ): Promise<
+      | Response
+      | void
+    > => {
+      try {
+        const query =
+          AdminLawyerListQuerySchema.parse(
+            req.query,
+          );
 
-      const lawyer = await this.adminService.updateLawyerStatus(id, status);
+        const result =
+          await this.adminService.listLawyers(
+            query,
+          );
 
-      return res.status(200).json({
-        success: true,
-        data: lawyer,
-      });
-    } catch (error) {
-      return next(error);
-    }
-  };
+        return res
+          .status(
+            200,
+          )
+          .json({
+            success:
+              true,
 
-  public updateLawyerAccountStatus = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<Response | void> => {
-    try {
-      const { id } = AdminUserIdParamSchema.parse(req.params);
+            data:
+              result.items,
 
-      const { status } = AdminUpdateUserStatusSchema.parse(req.body ?? {});
+            pagination:
+              result.pagination,
+          });
+      } catch (
+        error
+      ) {
+        return next(
+          error,
+        );
+      }
+    };
 
-      const user = await this.adminService.updateUserAccountStatus(
-        id,
-        "LAWYER",
-        status,
-      );
+  public getLawyer =
+    async (
+      req:
+        Request,
 
-      return res.status(200).json({
-        success: true,
-        data: user,
-      });
-    } catch (error) {
-      return next(error);
-    }
-  };
+      res:
+        Response,
 
-  public listClients = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<Response | void> => {
-    try {
-      const query = AdminClientListQuerySchema.parse(req.query);
+      next:
+        NextFunction,
+    ): Promise<
+      | Response
+      | void
+    > => {
+      try {
+        const {
+          id,
+        } =
+          AdminUserIdParamSchema.parse(
+            req.params,
+          );
 
-      const result = await this.adminService.listClients(query);
+        const lawyer =
+          await this.adminService.getLawyerById(
+            id,
+          );
 
-      return res.status(200).json({
-        success: true,
+        return res
+          .status(
+            200,
+          )
+          .json({
+            success:
+              true,
 
-        data: result.items,
+            data:
+              lawyer,
+          });
+      } catch (
+        error
+      ) {
+        return next(
+          error,
+        );
+      }
+    };
 
-        pagination: result.pagination,
-      });
-    } catch (error) {
-      return next(error);
-    }
-  };
+  public updateLawyerStatus =
+    async (
+      req:
+        Request,
 
-  public resetLawyerPassword = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<Response | void> => {
-    try {
-      return await this.resetUserPassword(req, res, "LAWYER");
-    } catch (error) {
-      return next(error);
-    }
-  };
+      res:
+        Response,
 
-  public getClient = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<Response | void> => {
-    try {
-      const { id } = AdminUserIdParamSchema.parse(req.params);
+      next:
+        NextFunction,
+    ): Promise<
+      | Response
+      | void
+    > => {
+      try {
+        const {
+          id,
+        } =
+          AdminUserIdParamSchema.parse(
+            req.params,
+          );
 
-      const client = await this.adminService.getClientById(id);
+        const {
+          status,
+        } =
+          AdminUpdateLawyerStatusSchema.parse(
+            req.body ??
+              {},
+          );
 
-      return res.status(200).json({
-        success: true,
-        data: client,
-      });
-    } catch (error) {
-      return next(error);
-    }
-  };
+        const lawyer =
+          await this.adminService.updateLawyerStatus(
+            id,
 
-  public updateClientAccountStatus = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<Response | void> => {
-    try {
-      const { id } = AdminUserIdParamSchema.parse(req.params);
+            status,
+          );
 
-      const { status } = AdminUpdateUserStatusSchema.parse(req.body ?? {});
+        return res
+          .status(
+            200,
+          )
+          .json({
+            success:
+              true,
 
-      const user = await this.adminService.updateUserAccountStatus(
-        id,
-        "CLIENT",
-        status,
-      );
+            data:
+              lawyer,
+          });
+      } catch (
+        error
+      ) {
+        return next(
+          error,
+        );
+      }
+    };
 
-      return res.status(200).json({
-        success: true,
-        data: user,
-      });
-    } catch (error) {
-      return next(error);
-    }
-  };
+  public updateLawyerAccountStatus =
+    async (
+      req:
+        Request,
 
-  public resetClientPassword = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<Response | void> => {
-    try {
-      return await this.resetUserPassword(req, res, "CLIENT");
-    } catch (error) {
-      return next(error);
-    }
-  };
+      res:
+        Response,
 
-  public getDashboard = async (
-    _req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<Response | void> => {
-    try {
-      const dashboard = await this.adminService.getDashboard();
+      next:
+        NextFunction,
+    ): Promise<
+      | Response
+      | void
+    > => {
+      try {
+        const {
+          id,
+        } =
+          AdminUserIdParamSchema.parse(
+            req.params,
+          );
 
-      return res.status(200).json({
-        success: true,
-        data: dashboard,
-      });
-    } catch (error) {
-      return next(error);
-    }
-  };
+        const {
+          status,
+        } =
+          AdminUpdateUserStatusSchema.parse(
+            req.body ??
+              {},
+          );
+
+        const user =
+          await this.adminService.updateUserAccountStatus(
+            id,
+
+            "LAWYER",
+
+            status,
+          );
+
+        return res
+          .status(
+            200,
+          )
+          .json({
+            success:
+              true,
+
+            data:
+              user,
+          });
+      } catch (
+        error
+      ) {
+        return next(
+          error,
+        );
+      }
+    };
+
+  public resetLawyerPassword =
+    async (
+      req:
+        Request,
+
+      res:
+        Response,
+
+      next:
+        NextFunction,
+    ): Promise<
+      | Response
+      | void
+    > => {
+      try {
+        return await this.resetUserPassword(
+          req,
+
+          res,
+
+          "LAWYER",
+        );
+      } catch (
+        error
+      ) {
+        return next(
+          error,
+        );
+      }
+    };
+
+
+    
+  public listClientLawyers =
+    async (
+      _req:
+        Request,
+
+      res:
+        Response,
+
+      next:
+        NextFunction,
+    ): Promise<
+      | Response
+      | void
+    > => {
+      try {
+        const placements =
+          await this.adminService.listClientLawyerPlacements();
+
+        return res
+          .status(
+            200,
+          )
+          .json({
+            success:
+              true,
+
+            data:
+              placements,
+          });
+      } catch (
+        error
+      ) {
+        return next(
+          error,
+        );
+      }
+    };
+
+  public publishClientLawyer =
+    async (
+      req:
+        Request,
+
+      res:
+        Response,
+
+      next:
+        NextFunction,
+    ): Promise<
+      | Response
+      | void
+    > => {
+      try {
+        const {
+          id,
+        } =
+          AdminUserIdParamSchema.parse(
+            req.params,
+          );
+
+        const input =
+          AdminPublishClientLawyerSchema.parse(
+            req.body ??
+              {},
+          );
+
+        const placement =
+          await this.adminService.publishLawyerToClientDirectory(
+            id,
+
+            input,
+          );
+
+        return res
+          .status(
+            201,
+          )
+          .json({
+            success:
+              true,
+
+            data:
+              placement,
+          });
+      } catch (
+        error
+      ) {
+        return next(
+          error,
+        );
+      }
+    };
+
+  public updateClientLawyer =
+    async (
+      req:
+        Request,
+
+      res:
+        Response,
+
+      next:
+        NextFunction,
+    ): Promise<
+      | Response
+      | void
+    > => {
+      try {
+        const {
+          id,
+        } =
+          AdminUserIdParamSchema.parse(
+            req.params,
+          );
+
+        const input =
+          AdminUpdateClientLawyerSchema.parse(
+            req.body ??
+              {},
+          );
+
+        const placement =
+          await this.adminService.updateClientLawyerPlacement(
+            id,
+
+            input,
+          );
+
+        return res
+          .status(
+            200,
+          )
+          .json({
+            success:
+              true,
+
+            data:
+              placement,
+          });
+      } catch (
+        error
+      ) {
+        return next(
+          error,
+        );
+      }
+    };
+
+  public removeClientLawyer =
+    async (
+      req:
+        Request,
+
+      res:
+        Response,
+
+      next:
+        NextFunction,
+    ): Promise<
+      | Response
+      | void
+    > => {
+      try {
+        const {
+          id,
+        } =
+          AdminUserIdParamSchema.parse(
+            req.params,
+          );
+
+        await this.adminService.removeLawyerFromClientDirectory(
+          id,
+        );
+
+        return res
+          .status(
+            200,
+          )
+          .json({
+            success:
+              true,
+          });
+      } catch (
+        error
+      ) {
+        return next(
+          error,
+        );
+      }
+    };
+
+
+    
+  public listClients =
+    async (
+      req:
+        Request,
+
+      res:
+        Response,
+
+      next:
+        NextFunction,
+    ): Promise<
+      | Response
+      | void
+    > => {
+      try {
+        const query =
+          AdminClientListQuerySchema.parse(
+            req.query,
+          );
+
+        const result =
+          await this.adminService.listClients(
+            query,
+          );
+
+        return res
+          .status(
+            200,
+          )
+          .json({
+            success:
+              true,
+
+            data:
+              result.items,
+
+            pagination:
+              result.pagination,
+          });
+      } catch (
+        error
+      ) {
+        return next(
+          error,
+        );
+      }
+    };
+
+  public getClient =
+    async (
+      req:
+        Request,
+
+      res:
+        Response,
+
+      next:
+        NextFunction,
+    ): Promise<
+      | Response
+      | void
+    > => {
+      try {
+        const {
+          id,
+        } =
+          AdminUserIdParamSchema.parse(
+            req.params,
+          );
+
+        const client =
+          await this.adminService.getClientById(
+            id,
+          );
+
+        return res
+          .status(
+            200,
+          )
+          .json({
+            success:
+              true,
+
+            data:
+              client,
+          });
+      } catch (
+        error
+      ) {
+        return next(
+          error,
+        );
+      }
+    };
+
+  public updateClientAccountStatus =
+    async (
+      req:
+        Request,
+
+      res:
+        Response,
+
+      next:
+        NextFunction,
+    ): Promise<
+      | Response
+      | void
+    > => {
+      try {
+        const {
+          id,
+        } =
+          AdminUserIdParamSchema.parse(
+            req.params,
+          );
+
+        const {
+          status,
+        } =
+          AdminUpdateUserStatusSchema.parse(
+            req.body ??
+              {},
+          );
+
+        const user =
+          await this.adminService.updateUserAccountStatus(
+            id,
+
+            "CLIENT",
+
+            status,
+          );
+
+        return res
+          .status(
+            200,
+          )
+          .json({
+            success:
+              true,
+
+            data:
+              user,
+          });
+      } catch (
+        error
+      ) {
+        return next(
+          error,
+        );
+      }
+    };
+
+  public resetClientPassword =
+    async (
+      req:
+        Request,
+
+      res:
+        Response,
+
+      next:
+        NextFunction,
+    ): Promise<
+      | Response
+      | void
+    > => {
+      try {
+        return await this.resetUserPassword(
+          req,
+
+          res,
+
+          "CLIENT",
+        );
+      } catch (
+        error
+      ) {
+        return next(
+          error,
+        );
+      }
+    };
+
+
+    
+  public getDashboard =
+    async (
+      _req:
+        Request,
+
+      res:
+        Response,
+
+      next:
+        NextFunction,
+    ): Promise<
+      | Response
+      | void
+    > => {
+      try {
+        const dashboard =
+          await this.adminService.getDashboard();
+
+        return res
+          .status(
+            200,
+          )
+          .json({
+            success:
+              true,
+
+            data:
+              dashboard,
+          });
+      } catch (
+        error
+      ) {
+        return next(
+          error,
+        );
+      }
+    };
 }

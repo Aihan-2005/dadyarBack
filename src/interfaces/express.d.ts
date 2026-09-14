@@ -1,6 +1,10 @@
 import "express";
+import "multer";
 
-import type { UserRole, UserStatus } from "./user.interface";
+import type {
+  UserRole,
+  UserStatus,
+} from "./user.interface";
 
 declare global {
   namespace Express {
@@ -15,4 +19,3 @@ declare global {
 }
 
 export {};
-

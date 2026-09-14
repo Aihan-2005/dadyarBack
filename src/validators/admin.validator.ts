@@ -3,38 +3,112 @@ import { z } from "zod";
 import { LAWYER_STATUSES } from "../constants/lawyer.constants";
 import { USER_STATUSES } from "../constants/user.constants";
 
-import { MongoIdSchema, PasswordSchema } from "./common.validator";
+import {
+  EmailSchema,
+  MongoIdSchema,
+  PasswordSchema,
+  PhoneSchema,
+  cleanOptionalString,
+  requireExactlyOneIdentifier,
+} from "./common.validator";
+
+const AdminLawyerNameSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(100);
+
+export const AdminCreateLawyerSchema = z
+  .object({
+    firstName: AdminLawyerNameSchema,
+
+    lastName: AdminLawyerNameSchema,
+
+    email: EmailSchema.optional(),
+
+    phone: PhoneSchema.optional(),
+
+    password: PasswordSchema,
+
+    specialization: cleanOptionalString(150),
+
+    licenseNumber: cleanOptionalString(50),
+  })
+  .strict()
+  .superRefine(requireExactlyOneIdentifier);
 
 export const AdminUserListQuerySchema = z
   .object({
-    page: z.coerce.number().int().min(1).default(1),
-    limit: z.coerce.number().int().min(1).max(100).default(20),
+    page: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .default(1),
+
+    limit: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(100)
+      .default(20),
   })
   .strict();
 
 export const AdminLawyerListQuerySchema = z
   .object({
-    search: z.string().trim().max(100).optional(),
+    search: z
+      .string()
+      .trim()
+      .max(100)
+      .optional(),
 
-    lawyerStatus: z.enum(LAWYER_STATUSES).optional(),
+    lawyerStatus: z
+      .enum(LAWYER_STATUSES)
+      .optional(),
 
-    accountStatus: z.enum(USER_STATUSES).optional(),
+    accountStatus: z
+      .enum(USER_STATUSES)
+      .optional(),
 
-    page: z.coerce.number().int().min(1).default(1),
+    page: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .default(1),
 
-    limit: z.coerce.number().int().min(1).max(100).default(20),
+    limit: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(100)
+      .default(20),
   })
   .strict();
 
 export const AdminClientListQuerySchema = z
   .object({
-    search: z.string().trim().max(100).optional(),
+    search: z
+      .string()
+      .trim()
+      .max(100)
+      .optional(),
 
-    accountStatus: z.enum(USER_STATUSES).optional(),
+    accountStatus: z
+      .enum(USER_STATUSES)
+      .optional(),
 
-    page: z.coerce.number().int().min(1).default(1),
+    page: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .default(1),
 
-    limit: z.coerce.number().int().min(1).max(100).default(20),
+    limit: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(100)
+      .default(20),
   })
   .strict();
 
@@ -61,3 +135,46 @@ export const AdminResetUserPasswordSchema = z
     newPassword: PasswordSchema,
   })
   .strict();
+
+
+  
+export const AdminPublishClientLawyerSchema = z
+  .object({
+    isFeatured: z
+      .boolean()
+      .default(false),
+
+    displayOrder: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .optional(),
+  })
+  .strict();
+
+
+  
+export const AdminUpdateClientLawyerSchema = z
+  .object({
+    isFeatured: z
+      .boolean()
+      .optional(),
+
+    displayOrder: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .optional(),
+  })
+  .strict()
+  .refine(
+    (input) =>
+      input.isFeatured !== undefined ||
+      input.displayOrder !== undefined,
+    {
+      message:
+        "حداقل یکی از فیلدهای isFeatured یا displayOrder باید ارسال شود",
+    },
+  );
+
+  

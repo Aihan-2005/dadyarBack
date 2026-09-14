@@ -1,290 +1,664 @@
-import mongoose, { Types, type UpdateQuery } from "mongoose";
+import mongoose, {
+  Types,
+  type UpdateQuery,
+} from "mongoose";
 
-import { env } from "../config/env";
+import {
+  env,
+} from "../config/env";
 
-import { LAWYER_STATUSES } from "../constants/lawyer.constants";
+import {
+  LAWYER_STATUSES,
+} from "../constants/lawyer.constants";
 
-import { MESSAGES } from "../constants/messages.constants";
+import {
+  MESSAGES,
+} from "../constants/messages.constants";
 
-import { toLawyerProfileDTO, toPublicLawyerDTO } from "../dtos/lawyer.dto";
+import {
+  toLawyerProfileDTO,
+  toPublicLawyerDTO,
+} from "../dtos/lawyer.dto";
 
-import { HttpException } from "../exceptions/httpException";
+import {
+  toLawyerDirectoryDTO,
+} from "../dtos/lawyerDirectory.dto";
+
+import {
+  HttpException,
+} from "../exceptions/httpException";
 
 import type {
   Lawyer,
   LawyerProfileInput,
 } from "../interfaces/lawyer.interface";
 
-import { LawyerRepository } from "../repositories/lawyer.repository";
+import type {
+  LawyerDirectoryListOptions,
+} from "../interfaces/lawyerDirectory.interface";
 
-import { UserRepository } from "../repositories/user.repository";
+import {
+  LawyerRepository,
+} from "../repositories/lawyer.repository";
 
-const LANGUAGE = env.LANGUAGE;
+import {
+  UserRepository,
+} from "../repositories/user.repository";
+
+const LANGUAGE =
+  env.LANGUAGE;
 
 export class LawyerService {
   constructor(
-    private readonly repo = new LawyerRepository(),
-    private readonly userRepo = new UserRepository(),
+    private readonly repo =
+      new LawyerRepository(),
+
+    private readonly userRepo =
+      new UserRepository(),
   ) {}
 
-  private normalizePhone(phone?: string): string | undefined {
-    return phone?.trim() || undefined;
+  private normalizePhone(
+    phone?: string,
+  ): string | undefined {
+    return (
+      phone?.trim() ||
+      undefined
+    );
   }
 
-  private normalizeLicenseNumber(licenseNumber: string): string | undefined {
-    return licenseNumber.trim() || undefined;
+  private normalizeLicenseNumber(
+    licenseNumber:
+      string,
+  ): string | undefined {
+    return (
+      licenseNumber.trim() ||
+      undefined
+    );
   }
 
-  private sameLawyer(recordId: unknown, lawyerId: string): boolean {
-    return String(recordId) === lawyerId;
+  private sameLawyer(
+    recordId:
+      unknown,
+
+    lawyerId:
+      string,
+  ): boolean {
+    return (
+      String(
+        recordId,
+      ) ===
+      lawyerId
+    );
   }
 
-  private preserveSubdocumentId(id?: string): Types.ObjectId | undefined {
-    return id && Types.ObjectId.isValid(id)
-      ? new Types.ObjectId(id)
+  private preserveSubdocumentId(
+    id?: string,
+  ):
+    | Types.ObjectId
+    | undefined {
+    return (
+      id &&
+      Types.ObjectId.isValid(
+        id,
+      )
+    )
+      ? new Types.ObjectId(
+          id,
+        )
       : undefined;
   }
 
-  public async findById(lawyerId: string) {
-    const [lawyer, user] = await Promise.all([
-      this.repo.findById(lawyerId),
+  public async findById(
+    lawyerId:
+      string,
+  ) {
+    const [
+      lawyer,
+      user,
+    ] =
+      await Promise.all([
+        this.repo.findById(
+          lawyerId,
+        ),
 
-      this.userRepo.findById(lawyerId),
-    ]);
+        this.userRepo.findById(
+          lawyerId,
+        ),
+      ]);
 
-    if (!lawyer || !user) {
+    if (
+      !lawyer ||
+      !user
+    ) {
       return null;
     }
 
-    return toPublicLawyerDTO(lawyer, user);
+    return toPublicLawyerDTO(
+      lawyer,
+
+      user,
+    );
   }
 
-  public async findProfileById(lawyerId: string) {
-    const [lawyer, user] = await Promise.all([
-      this.repo.findById(lawyerId),
+  public async findProfileById(
+    lawyerId:
+      string,
+  ) {
+    const [
+      lawyer,
+      user,
+    ] =
+      await Promise.all([
+        this.repo.findById(
+          lawyerId,
+        ),
 
-      this.userRepo.findById(lawyerId),
-    ]);
+        this.userRepo.findById(
+          lawyerId,
+        ),
+      ]);
 
-    if (!lawyer || !user) {
+    if (
+      !lawyer ||
+      !user
+    ) {
       throw new HttpException(
         404,
 
-        MESSAGES.noUserWithId[LANGUAGE],
+        MESSAGES.noUserWithId[
+          LANGUAGE
+        ],
 
         "LAWYER_NOT_FOUND",
       );
     }
 
-    return toLawyerProfileDTO(lawyer, user);
+    return toLawyerProfileDTO(
+      lawyer,
+
+      user,
+    );
   }
 
-  public async updateProfile(lawyerId: string, input: LawyerProfileInput) {
-    const [current, currentUser] = await Promise.all([
-      this.repo.findById(lawyerId),
+  public async listClientDirectory(
+    options:
+      LawyerDirectoryListOptions,
+  ) {
+    const result =
+      await this.repo.findClientDirectory(
+        options,
+      );
 
-      this.userRepo.findById(lawyerId),
-    ]);
+    return {
+      items:
+        result.items.map(
+          (
+            lawyer,
+          ) =>
+            toLawyerDirectoryDTO(
+              lawyer,
 
-    if (!current || !currentUser) {
+              lawyer.user,
+            ),
+        ),
+
+      pagination: {
+        page:
+          options.page,
+
+        limit:
+          options.limit,
+
+        total:
+          result.total,
+
+        totalPages:
+          Math.ceil(
+            result.total /
+              options.limit,
+          ),
+      },
+    };
+  }
+
+  public async getClientDirectoryLawyer(
+    lawyerId:
+      string,
+  ) {
+    const lawyer =
+      await this.repo.findClientDirectoryById(
+        lawyerId,
+      );
+
+    if (
+      !lawyer
+    ) {
       throw new HttpException(
         404,
 
-        MESSAGES.noUserWithId[LANGUAGE],
+        MESSAGES.noUserWithId[
+          LANGUAGE
+        ],
+
+        "CLIENT_DIRECTORY_LAWYER_NOT_FOUND",
+      );
+    }
+
+    return toLawyerDirectoryDTO(
+      lawyer,
+
+      lawyer.user,
+    );
+  }
+
+  public async updateProfile(
+    lawyerId:
+      string,
+
+    input:
+      LawyerProfileInput,
+  ) {
+    const [
+      current,
+      currentUser,
+    ] =
+      await Promise.all([
+        this.repo.findById(
+          lawyerId,
+        ),
+
+        this.userRepo.findById(
+          lawyerId,
+        ),
+      ]);
+
+    if (
+      !current ||
+      !currentUser
+    ) {
+      throw new HttpException(
+        404,
+
+        MESSAGES.noUserWithId[
+          LANGUAGE
+        ],
 
         "LAWYER_NOT_FOUND",
       );
     }
 
-    const normalizedPhone = this.normalizePhone(input.phone);
+    const normalizedPhone =
+      this.normalizePhone(
+        input.phone,
+      );
 
-    const normalizedLicense = this.normalizeLicenseNumber(input.licenseNumber);
+    const normalizedLicense =
+      this.normalizeLicenseNumber(
+        input.licenseNumber,
+      );
 
-    if (!normalizedPhone && !currentUser.email) {
+    if (
+      !normalizedPhone &&
+      !currentUser.email
+    ) {
       throw new HttpException(
         400,
-        MESSAGES.noEmailNorPhone[LANGUAGE],
+
+        MESSAGES.noEmailNorPhone[
+          LANGUAGE
+        ],
+
         "EMAIL_OR_PHONE_REQUIRED",
       );
     }
 
-    const phoneChanged = normalizedPhone !== currentUser.phone;
+    const phoneChanged =
+      normalizedPhone !==
+      currentUser.phone;
 
-    const licenseChanged = normalizedLicense !== current.licenseNumber;
+    const licenseChanged =
+      normalizedLicense !==
+      current.licenseNumber;
 
-    const [phoneOwner, licenseOwner] = await Promise.all([
-      normalizedPhone && phoneChanged
-        ? this.userRepo.findByPhone(normalizedPhone)
-        : Promise.resolve(null),
+    const [
+      phoneOwner,
+      licenseOwner,
+    ] =
+      await Promise.all([
+        normalizedPhone &&
+        phoneChanged
+          ? this.userRepo.findByPhone(
+              normalizedPhone,
+            )
+          : Promise.resolve(
+              null,
+            ),
 
-      normalizedLicense && licenseChanged
-        ? this.repo.findByLicenseNumber(normalizedLicense)
-        : Promise.resolve(null),
-    ]);
+        normalizedLicense &&
+        licenseChanged
+          ? this.repo.findByLicenseNumber(
+              normalizedLicense,
+            )
+          : Promise.resolve(
+              null,
+            ),
+      ]);
 
-    if (phoneOwner && !this.sameLawyer(phoneOwner._id, lawyerId)) {
+    if (
+      phoneOwner &&
+      !this.sameLawyer(
+        phoneOwner._id,
+
+        lawyerId,
+      )
+    ) {
       throw new HttpException(
         409,
-        MESSAGES.phoneExsist[LANGUAGE],
+
+        MESSAGES.phoneExsist[
+          LANGUAGE
+        ],
+
         "PHONE_ALREADY_EXISTS",
       );
     }
 
-    if (licenseOwner && !this.sameLawyer(licenseOwner._id, lawyerId)) {
+    if (
+      licenseOwner &&
+      !this.sameLawyer(
+        licenseOwner._id,
+
+        lawyerId,
+      )
+    ) {
       throw new HttpException(
         409,
-        MESSAGES.barExsist[LANGUAGE],
+
+        MESSAGES.barExsist[
+          LANGUAGE
+        ],
+
         "LICENSE_NUMBER_ALREADY_EXISTS",
       );
     }
 
-    const setFields: Record<string, unknown> = {
-      specialization: input.specialization,
+    const setFields:
+      Record<
+        string,
+        unknown
+      > = {
+      specialization:
+        input.specialization,
 
-      yearsOfExperience: input.yearsOfExperience,
+      yearsOfExperience:
+        input.yearsOfExperience,
 
-      address: input.address,
+      address:
+        input.address,
 
-      bio: input.bio,
+      bio:
+        input.bio,
 
-      education: input.education.map((item) => {
-        const _id = this.preserveSubdocumentId(item.id);
+      education:
+        input.education.map(
+          (
+            item,
+          ) => {
+            const _id =
+              this.preserveSubdocumentId(
+                item.id,
+              );
 
-        return {
-          ...(_id ? { _id } : {}),
+            return {
+              ...(
+                _id
+                  ? {
+                      _id,
+                    }
+                  : {}
+              ),
 
-          degree: item.degree,
+              degree:
+                item.degree,
 
-          field: item.field,
+              field:
+                item.field,
 
-          university: item.university,
+              university:
+                item.university,
 
-          year: item.year,
-        };
-      }),
+              year:
+                item.year,
+            };
+          },
+        ),
 
-      experience: input.experience.map((item) => {
-        const _id = this.preserveSubdocumentId(item.id);
+      experience:
+        input.experience.map(
+          (
+            item,
+          ) => {
+            const _id =
+              this.preserveSubdocumentId(
+                item.id,
+              );
 
-        return {
-          ...(_id ? { _id } : {}),
+            return {
+              ...(
+                _id
+                  ? {
+                      _id,
+                    }
+                  : {}
+              ),
 
-          title: item.title,
+              title:
+                item.title,
 
-          company: item.company,
+              company:
+                item.company,
 
-          startYear: item.startYear,
+              startYear:
+                item.startYear,
 
-          endYear: item.endYear,
+              endYear:
+                item.endYear,
 
-          description: item.description ?? "",
-        };
-      }),
+              description:
+                item.description ??
+                "",
+            };
+          },
+        ),
 
-      skills: input.skills.map((item) => {
-        const _id = this.preserveSubdocumentId(item.id);
+      skills:
+        input.skills.map(
+          (
+            item,
+          ) => {
+            const _id =
+              this.preserveSubdocumentId(
+                item.id,
+              );
 
-        return {
-          ...(_id ? { _id } : {}),
+            return {
+              ...(
+                _id
+                  ? {
+                      _id,
+                    }
+                  : {}
+              ),
 
-          name: item.name,
+              name:
+                item.name,
 
-          level: item.level,
-        };
-      }),
+              level:
+                item.level,
+            };
+          },
+        ),
 
-      languages: input.languages,
+      languages:
+        input.languages,
     };
 
-    const unsetFields: Record<string, 1> = {};
+    const unsetFields:
+      Record<
+        string,
+        1
+      > = {};
 
-    if (input.website) {
-      setFields.website = input.website;
+    if (
+      input.website
+    ) {
+      setFields.website =
+        input.website;
     } else {
-      unsetFields.website = 1;
+      unsetFields.website =
+        1;
     }
 
-    if (normalizedLicense) {
-      setFields.licenseNumber = normalizedLicense;
+    if (
+      normalizedLicense
+    ) {
+      setFields.licenseNumber =
+        normalizedLicense;
     } else {
-      unsetFields.licenseNumber = 1;
+      unsetFields.licenseNumber =
+        1;
     }
 
-    if (licenseChanged) {
-      setFields.licenseVerifiedAt = null;
+    if (
+      licenseChanged
+    ) {
+      setFields.licenseVerifiedAt =
+        null;
 
-      if (current.status === LAWYER_STATUSES.ACTIVE) {
-        setFields.status = LAWYER_STATUSES.PENDING_VERIFICATION;
+      if (
+        current.status ===
+        LAWYER_STATUSES.ACTIVE
+      ) {
+        setFields.status =
+          LAWYER_STATUSES.PENDING_VERIFICATION;
       }
     }
 
-    const update: UpdateQuery<Lawyer> = {
-      $set: setFields,
-    };
+    const update:
+      UpdateQuery<Lawyer> =
+      {
+        $set:
+          setFields,
+      };
 
-    if (Object.keys(unsetFields).length > 0) {
-      update.$unset = unsetFields;
+    if (
+      Object.keys(
+        unsetFields,
+      ).length >
+      0
+    ) {
+      update.$unset =
+        unsetFields;
     }
 
-    if (!phoneChanged) {
-      const updated = await this.repo.updateProfileById(lawyerId, update);
+    if (
+      !phoneChanged
+    ) {
+      const updated =
+        await this.repo.updateProfileById(
+          lawyerId,
 
-      if (!updated) {
+          update,
+        );
+
+      if (
+        !updated
+      ) {
         throw new HttpException(
           404,
 
-          MESSAGES.noUserWithId[LANGUAGE],
+          MESSAGES.noUserWithId[
+            LANGUAGE
+          ],
 
           "LAWYER_NOT_FOUND",
         );
       }
 
-      return toLawyerProfileDTO(updated, currentUser);
+      return toLawyerProfileDTO(
+        updated,
+
+        currentUser,
+      );
     }
 
-    const session = await mongoose.startSession();
+    const session =
+      await mongoose.startSession();
 
     try {
-      const result = await session.withTransaction(async () => {
-        const updatedLawyer = await this.repo.updateProfileById(
-          lawyerId,
-          update,
-          session,
+      const result =
+        await session.withTransaction(
+          async () => {
+            const updatedLawyer =
+              await this.repo.updateProfileById(
+                lawyerId,
+
+                update,
+
+                session,
+              );
+
+            const updatedUser =
+              await this.userRepo.updatePhoneById(
+                lawyerId,
+
+                normalizedPhone,
+
+                session,
+              );
+
+            if (
+              !updatedLawyer ||
+              !updatedUser
+            ) {
+              throw new HttpException(
+                404,
+
+                MESSAGES.noUserWithId[
+                  LANGUAGE
+                ],
+
+                "LAWYER_NOT_FOUND",
+              );
+            }
+
+            return {
+              updatedLawyer,
+
+              updatedUser,
+            };
+          },
         );
 
-        const updatedUser = await this.userRepo.updatePhoneById(
-          lawyerId,
-          normalizedPhone,
-          session,
-        );
-
-        if (!updatedLawyer || !updatedUser) {
-          throw new HttpException(
-            404,
-
-            MESSAGES.noUserWithId[LANGUAGE],
-
-            "LAWYER_NOT_FOUND",
-          );
-        }
-
-        return {
-          updatedLawyer,
-          updatedUser,
-        };
-      });
-
-      if (!result) {
+      if (
+        !result
+      ) {
         throw new HttpException(
           500,
 
-          MESSAGES.serverError[LANGUAGE],
+          MESSAGES.serverError[
+            LANGUAGE
+          ],
 
           "PROFILE_UPDATE_FAILED",
         );
       }
 
-      return toLawyerProfileDTO(result.updatedLawyer, result.updatedUser);
+      return toLawyerProfileDTO(
+        result.updatedLawyer,
+
+        result.updatedUser,
+      );
     } finally {
       await session.endSession();
     }

@@ -107,6 +107,37 @@ export const SkillSchema = new Schema(
   },
 );
 
+export const ClientDirectorySchema = new Schema(
+  {
+    isVisible: {
+      type: Boolean,
+      required: true,
+      default: false,
+    },
+
+    isFeatured: {
+      type: Boolean,
+      required: true,
+      default: false,
+    },
+
+    displayOrder: {
+      type: Number,
+      min: 1,
+      default: null,
+    },
+
+    publishedAt: {
+      type: Date,
+      default: null,
+    },
+  },
+  {
+    _id: false,
+    versionKey: false,
+  },
+);
+
 export const LawyerSchema = new Schema(
   {
     firstName: {
@@ -204,13 +235,39 @@ export const LawyerSchema = new Schema(
       ],
       default: [],
     },
+
+    clientDirectory: {
+      type: ClientDirectorySchema,
+
+      default: () => ({
+        isVisible: false,
+
+        isFeatured: false,
+
+        displayOrder: null,
+
+        publishedAt: null,
+      }),
+    },
   },
+
   {
     timestamps: true,
+
     versionKey: false,
   },
 );
 
-const LawyerModel = model<Lawyer>("Lawyer", LawyerSchema);
+LawyerSchema.index({
+  "clientDirectory.isVisible": 1,
+
+  "clientDirectory.displayOrder": 1,
+});
+
+const LawyerModel =
+  model<Lawyer>(
+    "Lawyer",
+    LawyerSchema,
+  );
 
 export default LawyerModel;
