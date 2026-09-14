@@ -11,17 +11,17 @@ import {
 } from "../constants/lawyer.constants";
 
 import type {
-  CreateLawyerData,
-  Lawyer,
-  LawyerRecord,
-} from "../interfaces/lawyer.interface";
-
-import type {
   AdminLawyerListAggregateResult,
   AdminLawyerListOptions,
   AdminLawyerStats,
   AdminLawyerStatusCount,
 } from "../interfaces/admin.interface";
+
+import type {
+  CreateLawyerData,
+  Lawyer,
+  LawyerRecord,
+} from "../interfaces/lawyer.interface";
 
 import type {
   LawyerDirectoryAggregateRecord,
@@ -47,18 +47,22 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
   }
 
   public findByLicenseNumber(
-    licenseNumber: string,
+    licenseNumber:
+      string,
   ) {
     return this.model
       .findOne({
         licenseNumber,
       })
-      .lean<LawyerRecord>()
+      .lean<
+        LawyerRecord
+      >()
       .exec();
   }
 
   public findById(
-    id: string,
+    id:
+      string,
   ) {
     return this.model
       .findById(
@@ -66,7 +70,9 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
           id,
         ),
       )
-      .lean<LawyerRecord>()
+      .lean<
+        LawyerRecord
+      >()
       .exec();
   }
 
@@ -150,6 +156,7 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
         [
           createData,
         ],
+
         {
           session,
         },
@@ -159,7 +166,8 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
   }
 
   public updateProfileById(
-    id: string,
+    id:
+      string,
 
     update:
       UpdateQuery<Lawyer>,
@@ -176,7 +184,8 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
         update,
 
         {
-          new: true,
+          new:
+            true,
 
           runValidators:
             true,
@@ -184,12 +193,15 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
           session,
         },
       )
-      .lean<LawyerRecord>()
+      .lean<
+        LawyerRecord
+      >()
       .exec();
   }
 
   public findByIds(
-    ids: string[],
+    ids:
+      string[],
   ) {
     if (
       ids.length ===
@@ -205,9 +217,7 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
         _id: {
           $in:
             ids.map(
-              (
-                id,
-              ) =>
+              (id) =>
                 this.toObjectId(
                   id,
                 ),
@@ -224,7 +234,8 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
   }
 
   public updateStatusById(
-    id: string,
+    id:
+      string,
 
     status:
       LawyerStatus,
@@ -261,15 +272,20 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
         update,
 
         {
-          new: true,
+          new:
+            true,
 
           runValidators:
             true,
         },
       )
-      .lean<LawyerRecord>()
+      .lean<
+        LawyerRecord
+      >()
       .exec();
   }
+
+  
 
   public async findForAdmin(
     options:
@@ -454,27 +470,26 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
         ])
         .exec();
 
-    const total =
-      result
-        ?.total[
-          0
-        ]
-        ?.count ??
-      0;
-
     return {
       items:
         result?.items ??
         [],
 
-      total,
+      total:
+        result
+          ?.total[
+            0
+          ]
+          ?.count ??
+        0,
     };
   }
 
-
   
+
   public findClientDirectoryStateById(
-    id: string,
+    id:
+      string,
 
     session?:
       ClientSession,
@@ -488,8 +503,7 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
         )
         .select(
           "_id status clientDirectory",
-        )
-        .lean<LawyerRecord>();
+        );
 
     if (
       session
@@ -499,7 +513,11 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
       );
     }
 
-    return query.exec();
+    return query
+      .lean<
+        LawyerRecord
+      >()
+      .exec();
   }
 
   public findClientDirectoryPlacements() {
@@ -744,12 +762,14 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
           session,
         },
       )
-      .lean<LawyerRecord>()
+      .lean<
+        LawyerRecord
+      >()
       .exec();
   }
 
-
   
+
   public async findClientDirectory(
     options:
       LawyerDirectoryListOptions,
@@ -790,7 +810,8 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
     }
 
     const specialization =
-      options.specialization?.trim();
+      options.specialization
+        ?.trim();
 
     if (
       specialization
@@ -982,7 +1003,7 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
     | null
   > {
     const [
-      record,
+      result,
     ] =
       await this.model
         .aggregate<
@@ -1054,10 +1075,13 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
         .exec();
 
     return (
-      record ??
+      result ??
       null
     );
   }
+
+  
+  
 
   public async getAdminDashboardStats(): Promise<AdminLawyerStats> {
     const counts =
@@ -1122,7 +1146,6 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
 
     return {
       total,
-
       ...statusCount,
     } as AdminLawyerStats;
   }

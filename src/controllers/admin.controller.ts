@@ -54,9 +54,7 @@ export class AdminController {
 
     await this.adminService.resetUserPassword(
       id,
-
       role,
-
       newPassword,
     );
 
@@ -68,8 +66,6 @@ export class AdminController {
       });
   }
 
-
-  
   public createLawyer =
     async (
       req:
@@ -97,9 +93,7 @@ export class AdminController {
           );
 
         return res
-          .status(
-            201,
-          )
+          .status(201)
           .json({
             success:
               true,
@@ -142,9 +136,7 @@ export class AdminController {
           );
 
         return res
-          .status(
-            200,
-          )
+          .status(200)
           .json({
             success:
               true,
@@ -192,9 +184,7 @@ export class AdminController {
           );
 
         return res
-          .status(
-            200,
-          )
+          .status(200)
           .json({
             success:
               true,
@@ -244,14 +234,11 @@ export class AdminController {
         const lawyer =
           await this.adminService.updateLawyerStatus(
             id,
-
             status,
           );
 
         return res
-          .status(
-            200,
-          )
+          .status(200)
           .json({
             success:
               true,
@@ -301,16 +288,12 @@ export class AdminController {
         const user =
           await this.adminService.updateUserAccountStatus(
             id,
-
             "LAWYER",
-
             status,
           );
 
         return res
-          .status(
-            200,
-          )
+          .status(200)
           .json({
             success:
               true,
@@ -344,9 +327,7 @@ export class AdminController {
       try {
         return await this.resetUserPassword(
           req,
-
           res,
-
           "LAWYER",
         );
       } catch (
@@ -358,8 +339,6 @@ export class AdminController {
       }
     };
 
-
-    
   public listClientLawyers =
     async (
       _req:
@@ -379,9 +358,7 @@ export class AdminController {
           await this.adminService.listClientLawyerPlacements();
 
         return res
-          .status(
-            200,
-          )
+          .status(200)
           .json({
             success:
               true,
@@ -429,14 +406,11 @@ export class AdminController {
         const placement =
           await this.adminService.publishLawyerToClientDirectory(
             id,
-
             input,
           );
 
         return res
-          .status(
-            201,
-          )
+          .status(201)
           .json({
             success:
               true,
@@ -484,14 +458,11 @@ export class AdminController {
         const placement =
           await this.adminService.updateClientLawyerPlacement(
             id,
-
             input,
           );
 
         return res
-          .status(
-            200,
-          )
+          .status(200)
           .json({
             success:
               true,
@@ -535,9 +506,7 @@ export class AdminController {
         );
 
         return res
-          .status(
-            200,
-          )
+          .status(200)
           .json({
             success:
               true,
@@ -551,8 +520,6 @@ export class AdminController {
       }
     };
 
-
-    
   public listClients =
     async (
       req:
@@ -579,9 +546,7 @@ export class AdminController {
           );
 
         return res
-          .status(
-            200,
-          )
+          .status(200)
           .json({
             success:
               true,
@@ -629,9 +594,7 @@ export class AdminController {
           );
 
         return res
-          .status(
-            200,
-          )
+          .status(200)
           .json({
             success:
               true,
@@ -681,16 +644,12 @@ export class AdminController {
         const user =
           await this.adminService.updateUserAccountStatus(
             id,
-
             "CLIENT",
-
             status,
           );
 
         return res
-          .status(
-            200,
-          )
+          .status(200)
           .json({
             success:
               true,
@@ -724,9 +683,7 @@ export class AdminController {
       try {
         return await this.resetUserPassword(
           req,
-
           res,
-
           "CLIENT",
         );
       } catch (
@@ -738,8 +695,6 @@ export class AdminController {
       }
     };
 
-
-    
   public getDashboard =
     async (
       _req:
@@ -759,9 +714,7 @@ export class AdminController {
           await this.adminService.getDashboard();
 
         return res
-          .status(
-            200,
-          )
+          .status(200)
           .json({
             success:
               true,

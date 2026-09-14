@@ -1,4 +1,6 @@
-import type { z } from "zod";
+import type {
+  z,
+} from "zod";
 
 import type {
   LawyerRecord,
@@ -19,15 +21,15 @@ export type LawyerDirectoryListOptions =
 
 export type LawyerDirectoryAggregateRecord =
   LawyerRecord & {
-    user: UserRecord;
+    user:
+      UserRecord;
   };
 
-export type LawyerDirectoryAggregateResult =
-  {
-    items:
-      LawyerDirectoryAggregateRecord[];
+export interface LawyerDirectoryAggregateResult {
+  items:
+    LawyerDirectoryAggregateRecord[];
 
-    total: Array<{
-      count: number;
-    }>;
-  };
+  total: Array<{
+    count: number;
+  }>;
+}

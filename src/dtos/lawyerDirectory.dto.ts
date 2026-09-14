@@ -13,7 +13,9 @@ export interface ClientLawyerPlacementDTO {
 
   displayOrder: number;
 
-  addedAt: string | null;
+  addedAt:
+    | string
+    | null;
 }
 
 export interface LawyerDirectoryDTO {
@@ -25,9 +27,13 @@ export interface LawyerDirectoryDTO {
 
   fullName: string;
 
-  phone: string | null;
+  phone:
+    | string
+    | null;
 
-  email: string | null;
+  email:
+    | string
+    | null;
 
   specialization: string;
 
@@ -35,7 +41,9 @@ export interface LawyerDirectoryDTO {
 
   yearsOfExperience: number;
 
-  website: string | null;
+  website:
+    | string
+    | null;
 
   address: string;
 
@@ -49,10 +57,12 @@ export interface LawyerDirectoryDTO {
 
   displayOrder: number;
 
-  publishedAt: string | null;
+  publishedAt:
+    | string
+    | null;
 }
 
-function toISODate(
+function toISOString(
   value: unknown,
 ): string | null {
   if (
@@ -62,7 +72,8 @@ function toISODate(
   }
 
   if (
-    typeof value === "string"
+    typeof value ===
+    "string"
   ) {
     const date =
       new Date(value);
@@ -80,30 +91,40 @@ function toISODate(
 }
 
 export function toClientLawyerPlacementDTO(
-  lawyer: LawyerRecord,
+  lawyer:
+    LawyerRecord,
 ): ClientLawyerPlacementDTO {
   return {
     lawyerId:
       lawyer._id.toString(),
 
     isFeatured:
-      lawyer.clientDirectory?.isFeatured ??
+      lawyer
+        .clientDirectory
+        ?.isFeatured ??
       false,
 
     displayOrder:
-      lawyer.clientDirectory?.displayOrder ??
+      lawyer
+        .clientDirectory
+        ?.displayOrder ??
       0,
 
     addedAt:
-      toISODate(
-        lawyer.clientDirectory?.publishedAt,
+      toISOString(
+        lawyer
+          .clientDirectory
+          ?.publishedAt,
       ),
   };
 }
 
 export function toLawyerDirectoryDTO(
-  lawyer: LawyerRecord,
-  user: UserRecord,
+  lawyer:
+    LawyerRecord,
+
+  user:
+    UserRecord,
 ): LawyerDirectoryDTO {
   return {
     id:
@@ -167,16 +188,22 @@ export function toLawyerDirectoryDTO(
     ],
 
     isFeatured:
-      lawyer.clientDirectory?.isFeatured ??
+      lawyer
+        .clientDirectory
+        ?.isFeatured ??
       false,
 
     displayOrder:
-      lawyer.clientDirectory?.displayOrder ??
+      lawyer
+        .clientDirectory
+        ?.displayOrder ??
       0,
 
     publishedAt:
-      toISODate(
-        lawyer.clientDirectory?.publishedAt,
+      toISOString(
+        lawyer
+          .clientDirectory
+          ?.publishedAt,
       ),
   };
 }

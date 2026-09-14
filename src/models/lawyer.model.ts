@@ -241,33 +241,26 @@ export const LawyerSchema = new Schema(
 
       default: () => ({
         isVisible: false,
-
         isFeatured: false,
-
         displayOrder: null,
-
         publishedAt: null,
       }),
     },
   },
-
   {
     timestamps: true,
-
     versionKey: false,
   },
 );
 
 LawyerSchema.index({
   "clientDirectory.isVisible": 1,
-
   "clientDirectory.displayOrder": 1,
 });
 
-const LawyerModel =
-  model<Lawyer>(
-    "Lawyer",
-    LawyerSchema,
-  );
+const LawyerModel = model<Lawyer>(
+  "Lawyer",
+  LawyerSchema,
+);
 
 export default LawyerModel;
