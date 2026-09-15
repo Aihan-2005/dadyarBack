@@ -19,6 +19,15 @@ import CaseRoute from "../src/routes/case.route";
 import LawyerClientRoute from "../src/routes/lawyerClient.route";
 
 import {
+  ClientProfileRoute,
+} from "../src/routes/clientProfile.route";
+
+import {
+  ClientLawyerAvailabilityRoute,
+  LawyerAvailabilityRoute,
+} from "../src/routes/lawyerAvailability.route";
+
+import {
   FinancialReportRoute,
 } from "../src/routes/financialReport.route";
 
@@ -32,8 +41,6 @@ import TicketRoute from "../src/routes/ticket.route";
 
 import ClientCaseRoute from "../src/routes/clientCase.route";
 
-import ClientPetitionRoute from "../src/routes/clientPetition.route";
-
 import {
   AdminRoute,
 } from "../src/routes/admin.route";
@@ -42,18 +49,34 @@ import {
   FAQRoute,
 } from "../src/routes/faq.route";
 
+import ClientPetitionRoute from "../src/routes/clientPetition.route";
+
+import {
+  ClientLawyerInquiryRoute,
+  LawyerClientInquiryRoute,
+} from "../src/routes/clientLawyerInquiry.route";
+
+import {
+  ClientConsultationBookingRoute,
+  LawyerConsultationBookingRoute,
+} from "../src/routes/consultationBooking.route";
+
 
 const routes:
   Route[] = [
     new IndexRoute(),
 
-    new LawyerRoute(),
-
     new AuthRoute(),
 
-    new CaseRoute(),
+    new LawyerRoute(),
+
+    new LawyerAvailabilityRoute(),
+
+    new ClientProfileRoute(),
 
     new LawyerClientRoute(),
+
+    new CaseRoute(),
 
     new FinancialReportRoute(),
 
@@ -65,11 +88,21 @@ const routes:
 
     new ClientPetitionRoute(),
 
+    new ClientLawyerInquiryRoute(),
+
+    new ClientLawyerAvailabilityRoute(),
+
+    new ClientConsultationBookingRoute(),
+
+    new LawyerClientInquiryRoute(),
+
+    new LawyerConsultationBookingRoute(),
+
     new AdminRoute(),
 
-    new ApiDocsRoute(),
-
     new FAQRoute(),
+
+    new ApiDocsRoute(),
   ];
 
 
@@ -88,9 +121,11 @@ let connected =
 
 
 export default async function handler(
-  req: any,
+  req:
+    any,
 
-  res: any,
+  res:
+    any,
 ) {
   if (
     !connected

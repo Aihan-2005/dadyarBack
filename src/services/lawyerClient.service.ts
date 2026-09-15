@@ -1,92 +1,182 @@
-import type { ClientSession, UpdateQuery } from "mongoose";
+import type {
+  ClientSession,
+  UpdateQuery,
+} from "mongoose";
 
-import { env } from "../config/env";
+import {
+  env,
+} from "../config/env";
 
-import { MESSAGES } from "../constants/messages.constants";
+import {
+  MESSAGES,
+} from "../constants/messages.constants";
 
-import { HttpException } from "../exceptions/httpException";
+import {
+  HttpException,
+} from "../exceptions/httpException";
 
 import type {
+  FindLawyerClientsOptions,
   LawyerClient,
   LawyerClientCreatePayload,
   LawyerClientRecord,
-  FindLawyerClientsOptions,
-  UpdateLawyerClientInput,
   ManualCaseLawyerClientInput,
+  UpdateLawyerClientInput,
 } from "../interfaces/lawyerClient.interface";
 
-import { LawyerClientRepository } from "../repositories/lawyerClient.repository";
-import { UserRepository } from "../repositories/user.repository";
+import {
+  ClientProfileRepository,
+} from "../repositories/clientProfile.repository";
 
-const LANGUAGE = env.LANGUAGE;
+import {
+  LawyerClientRepository,
+} from "../repositories/lawyerClient.repository";
+
+import {
+  UserRepository,
+} from "../repositories/user.repository";
+
+
+const LANGUAGE =
+  env.LANGUAGE;
+
 
 export class LawyerClientService {
   constructor(
-    private readonly repo = new LawyerClientRepository(),
+    private readonly repo =
+      new LawyerClientRepository(),
 
-    private readonly userRepo = new UserRepository(),
+    private readonly userRepo =
+      new UserRepository(),
+
+    private readonly clientProfileRepo =
+      new ClientProfileRepository(),
   ) {}
 
-  private normalizeRequiredString(value: string): string {
+
+  private normalizeRequiredString(
+    value:
+      string,
+  ): string {
     return value.trim();
   }
 
-  private normalizeOptionalString(value?: string | null): string | undefined {
-    return value?.trim() || undefined;
+
+  private normalizeOptionalString(
+    value?:
+      string | null,
+  ): string | undefined {
+    return (
+      value?.trim() ||
+      undefined
+    );
   }
 
-  private normalizePhone(phone: string): string {
+
+  private normalizePhone(
+    phone:
+      string,
+  ): string {
     return phone.trim();
   }
 
-  private normalizeNationalId(nationalId?: string | null): string | undefined {
-    return nationalId?.trim() || undefined;
+
+  private normalizeNationalId(
+    nationalId?:
+      string | null,
+  ): string | undefined {
+    return (
+      nationalId?.trim() ||
+      undefined
+    );
   }
+
 
   private sameClient(
-    recordId: unknown,
+    recordId:
+      unknown,
 
-    clientId: string,
+    clientId:
+      string,
   ): boolean {
-    return String(recordId) === clientId;
+    return (
+      String(
+        recordId,
+      ) ===
+      clientId
+    );
   }
 
-  private ensureNotEmptyObject(data: Record<string, unknown>): void {
-    const hasAtLeastOneEffectiveField = Object.values(data).some(
-      (value) => value !== undefined,
-    );
 
-    if (!hasAtLeastOneEffectiveField) {
+  private ensureNotEmptyObject(
+    data:
+      Record<
+        string,
+        unknown
+      >,
+  ): void {
+    const hasAtLeastOneEffectiveField =
+      Object
+        .values(
+          data,
+        )
+        .some(
+          (
+            value,
+          ) =>
+            value !==
+            undefined,
+        );
+
+    if (
+      !hasAtLeastOneEffectiveField
+    ) {
       throw new HttpException(
         400,
 
-        MESSAGES.noClientFieldFound[LANGUAGE],
+        MESSAGES
+          .noClientFieldFound[
+            LANGUAGE
+          ],
 
         "NO_CLIENT_FIELDS",
       );
     }
   }
 
+
+
+  
   private async ensureClientBelongsToLawyer(
-    lawyerId: string,
+    lawyerId:
+      string,
 
-    clientId: string,
+    clientId:
+      string,
 
-    session?: ClientSession,
+    session?:
+      ClientSession,
   ): Promise<LawyerClientRecord> {
-    const client = await this.repo.findByIdForLawyer(
-      lawyerId,
+    const client =
+      await this.repo
+        .findByIdForLawyerInternal(
+          lawyerId,
 
-      clientId,
+          clientId,
 
-      session,
-    );
+          session,
+        );
 
-    if (!client) {
+    if (
+      !client
+    ) {
       throw new HttpException(
         404,
 
-        MESSAGES.clientNotFound[LANGUAGE],
+        MESSAGES
+          .clientNotFound[
+            LANGUAGE
+          ],
 
         "CLIENT_NOT_FOUND",
       );
@@ -95,50 +185,69 @@ export class LawyerClientService {
     return client;
   }
 
+
   private async ensureUniqueClientIdentity(
-    lawyerId: string,
+    lawyerId:
+      string,
 
-    phone: string,
+    phone:
+      string,
 
-    nationalId?: string,
+    nationalId?:
+      string,
 
-    ignoredClientId?: string,
+    ignoredClientId?:
+      string,
 
-    session?: ClientSession,
+    session?:
+      ClientSession,
   ): Promise<void> {
-    const [phoneOwner, nationalIdOwner] = await Promise.all([
-      this.repo.findByPhone(
-        lawyerId,
-
-        phone,
-
-        session,
-      ),
-
-      nationalId
-        ? this.repo.findByNationalId(
+    const [
+      phoneOwner,
+      nationalIdOwner,
+    ] =
+      await Promise.all([
+        this.repo
+          .findByPhone(
             lawyerId,
 
-            nationalId,
+            phone,
 
             session,
-          )
-        : Promise.resolve(null),
-    ]);
+          ),
+
+        nationalId
+          ? this.repo
+              .findByNationalId(
+                lawyerId,
+
+                nationalId,
+
+                session,
+              )
+          : Promise.resolve(
+              null,
+            ),
+      ]);
 
     if (
       phoneOwner &&
-      (!ignoredClientId ||
+      (
+        !ignoredClientId ||
         !this.sameClient(
           phoneOwner._id,
 
           ignoredClientId,
-        ))
+        )
+      )
     ) {
       throw new HttpException(
         409,
 
-        MESSAGES.phoneExsist[LANGUAGE],
+        MESSAGES
+          .phoneExsist[
+            LANGUAGE
+          ],
 
         "CLIENT_PHONE_ALREADY_EXISTS",
       );
@@ -146,44 +255,245 @@ export class LawyerClientService {
 
     if (
       nationalIdOwner &&
-      (!ignoredClientId ||
+      (
+        !ignoredClientId ||
         !this.sameClient(
           nationalIdOwner._id,
 
           ignoredClientId,
-        ))
+        )
+      )
     ) {
       throw new HttpException(
         409,
 
-        MESSAGES.nationalIdExists[LANGUAGE],
+        MESSAGES
+          .nationalIdExists[
+            LANGUAGE
+          ],
 
         "CLIENT_NATIONAL_ID_ALREADY_EXISTS",
       );
     }
   }
 
-  private async findLinkableClientUserId(
-    phone: string,
-    session?: ClientSession,
-  ) {
-    const user = await this.userRepo.findByPhone(phone, session);
 
-    if (!user || user.role !== "CLIENT" || !user.phoneVerifiedAt) {
+  private async findLinkableClientUserId(
+    phone:
+      string,
+
+    session?:
+      ClientSession,
+  ) {
+    const user =
+      await this.userRepo
+        .findByPhone(
+          phone,
+
+          session,
+        );
+
+    if (
+      !user ||
+      user.role !==
+        "CLIENT" ||
+      !user.phoneVerifiedAt
+    ) {
       return undefined;
     }
 
     return user._id;
   }
 
-  public async createLawyerClient(
-    lawyerId: string,
 
-    input: LawyerClientCreatePayload,
+
+  
+  public async ensureClientConnection(
+    lawyerId:
+      string,
+
+    clientUserId:
+      string,
+
+    session:
+      ClientSession,
   ): Promise<LawyerClientRecord> {
-    const phone = this.normalizePhone(input.phone);
+    const existingByUser =
+      await this.repo
+        .findByUserIdForLawyer(
+          lawyerId,
 
-    const nationalId = this.normalizeNationalId(input.nationalId);
+          clientUserId,
+
+          session,
+        );
+
+    if (
+      existingByUser
+    ) {
+      return existingByUser;
+    }
+
+
+    const user =
+      await this.userRepo
+        .findByIdAndRole(
+          clientUserId,
+
+          "CLIENT",
+
+          session,
+        );
+
+    if (
+      !user
+    ) {
+      throw new HttpException(
+        404,
+
+        "حساب موکل پیدا نشد",
+
+        "CLIENT_ACCOUNT_NOT_FOUND",
+      );
+    }
+
+
+    if (
+      !user.phone ||
+      !user.phoneVerifiedAt
+    ) {
+      throw new HttpException(
+        409,
+
+        "برای اتصال موکل به وکیل، شماره موبایل تأییدشده موکل الزامی است",
+
+        "CLIENT_VERIFIED_PHONE_REQUIRED",
+      );
+    }
+
+
+    
+    const existingByPhone =
+      await this.repo
+        .findByPhoneForConnection(
+          lawyerId,
+
+          user.phone,
+
+          session,
+        );
+
+    if (
+      existingByPhone
+    ) {
+      if (
+        existingByPhone.userId &&
+        existingByPhone.userId
+          .toString() !==
+          clientUserId
+      ) {
+        throw new HttpException(
+          409,
+
+          "این شماره موبایل قبلاً به حساب موکل دیگری برای این وکیل متصل شده است",
+
+          "LAWYER_CLIENT_CONNECTION_CONFLICT",
+        );
+      }
+
+
+      const linked =
+        await this.repo
+          .linkByIdToUser(
+            lawyerId,
+
+            existingByPhone._id
+              .toString(),
+
+            clientUserId,
+
+            session,
+          );
+
+      if (
+        !linked
+      ) {
+        throw new HttpException(
+          409,
+
+          "اتصال موکل به وکیل انجام نشد؛ اطلاعات رابطه هم‌زمان تغییر کرده است",
+
+          "LAWYER_CLIENT_CONNECTION_CONFLICT",
+        );
+      }
+
+      return linked;
+    }
+
+
+    const profile =
+      await this.clientProfileRepo
+        .findByUserId(
+          clientUserId,
+
+          session,
+        );
+
+    if (
+      !profile
+        ?.fullName
+        ?.trim()
+    ) {
+      throw new HttpException(
+        409,
+
+        "پروفایل موکل کامل نیست؛ نام و نام خانوادگی باید قبل از اتصال به وکیل ثبت شود",
+
+        "CLIENT_PROFILE_REQUIRED",
+      );
+    }
+
+
+ 
+    
+    return this.repo
+      .createLinked(
+        lawyerId,
+
+        {
+          fullName:
+            profile.fullName
+              .trim(),
+
+          phone:
+            user.phone,
+
+          userId:
+            user._id,
+        },
+
+        session,
+      );
+  }
+
+
+  public async createLawyerClient(
+    lawyerId:
+      string,
+
+    input:
+      LawyerClientCreatePayload,
+  ): Promise<LawyerClientRecord> {
+    const phone =
+      this.normalizePhone(
+        input.phone,
+      );
+
+    const nationalId =
+      this.normalizeNationalId(
+        input.nationalId,
+      );
+
 
     await this.ensureUniqueClientIdentity(
       lawyerId,
@@ -193,55 +503,116 @@ export class LawyerClientService {
       nationalId,
     );
 
-    const userId = await this.findLinkableClientUserId(phone);
 
-    return this.repo.create(
-      lawyerId,
-
-      {
-        fullName: this.normalizeRequiredString(input.fullName),
-
+    const userId =
+      await this.findLinkableClientUserId(
         phone,
+      );
 
-        nationalId,
 
-        homeNumber: this.normalizeOptionalString(input.homeNumber),
+    if (
+      userId
+    ) {
+      const existingConnection =
+        await this.repo
+          .findByUserIdForLawyer(
+            lawyerId,
 
-        represent: this.normalizeOptionalString(input.represent),
+            userId.toString(),
+          );
 
-        birthday: input.birthday,
+      if (
+        existingConnection
+      ) {
+        throw new HttpException(
+          409,
 
-        homeAddress: this.normalizeOptionalString(input.homeAddress),
+          "این حساب موکل قبلاً به فهرست موکلین این وکیل متصل شده است",
 
-        description: this.normalizeOptionalString(input.description),
+          "LAWYER_CLIENT_USER_ALREADY_CONNECTED",
+        );
+      }
+    }
 
-        personalPassword: input.personalPassword,
 
-        userId,
-      },
-    );
+    return this.repo
+      .create(
+        lawyerId,
+
+        {
+          fullName:
+            this.normalizeRequiredString(
+              input.fullName,
+            ),
+
+          phone,
+
+          nationalId,
+
+          homeNumber:
+            this.normalizeOptionalString(
+              input.homeNumber,
+            ),
+
+          represent:
+            this.normalizeOptionalString(
+              input.represent,
+            ),
+
+          birthday:
+            input.birthday,
+
+          homeAddress:
+            this.normalizeOptionalString(
+              input.homeAddress,
+            ),
+
+          description:
+            this.normalizeOptionalString(
+              input.description,
+            ),
+
+       
+            
+          personalPassword:
+            input.personalPassword,
+
+          userId,
+        },
+      );
   }
 
+
   public async getLawyerClientById(
-    lawyerId: string,
+    lawyerId:
+      string,
 
-    clientId: string,
+    clientId:
+      string,
 
-    session?: ClientSession,
+    session?:
+      ClientSession,
   ): Promise<LawyerClientRecord> {
-    const client = await this.repo.findByIdForLawyerWithPersonalPassword(
-      lawyerId,
+    const client =
+      await this.repo
+        .findByIdForLawyerWithPersonalPassword(
+          lawyerId,
 
-      clientId,
+          clientId,
 
-      session,
-    );
+          session,
+        );
 
-    if (!client) {
+    if (
+      !client
+    ) {
       throw new HttpException(
         404,
 
-        MESSAGES.clientNotFound[LANGUAGE],
+        MESSAGES
+          .clientNotFound[
+            LANGUAGE
+          ],
 
         "CLIENT_NOT_FOUND",
       );
@@ -250,62 +621,87 @@ export class LawyerClientService {
     return client;
   }
 
+
   public async findLawyerClientByPhone(
-    lawyerId: string,
+    lawyerId:
+      string,
 
-    phone: string,
+    phone:
+      string,
   ) {
-    return this.repo.findByPhone(
-      lawyerId,
+    return this.repo
+      .findByPhone(
+        lawyerId,
 
-      this.normalizePhone(phone),
-    );
+        this.normalizePhone(
+          phone,
+        ),
+      );
   }
 
+
   public async listLawyerClients(
-    lawyerId: string,
+    lawyerId:
+      string,
 
-    options: FindLawyerClientsOptions = {},
+    options:
+      FindLawyerClientsOptions = {},
   ) {
-    const page = Math.max(
-      options.page ?? 1,
-
-      1,
-    );
-
-    const limit = Math.min(
+    const page =
       Math.max(
-        options.limit ?? 10,
+        options.page ??
+          1,
 
         1,
-      ),
+      );
 
-      100,
-    );
+    const limit =
+      Math.min(
+        Math.max(
+          options.limit ??
+            10,
 
-    const safeOptions: FindLawyerClientsOptions = {
-      ...options,
+          1,
+        ),
 
-      search: options.search?.trim(),
+        100,
+      );
 
-      page,
 
-      limit,
-    };
+    const safeOptions:
+      FindLawyerClientsOptions = {
+        ...options,
 
-    const [items, total] = await Promise.all([
-      this.repo.findByLawyerId(
-        lawyerId,
+        search:
+          options.search
+            ?.trim(),
 
-        safeOptions,
-      ),
+        page,
 
-      this.repo.countByLawyerId(
-        lawyerId,
+        limit,
+      };
 
-        safeOptions,
-      ),
-    ]);
+
+    const [
+      items,
+      total,
+    ] =
+      await Promise.all([
+        this.repo
+          .findByLawyerId(
+            lawyerId,
+
+            safeOptions,
+          ),
+
+        this.repo
+          .countByLawyerId(
+            lawyerId,
+
+            safeOptions,
+          ),
+      ]);
+
 
     return {
       items,
@@ -317,42 +713,75 @@ export class LawyerClientService {
 
         total,
 
-        totalPages: Math.ceil(total / limit),
+        totalPages:
+          Math.ceil(
+            total /
+              limit,
+          ),
       },
     };
   }
 
+
   public async updateLawyerClient(
-    lawyerId: string,
+    lawyerId:
+      string,
 
-    clientId: string,
+    clientId:
+      string,
 
-    input: UpdateLawyerClientInput,
+    input:
+      UpdateLawyerClientInput,
   ): Promise<LawyerClientRecord> {
-    this.ensureNotEmptyObject(input);
-
-    const current = await this.ensureClientBelongsToLawyer(
-      lawyerId,
-
-      clientId,
+    this.ensureNotEmptyObject(
+      input,
     );
 
+ 
+    const current =
+      await this.ensureClientBelongsToLawyer(
+        lawyerId,
+
+        clientId,
+      );
+
+
     const phone =
-      input.phone !== undefined
-        ? this.normalizePhone(input.phone)
+      input.phone !==
+      undefined
+        ? this.normalizePhone(
+            input.phone,
+          )
         : current.phone;
 
-    const nationalId =
-      input.nationalId !== undefined
-        ? this.normalizeNationalId(input.nationalId)
-        : this.normalizeNationalId(current.nationalId);
 
-    const phoneChanged = phone !== current.phone;
+    const nationalId =
+      input.nationalId !==
+      undefined
+        ? this.normalizeNationalId(
+            input.nationalId,
+          )
+        : this.normalizeNationalId(
+            current.nationalId,
+          );
+
+
+    const phoneChanged =
+      phone !==
+      current.phone;
+
 
     const nationalIdChanged =
-      nationalId !== this.normalizeNationalId(current.nationalId);
+      nationalId !==
+      this.normalizeNationalId(
+        current.nationalId,
+      );
 
-    if (phoneChanged || nationalIdChanged) {
+
+    if (
+      phoneChanged ||
+      nationalIdChanged
+    ) {
       await this.ensureUniqueClientIdentity(
         lawyerId,
 
@@ -364,240 +793,488 @@ export class LawyerClientService {
       );
     }
 
-    const setFields: Record<string, unknown> = {};
 
-    const unsetFields: Record<string, 1> = {};
+    const setFields:
+      Record<
+        string,
+        unknown
+      > = {};
 
-    if (phoneChanged) {
-      const userId = await this.findLinkableClientUserId(phone);
 
-      if (userId) {
-        setFields.userId = userId;
-      } else {
-        unsetFields.userId = 1;
+    const unsetFields:
+      Record<
+        string,
+        1
+      > = {};
+
+
+
+      
+    if (
+      phoneChanged &&
+      !current.userId
+    ) {
+      const userId =
+        await this.findLinkableClientUserId(
+          phone,
+        );
+
+      if (
+        userId
+      ) {
+        const existingConnection =
+          await this.repo
+            .findByUserIdForLawyer(
+              lawyerId,
+
+              userId.toString(),
+            );
+
+        if (
+          existingConnection &&
+          !this.sameClient(
+            existingConnection._id,
+
+            clientId,
+          )
+        ) {
+          throw new HttpException(
+            409,
+
+            "این حساب موکل قبلاً به فهرست موکلین این وکیل متصل شده است",
+
+            "LAWYER_CLIENT_USER_ALREADY_CONNECTED",
+          );
+        }
+
+        setFields.userId =
+          userId;
       }
     }
 
-    if (input.fullName !== undefined) {
-      setFields.fullName = this.normalizeRequiredString(input.fullName);
+
+    if (
+      input.fullName !==
+      undefined
+    ) {
+      setFields.fullName =
+        this.normalizeRequiredString(
+          input.fullName,
+        );
     }
 
-    if (input.phone !== undefined) {
-      setFields.phone = phone;
+
+    if (
+      input.phone !==
+      undefined
+    ) {
+      setFields.phone =
+        phone;
     }
 
-    if (input.represent !== undefined) {
-      const represent = this.normalizeOptionalString(input.represent);
 
-      if (represent) {
-        setFields.represent = represent;
+    if (
+      input.represent !==
+      undefined
+    ) {
+      const represent =
+        this.normalizeOptionalString(
+          input.represent,
+        );
+
+      if (
+        represent
+      ) {
+        setFields.represent =
+          represent;
       } else {
-        unsetFields.represent = 1;
+        unsetFields.represent =
+          1;
       }
     }
 
-    if (input.nationalId !== undefined) {
-      if (nationalId) {
-        setFields.nationalId = nationalId;
+
+    if (
+      input.nationalId !==
+      undefined
+    ) {
+      if (
+        nationalId
+      ) {
+        setFields.nationalId =
+          nationalId;
       } else {
-        unsetFields.nationalId = 1;
+        unsetFields.nationalId =
+          1;
       }
     }
 
-    if (input.homeNumber !== undefined) {
-      const homeNumber = this.normalizeOptionalString(input.homeNumber);
 
-      if (homeNumber) {
-        setFields.homeNumber = homeNumber;
+    if (
+      input.homeNumber !==
+      undefined
+    ) {
+      const homeNumber =
+        this.normalizeOptionalString(
+          input.homeNumber,
+        );
+
+      if (
+        homeNumber
+      ) {
+        setFields.homeNumber =
+          homeNumber;
       } else {
-        unsetFields.homeNumber = 1;
+        unsetFields.homeNumber =
+          1;
       }
     }
 
-    if (input.birthday !== undefined) {
-      if (input.birthday) {
-        setFields.birthday = input.birthday;
+
+    if (
+      input.birthday !==
+      undefined
+    ) {
+      if (
+        input.birthday
+      ) {
+        setFields.birthday =
+          input.birthday;
       } else {
-        unsetFields.birthday = 1;
+        unsetFields.birthday =
+          1;
       }
     }
 
-    if (input.homeAddress !== undefined) {
-      const homeAddress = this.normalizeOptionalString(input.homeAddress);
 
-      if (homeAddress) {
-        setFields.homeAddress = homeAddress;
+    if (
+      input.homeAddress !==
+      undefined
+    ) {
+      const homeAddress =
+        this.normalizeOptionalString(
+          input.homeAddress,
+        );
+
+      if (
+        homeAddress
+      ) {
+        setFields.homeAddress =
+          homeAddress;
       } else {
-        unsetFields.homeAddress = 1;
+        unsetFields.homeAddress =
+          1;
       }
     }
 
-    if (input.description !== undefined) {
-      const description = this.normalizeOptionalString(input.description);
 
-      if (description) {
-        setFields.description = description;
+    if (
+      input.description !==
+      undefined
+    ) {
+      const description =
+        this.normalizeOptionalString(
+          input.description,
+        );
+
+      if (
+        description
+      ) {
+        setFields.description =
+          description;
       } else {
-        unsetFields.description = 1;
+        unsetFields.description =
+          1;
       }
     }
 
-    if (input.personalPassword !== undefined) {
-      if (input.personalPassword === null) {
-        unsetFields.personalPassword = 1;
+
+   
+    
+    if (
+      input.personalPassword !==
+      undefined
+    ) {
+      if (
+        input.personalPassword ===
+        null
+      ) {
+        unsetFields.personalPassword =
+          1;
       } else {
-        setFields.personalPassword = input.personalPassword;
+        setFields.personalPassword =
+          input.personalPassword;
       }
     }
 
-    const update: UpdateQuery<LawyerClient> = {};
 
-    if (Object.keys(setFields).length > 0) {
-      update.$set = setFields;
+    const update:
+      UpdateQuery<LawyerClient> = {};
+
+
+    if (
+      Object
+        .keys(
+          setFields,
+        )
+        .length >
+      0
+    ) {
+      update.$set =
+        setFields;
     }
 
-    if (Object.keys(unsetFields).length > 0) {
-      update.$unset = unsetFields;
+
+    if (
+      Object
+        .keys(
+          unsetFields,
+        )
+        .length >
+      0
+    ) {
+      update.$unset =
+        unsetFields;
     }
 
-    const updated = await this.repo.updateByIdForLawyer(
-      lawyerId,
 
-      clientId,
+    const updated =
+      await this.repo
+        .updateByIdForLawyer(
+          lawyerId,
 
-      update,
-    );
+          clientId,
 
-    if (!updated) {
+          update,
+        );
+
+
+    if (
+      !updated
+    ) {
       throw new HttpException(
         404,
 
-        MESSAGES.clientNotFound[LANGUAGE],
+        MESSAGES
+          .clientNotFound[
+            LANGUAGE
+          ],
 
         "CLIENT_NOT_FOUND",
       );
     }
 
+
     return updated;
   }
 
+
   public async resolveLawyerClientForCase(
-    lawyerId: string,
+    lawyerId:
+      string,
 
-    input: ManualCaseLawyerClientInput,
+    input:
+      ManualCaseLawyerClientInput,
 
-    session: ClientSession,
+    session:
+      ClientSession,
   ): Promise<LawyerClientRecord> {
-    const phone = this.normalizePhone(input.phone);
+    const phone =
+      this.normalizePhone(
+        input.phone,
+      );
 
-    const nationalId = this.normalizeNationalId(input.nationalId);
+    const nationalId =
+      this.normalizeNationalId(
+        input.nationalId,
+      );
 
-    const represent = this.normalizeOptionalString(input.represent);
+    const represent =
+      this.normalizeOptionalString(
+        input.represent,
+      );
 
-    const existing = await this.repo.findByPhone(
-      lawyerId,
 
-      phone,
+    const existing =
+      await this.repo
+        .findByPhone(
+          lawyerId,
 
-      session,
-    );
+          phone,
 
-    if (existing) {
+          session,
+        );
+
+
+    if (
+      existing
+    ) {
       if (
         nationalId &&
         existing.nationalId &&
-        nationalId !== existing.nationalId
+        nationalId !==
+          existing.nationalId
       ) {
         throw new HttpException(
           409,
 
-          MESSAGES.clientDataConflict[LANGUAGE],
+          MESSAGES
+            .clientDataConflict[
+              LANGUAGE
+            ],
 
           "CLIENT_DATA_CONFLICT",
         );
       }
 
-      if (input.represent !== undefined && represent !== existing.represent) {
-        const update: UpdateQuery<LawyerClient> = represent
-          ? {
-              $set: {
-                represent,
-              },
-            }
-          : {
-              $unset: {
-                represent: 1,
-              },
-            };
 
-        const updated = await this.repo.updateByIdForLawyer(
-          lawyerId,
+      if (
+        input.represent !==
+          undefined &&
+        represent !==
+          existing.represent
+      ) {
+        const update:
+          UpdateQuery<LawyerClient> =
+          represent
+            ? {
+                $set: {
+                  represent,
+                },
+              }
+            : {
+                $unset: {
+                  represent:
+                    1,
+                },
+              };
 
-          existing._id.toString(),
 
-          update,
+        const updated =
+          await this.repo
+            .updateByIdForLawyer(
+              lawyerId,
 
-          session,
+              existing._id
+                .toString(),
+
+              update,
+
+              session,
+            );
+
+
+        return (
+          updated ??
+          existing
         );
-
-        return updated ?? existing;
       }
+
 
       return existing;
     }
 
-    const fullName = input.fullName?.trim();
 
-    if (!fullName) {
+    const fullName =
+      input.fullName
+        ?.trim();
+
+
+    if (
+      !fullName
+    ) {
       throw new HttpException(
         400,
 
-        MESSAGES.clientFullNameRequired[LANGUAGE],
+        MESSAGES
+          .clientFullNameRequired[
+            LANGUAGE
+          ],
 
         "CLIENT_FULL_NAME_REQUIRED",
       );
     }
 
-    if (nationalId) {
-      const nationalIdOwner = await this.repo.findByNationalId(
-        lawyerId,
 
-        nationalId,
+    if (
+      nationalId
+    ) {
+      const nationalIdOwner =
+        await this.repo
+          .findByNationalId(
+            lawyerId,
 
-        session,
-      );
+            nationalId,
 
-      if (nationalIdOwner) {
+            session,
+          );
+
+      if (
+        nationalIdOwner
+      ) {
         throw new HttpException(
           409,
 
-          MESSAGES.nationalIdExists[LANGUAGE],
+          MESSAGES
+            .nationalIdExists[
+              LANGUAGE
+            ],
 
           "CLIENT_NATIONAL_ID_ALREADY_EXISTS",
         );
       }
     }
 
-    const userId = await this.findLinkableClientUserId(phone, session);
 
-    return this.repo.create(
-      lawyerId,
-
-      {
-        fullName,
-
+    const userId =
+      await this.findLinkableClientUserId(
         phone,
 
-        nationalId,
+        session,
+      );
 
-        birthday: input.birthDate,
+ 
+    if (
+      userId
+    ) {
+      const existingConnection =
+        await this.repo
+          .findByUserIdForLawyer(
+            lawyerId,
 
-        represent,
+            userId.toString(),
 
-        userId,
-      },
+            session,
+          );
 
-      session,
-    );
+      if (
+        existingConnection
+      ) {
+        return existingConnection;
+      }
+    }
+
+
+    return this.repo
+      .create(
+        lawyerId,
+
+        {
+          fullName,
+
+          phone,
+
+          nationalId,
+
+          birthday:
+            input.birthDate,
+
+          represent,
+
+          userId,
+        },
+
+        session,
+      );
   }
 }

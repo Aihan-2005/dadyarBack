@@ -6,6 +6,14 @@ import {
   Database,
 } from "./config/db";
 
+import {
+  env,
+} from "./config/env";
+
+import type {
+  Route,
+} from "./interfaces/route.interface";
+
 import AuthRoute from "./routes/auth.route";
 
 import CaseRoute from "./routes/case.route";
@@ -17,20 +25,21 @@ import LawyerRoute from "./routes/lawyer.route";
 import LawyerClientRoute from "./routes/lawyerClient.route";
 
 import {
+  ClientProfileRoute,
+} from "./routes/clientProfile.route";
+
+import {
+  ClientLawyerAvailabilityRoute,
+  LawyerAvailabilityRoute,
+} from "./routes/lawyerAvailability.route";
+
+import {
   FinancialReportRoute,
 } from "./routes/financialReport.route";
 
 import {
-  env,
-} from "./config/env";
-
-import {
   ApiDocsRoute,
 } from "./routes/apiDocs.route";
-
-import type {
-  Route,
-} from "./interfaces/route.interface";
 
 import NotificationRoute from "./routes/notification.route";
 
@@ -48,13 +57,24 @@ import {
 
 import ClientPetitionRoute from "./routes/clientPetition.route";
 
+import {
+  ClientLawyerInquiryRoute,
+  LawyerClientInquiryRoute,
+} from "./routes/clientLawyerInquiry.route";
+
+import {
+  ClientConsultationBookingRoute,
+  LawyerConsultationBookingRoute,
+} from "./routes/consultationBooking.route";
+
 
 let isShuttingDown =
   false;
 
 
 function normalizeError(
-  error: unknown,
+  error:
+    unknown,
 ): Error {
   if (
     error instanceof
@@ -122,7 +142,8 @@ async function shutdown(
       0,
     );
   } catch (
-    error: unknown
+    error:
+      unknown
   ) {
     const normalizedError =
       normalizeError(
@@ -131,7 +152,6 @@ async function shutdown(
 
     console.error(
       "[Server] Graceful shutdown failed:",
-
       normalizedError,
     );
 
@@ -161,13 +181,17 @@ async function bootstrap(): Promise<void> {
       Route[] = [
         new IndexRoute(),
 
-        new LawyerRoute(),
-
         new AuthRoute(),
 
-        new CaseRoute(),
+        new LawyerRoute(),
+
+        new LawyerAvailabilityRoute(),
+
+        new ClientProfileRoute(),
 
         new LawyerClientRoute(),
+
+        new CaseRoute(),
 
         new FinancialReportRoute(),
 
@@ -179,11 +203,21 @@ async function bootstrap(): Promise<void> {
 
         new ClientPetitionRoute(),
 
+        new ClientLawyerInquiryRoute(),
+
+        new ClientLawyerAvailabilityRoute(),
+
+        new ClientConsultationBookingRoute(),
+
+        new LawyerClientInquiryRoute(),
+
+        new LawyerConsultationBookingRoute(),
+
         new AdminRoute(),
 
-        new ApiDocsRoute(),
-
         new FAQRoute(),
+
+        new ApiDocsRoute(),
       ];
 
     const app =
@@ -197,7 +231,8 @@ async function bootstrap(): Promise<void> {
       `[Server] Application started successfully on port ${env.PORT}.`,
     );
   } catch (
-    error: unknown
+    error:
+      unknown
   ) {
     const normalizedError =
       normalizeError(
@@ -206,7 +241,6 @@ async function bootstrap(): Promise<void> {
 
     console.error(
       "[Server] Application startup failed:",
-
       normalizedError,
     );
 
@@ -230,7 +264,6 @@ process.on(
 
     console.error(
       "[Process] Unhandled promise rejection:",
-
       error,
     );
 
@@ -250,7 +283,6 @@ process.on(
   ) => {
     console.error(
       "[Process] Uncaught exception:",
-
       error,
     );
 
@@ -296,7 +328,6 @@ void bootstrap()
 
       console.error(
         "[Server] Unexpected bootstrap error:",
-
         normalizedError,
       );
 

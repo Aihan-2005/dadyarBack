@@ -1081,7 +1081,7 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
   }
 
   
-  
+
 
   public async getAdminDashboardStats(): Promise<AdminLawyerStats> {
     const counts =
