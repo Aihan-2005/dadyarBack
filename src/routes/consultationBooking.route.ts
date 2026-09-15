@@ -15,7 +15,6 @@ import type {
 } from "../interfaces/route.interface";
 
 import requireAuth, {
-  requireActiveLawyer,
   requireRole,
 } from "../middlewares/auth.middleware";
 
@@ -49,16 +48,12 @@ export class ClientConsultationBookingRoute
 
 
   private initializeRoutes(): void {
-
-    
     this.router.post(
       "/",
 
       createBooking,
     );
 
-
-    
 
     this.router.get(
       "/",
@@ -67,8 +62,6 @@ export class ClientConsultationBookingRoute
     );
 
 
-   
-    
     this.router.patch(
       "/:id/cancel",
 
@@ -102,15 +95,11 @@ export class LawyerConsultationBookingRoute
       requireRole(
         "LAWYER",
       ),
-
-      requireActiveLawyer,
     );
   }
 
 
   private initializeRoutes(): void {
-  
-    
     this.router.get(
       "/",
 
@@ -118,8 +107,6 @@ export class LawyerConsultationBookingRoute
     );
 
 
-  
-    
     this.router.patch(
       "/:id/status",
 
@@ -127,4 +114,3 @@ export class LawyerConsultationBookingRoute
     );
   }
 }
-

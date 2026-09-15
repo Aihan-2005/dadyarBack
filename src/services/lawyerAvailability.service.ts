@@ -3,11 +3,6 @@ import {
 } from "../constants/lawyerAvailability.constants";
 
 import {
-  isActiveLawyerStatus,
-  resolveLawyerStatus,
-} from "../constants/lawyer.constants";
-
-import {
   HttpException,
 } from "../exceptions/httpException";
 
@@ -130,16 +125,15 @@ export class LawyerAvailabilityService {
       await this.repository
         .findOverlap(
           lawyerId,
-
           startsAt,
-
           endsAt,
-
           excludeId,
         );
 
 
-    if (overlap) {
+    if (
+      overlap
+    ) {
       throw new HttpException(
         409,
 
@@ -151,41 +145,28 @@ export class LawyerAvailabilityService {
   }
 
 
-  private async requireLawyer(
+  
+  
+  private async requireDirectoryLawyer(
     lawyerId:
       string,
   ) {
     const lawyer =
       await this.lawyerRepository
-        .findById(
+        .findClientDirectoryById(
           lawyerId,
         );
 
 
-    if (!lawyer) {
-      throw new HttpException(
-        404,
-
-        "وکیل موردنظر پیدا نشد",
-
-        "LAWYER_NOT_FOUND",
-      );
-    }
-
-
     if (
-      !isActiveLawyerStatus(
-        resolveLawyerStatus(
-          lawyer.status,
-        ),
-      )
+      !lawyer
     ) {
       throw new HttpException(
         404,
 
-        "وکیل موردنظر در حال حاضر فعال نیست",
+        "وکیل موردنظر در بخش موکلین منتشر نشده است",
 
-        "LAWYER_NOT_AVAILABLE",
+        "CLIENT_DIRECTORY_LAWYER_NOT_FOUND",
       );
     }
 
@@ -208,9 +189,7 @@ export class LawyerAvailabilityService {
 
     await this.ensureNoOverlap(
       lawyerId,
-
       input.startsAt,
-
       input.endsAt,
     );
 
@@ -219,7 +198,6 @@ export class LawyerAvailabilityService {
       await this.repository
         .createForLawyer(
           lawyerId,
-
           input,
         );
 
@@ -270,7 +248,7 @@ export class LawyerAvailabilityService {
     options:
       LawyerAvailabilityListOptions,
   ) {
-    await this.requireLawyer(
+    await this.requireDirectoryLawyer(
       lawyerId,
     );
 
@@ -330,12 +308,13 @@ export class LawyerAvailabilityService {
       await this.repository
         .findByIdForLawyer(
           lawyerId,
-
           availabilityId,
         );
 
 
-    if (!current) {
+    if (
+      !current
+    ) {
       throw new HttpException(
         404,
 
@@ -395,11 +374,8 @@ export class LawyerAvailabilityService {
     ) {
       await this.ensureNoOverlap(
         lawyerId,
-
         merged.startsAt,
-
         merged.endsAt,
-
         availabilityId,
       );
     }
@@ -409,7 +385,6 @@ export class LawyerAvailabilityService {
       await this.repository
         .updateUnreservedForLawyer(
           lawyerId,
-
           availabilityId,
 
           {
@@ -434,7 +409,9 @@ export class LawyerAvailabilityService {
         );
 
 
-    if (!updated) {
+    if (
+      !updated
+    ) {
       throw new HttpException(
         409,
 
@@ -462,12 +439,13 @@ export class LawyerAvailabilityService {
       await this.repository
         .findByIdForLawyer(
           lawyerId,
-
           availabilityId,
         );
 
 
-    if (!current) {
+    if (
+      !current
+    ) {
       throw new HttpException(
         404,
 
@@ -495,12 +473,13 @@ export class LawyerAvailabilityService {
       await this.repository
         .deleteUnreservedForLawyer(
           lawyerId,
-
           availabilityId,
         );
 
 
-    if (!deleted) {
+    if (
+      !deleted
+    ) {
       throw new HttpException(
         409,
 

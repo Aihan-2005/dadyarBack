@@ -21,19 +21,33 @@ import {
 } from "../services/lawyer.service";
 
 import {
+  LawyerSelfDirectoryService,
+} from "../services/lawyerSelfDirectory.service";
+
+import {
   LawyerDirectoryIdParamSchema,
   LawyerDirectoryListQuerySchema,
   LawyerProfileSchema,
 } from "../validators/lawyer.validator";
 
+import {
+  LawyerSelfDirectoryVisibilitySchema,
+} from "../validators/lawyerSelfDirectory.validator";
+
+
 const LANGUAGE =
   env.LANGUAGE;
+
 
 export class LawyerController {
   constructor(
     private readonly lawyerService:
       LawyerService,
+
+    private readonly selfDirectoryService =
+      new LawyerSelfDirectoryService(),
   ) {}
+
 
   private getLawyerId(
     req:
@@ -41,6 +55,7 @@ export class LawyerController {
   ): string {
     const lawyerId =
       req.user?.id;
+
 
     if (
       !lawyerId
@@ -56,11 +71,11 @@ export class LawyerController {
       );
     }
 
+
     return lawyerId;
   }
 
 
-  
   public listClientDirectory =
     async (
       req:
@@ -81,10 +96,13 @@ export class LawyerController {
             req.query,
           );
 
+
         const result =
-          await this.lawyerService.listClientDirectory(
-            query,
-          );
+          await this.lawyerService
+            .listClientDirectory(
+              query,
+            );
+
 
         return res
           .status(
@@ -109,6 +127,7 @@ export class LawyerController {
       }
     };
 
+
   public getClientDirectoryLawyer =
     async (
       req:
@@ -131,10 +150,13 @@ export class LawyerController {
             req.params,
           );
 
+
         const lawyer =
-          await this.lawyerService.getClientDirectoryLawyer(
-            id,
-          );
+          await this.lawyerService
+            .getClientDirectoryLawyer(
+              id,
+            );
+
 
         return res
           .status(
@@ -157,7 +179,6 @@ export class LawyerController {
     };
 
 
-    
   public me =
     async (
       req:
@@ -178,10 +199,13 @@ export class LawyerController {
             req,
           );
 
+
         const lawyer =
-          await this.lawyerService.findById(
-            lawyerId,
-          );
+          await this.lawyerService
+            .findById(
+              lawyerId,
+            );
+
 
         if (
           !lawyer
@@ -196,6 +220,7 @@ export class LawyerController {
             "LAWYER_NOT_FOUND",
           );
         }
+
 
         return res
           .status(
@@ -216,6 +241,114 @@ export class LawyerController {
         );
       }
     };
+
+
+  public getClientDirectoryState =
+    async (
+      req:
+        Request,
+
+      res:
+        Response,
+
+      next:
+        NextFunction,
+    ): Promise<
+      | Response
+      | void
+    > => {
+      try {
+        const lawyerId =
+          this.getLawyerId(
+            req,
+          );
+
+
+        const state =
+          await this.selfDirectoryService
+            .getState(
+              lawyerId,
+            );
+
+
+        return res
+          .status(
+            200,
+          )
+          .json({
+            success:
+              true,
+
+            data:
+              state,
+          });
+      } catch (
+        error
+      ) {
+        return next(
+          error,
+        );
+      }
+    };
+
+
+  public updateClientDirectoryState =
+    async (
+      req:
+        Request,
+
+      res:
+        Response,
+
+      next:
+        NextFunction,
+    ): Promise<
+      | Response
+      | void
+    > => {
+      try {
+        const lawyerId =
+          this.getLawyerId(
+            req,
+          );
+
+
+        const input =
+          LawyerSelfDirectoryVisibilitySchema
+            .parse(
+              req.body ??
+                {},
+            );
+
+
+        const state =
+          await this.selfDirectoryService
+            .setVisibility(
+              lawyerId,
+              input.isVisible,
+            );
+
+
+        return res
+          .status(
+            200,
+          )
+          .json({
+            success:
+              true,
+
+            data:
+              state,
+          });
+      } catch (
+        error
+      ) {
+        return next(
+          error,
+        );
+      }
+    };
+
 
   public getProfile =
     async (
@@ -237,10 +370,13 @@ export class LawyerController {
             req,
           );
 
+
         const profile =
-          await this.lawyerService.findProfileById(
-            lawyerId,
-          );
+          await this.lawyerService
+            .findProfileById(
+              lawyerId,
+            );
+
 
         return res
           .status(
@@ -263,6 +399,7 @@ export class LawyerController {
       }
     };
 
+
   public updateProfile =
     async (
       req:
@@ -283,18 +420,38 @@ export class LawyerController {
             req,
           );
 
+
         const input =
-          await LawyerProfileSchema.parseAsync(
-            req.body ??
-              {},
-          );
+          await LawyerProfileSchema
+            .parseAsync(
+              req.body ??
+                {},
+            );
 
-        const profile =
-          await this.lawyerService.updateProfile(
+
+            
+        await this.selfDirectoryService
+          .assertPublishedProfileCanBeUpdated(
             lawyerId,
-
             input,
           );
+
+
+        const profile =
+          await this.lawyerService
+            .updateProfile(
+              lawyerId,
+              input,
+            );
+
+
+        
+            
+        await this.selfDirectoryService
+          .keepPublishedLawyerActive(
+            lawyerId,
+          );
+
 
         return res
           .status(

@@ -30,6 +30,10 @@ import {
 } from "../repositories/lawyerClient.repository";
 
 import {
+  LawyerRepository,
+} from "../repositories/lawyer.repository";
+
+import {
   UserRepository,
 } from "../repositories/user.repository";
 
@@ -74,6 +78,9 @@ export class ConsultationBookingService {
 
     private readonly lawyerClientRepository =
       new LawyerClientRepository(),
+
+    private readonly lawyerRepository =
+      new LawyerRepository(),
   ) {}
 
 
@@ -87,6 +94,7 @@ export class ConsultationBookingService {
           clientId,
         );
 
+
     if (
       !profile?.fullName?.trim()
     ) {
@@ -99,7 +107,36 @@ export class ConsultationBookingService {
       );
     }
 
+
     return profile;
+  }
+
+
+  private async requirePublishedLawyer(
+    lawyerId:
+      string,
+  ) {
+    const lawyer =
+      await this.lawyerRepository
+        .findClientDirectoryById(
+          lawyerId,
+        );
+
+
+    if (
+      !lawyer
+    ) {
+      throw new HttpException(
+        404,
+
+        "وکیل انتخاب‌شده در بخش موکلین منتشر نشده است",
+
+        "CLIENT_DIRECTORY_LAWYER_NOT_FOUND",
+      );
+    }
+
+
+    return lawyer;
   }
 
 
@@ -116,18 +153,17 @@ export class ConsultationBookingService {
     const iso =
       startsAt.toISOString();
 
+
     return {
       date:
         iso.slice(
           0,
-
           10,
         ),
 
       time:
         iso.slice(
           11,
-
           16,
         ),
     };
@@ -173,37 +209,35 @@ export class ConsultationBookingService {
     const clientId =
       booking.clientId;
 
+
     const [
       client,
-
       profile,
-
       lawyerClient,
     ] =
       await Promise.all([
-        this.userRepository.findById(
-          clientId,
-        ),
+        this.userRepository
+          .findById(
+            clientId,
+          ),
 
-        this.clientProfileRepository.findByUserId(
-          clientId,
-        ),
+        this.clientProfileRepository
+          .findByUserId(
+            clientId,
+          ),
 
-        this.lawyerClientRepository.findByUserIdForLawyer(
-          lawyerId,
-
-          clientId,
-        ),
+        this.lawyerClientRepository
+          .findByUserIdForLawyer(
+            lawyerId,
+            clientId,
+          ),
       ]);
 
 
     return toLawyerConsultationBookingDTO(
       booking,
-
       client,
-
       profile,
-
       lawyerClient,
     );
   }
@@ -216,11 +250,17 @@ export class ConsultationBookingService {
     data:
       CreateConsultationBookingInput,
   ) {
- 
+
     
-    await this.requireClientProfile(
-      clientId,
-    );
+    await Promise.all([
+      this.requireClientProfile(
+        clientId,
+      ),
+
+      this.requirePublishedLawyer(
+        data.lawyerId,
+      ),
+    ]);
 
 
     const session =
@@ -235,7 +275,6 @@ export class ConsultationBookingService {
               await this.availabilityRepository
                 .findAvailableById(
                   data.availabilityId,
-
                   session,
                 );
 
@@ -300,11 +339,8 @@ export class ConsultationBookingService {
               await this.availabilityRepository
                 .claimSlot(
                   data.lawyerId,
-
                   data.availabilityId,
-
                   data.type,
-
                   session,
                 );
 
@@ -365,7 +401,6 @@ export class ConsultationBookingService {
             return this.repository
               .create(
                 payload,
-
                 session,
               );
           },
@@ -429,7 +464,6 @@ export class ConsultationBookingService {
         ) =>
           this.toLawyerBookingResult(
             lawyerId,
-
             booking,
           ),
       ),
@@ -488,7 +522,6 @@ export class ConsultationBookingService {
               await this.repository
                 .findById(
                   bookingId,
-
                   session,
                 );
 
@@ -539,13 +572,9 @@ export class ConsultationBookingService {
               await this.repository
                 .updateStatusForLawyer(
                   bookingId,
-
                   lawyerId,
-
                   allowedCurrentStatuses,
-
                   status,
-
                   session,
                 );
 
@@ -572,7 +601,6 @@ export class ConsultationBookingService {
                 await this.availabilityRepository
                   .releaseSlot(
                     current.availabilityId,
-
                     session,
                   );
 
@@ -611,7 +639,6 @@ export class ConsultationBookingService {
 
       return this.toLawyerBookingResult(
         lawyerId,
-
         updated,
       );
     } finally {
@@ -646,7 +673,6 @@ export class ConsultationBookingService {
               await this.repository
                 .findById(
                   bookingId,
-
                   session,
                 );
 
@@ -697,13 +723,9 @@ export class ConsultationBookingService {
               await this.repository
                 .updateStatusForClient(
                   bookingId,
-
                   clientId,
-
                   allowedCurrentStatuses,
-
                   ConsultationBookingStatus.CANCELLED,
-
                   session,
                 );
 
@@ -728,7 +750,6 @@ export class ConsultationBookingService {
                 await this.availabilityRepository
                   .releaseSlot(
                     current.availabilityId,
-
                     session,
                   );
 
@@ -776,5 +797,3 @@ export class ConsultationBookingService {
 
 
 export default new ConsultationBookingService();
-
-

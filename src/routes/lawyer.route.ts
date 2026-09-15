@@ -18,7 +18,10 @@ import {
   LawyerService,
 } from "../services/lawyer.service";
 
-class LawyerRoute implements Route {
+
+class LawyerRoute
+  implements Route {
+
   public readonly path =
     "/lawyers";
 
@@ -28,21 +31,24 @@ class LawyerRoute implements Route {
   private readonly lawyerController:
     LawyerController;
 
+
   constructor() {
     const lawyerService =
       new LawyerService();
+
 
     this.lawyerController =
       new LawyerController(
         lawyerService,
       );
 
+
     this.initializeRoutes();
   }
 
-  private initializeRoutes(): void {
 
-    
+  private initializeRoutes(): void {
+ 
     
 
     this.router.get(
@@ -58,6 +64,7 @@ class LawyerRoute implements Route {
         .listClientDirectory,
     );
 
+
     this.router.get(
       "/directory/:id",
 
@@ -72,6 +79,7 @@ class LawyerRoute implements Route {
     );
 
 
+ 
     
     this.router.use(
       requireAuth,
@@ -81,12 +89,28 @@ class LawyerRoute implements Route {
       ),
     );
 
+
     this.router.get(
       "/me",
 
       this.lawyerController
         .me,
     );
+
+
+    this.router
+      .route(
+        "/me/client-directory",
+      )
+      .get(
+        this.lawyerController
+          .getClientDirectoryState,
+      )
+      .patch(
+        this.lawyerController
+          .updateClientDirectoryState,
+      );
+
 
     this.router
       .route(
@@ -105,6 +129,9 @@ class LawyerRoute implements Route {
           .updateProfile,
       );
 
+
+ 
+      
     this.router.patch(
       "/me",
 
@@ -113,5 +140,6 @@ class LawyerRoute implements Route {
     );
   }
 }
+
 
 export default LawyerRoute;

@@ -11,7 +11,6 @@ import type {
 } from "../interfaces/route.interface";
 
 import requireAuth, {
-  requireActiveLawyer,
   requireRole,
 } from "../middlewares/auth.middleware";
 
@@ -36,8 +35,6 @@ export class LawyerAvailabilityRoute
       requireRole(
         "LAWYER",
       ),
-
-      requireActiveLawyer,
     );
 
 
