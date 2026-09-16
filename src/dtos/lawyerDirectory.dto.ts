@@ -1,31 +1,81 @@
 import type {
+  Education,
   LawyerRecord,
+  WorkExperience,
 } from "../interfaces/lawyer.interface";
 
 import type {
   UserRecord,
 } from "../interfaces/user.interface";
 
+
 export interface ClientLawyerPlacementDTO {
-  lawyerId: string;
+  lawyerId:
+    string;
 
-  isFeatured: boolean;
+  isFeatured:
+    boolean;
 
-  displayOrder: number;
+  displayOrder:
+    number;
 
   addedAt:
     | string
     | null;
 }
 
+
+export interface LawyerDirectoryEducationDTO {
+  id:
+    string;
+
+  degree:
+    string;
+
+  field:
+    string;
+
+  university:
+    string;
+
+  year:
+    string;
+}
+
+
+export interface LawyerDirectoryExperienceDTO {
+  id:
+    string;
+
+  title:
+    string;
+
+  company:
+    string;
+
+  startYear:
+    string;
+
+  endYear:
+    string;
+
+  description:
+    string;
+}
+
+
 export interface LawyerDirectoryDTO {
-  id: string;
+  id:
+    string;
 
-  firstName: string;
+  firstName:
+    string;
 
-  lastName: string;
+  lastName:
+    string;
 
-  fullName: string;
+  fullName:
+    string;
 
   phone:
     | string
@@ -35,48 +85,70 @@ export interface LawyerDirectoryDTO {
     | string
     | null;
 
-  specialization: string;
+  specialization:
+    string;
 
-  licenseNumber: string;
+  licenseNumber:
+    string;
 
-  yearsOfExperience: number;
+  yearsOfExperience:
+    number;
 
   website:
     | string
     | null;
 
-  address: string;
+  address:
+    string;
 
-  bio: string;
+  bio:
+    string;
 
-  skills: string[];
+  education:
+    LawyerDirectoryEducationDTO[];
 
-  languages: string[];
+  experience:
+    LawyerDirectoryExperienceDTO[];
 
-  isFeatured: boolean;
+  skills:
+    string[];
 
-  displayOrder: number;
+  languages:
+    string[];
+
+  isFeatured:
+    boolean;
+
+  displayOrder:
+    number;
 
   publishedAt:
     | string
     | null;
 }
 
+
 function toISOString(
-  value: unknown,
+  value:
+    unknown,
 ): string | null {
   if (
-    value instanceof Date
+    value instanceof
+    Date
   ) {
     return value.toISOString();
   }
+
 
   if (
     typeof value ===
     "string"
   ) {
     const date =
-      new Date(value);
+      new Date(
+        value,
+      );
+
 
     if (
       !Number.isNaN(
@@ -87,8 +159,66 @@ function toISOString(
     }
   }
 
+
   return null;
 }
+
+
+function mapEducation(
+  item:
+    Education,
+): LawyerDirectoryEducationDTO {
+  return {
+    id:
+      item._id?.toString() ??
+      "",
+
+    degree:
+      item.degree ??
+      "",
+
+    field:
+      item.field ??
+      "",
+
+    university:
+      item.university ??
+      "",
+
+    year:
+      item.year ??
+      "",
+  };
+}
+
+
+function mapExperience(
+  item:
+    WorkExperience,
+): LawyerDirectoryExperienceDTO {
+  return {
+    id:
+      item._id?.toString() ??
+      "",
+
+    title:
+      item.title,
+
+    company:
+      item.company,
+
+    startYear:
+      item.startYear,
+
+    endYear:
+      item.endYear,
+
+    description:
+      item.description ??
+      "",
+  };
+}
+
 
 export function toClientLawyerPlacementDTO(
   lawyer:
@@ -99,25 +229,23 @@ export function toClientLawyerPlacementDTO(
       lawyer._id.toString(),
 
     isFeatured:
-      lawyer
-        .clientDirectory
+      lawyer.clientDirectory
         ?.isFeatured ??
       false,
 
     displayOrder:
-      lawyer
-        .clientDirectory
+      lawyer.clientDirectory
         ?.displayOrder ??
       0,
 
     addedAt:
       toISOString(
-        lawyer
-          .clientDirectory
+        lawyer.clientDirectory
           ?.publishedAt,
       ),
   };
 }
+
 
 export function toLawyerDirectoryDTO(
   lawyer:
@@ -139,8 +267,12 @@ export function toLawyerDirectoryDTO(
     fullName:
       `${lawyer.firstName} ${lawyer.lastName}`.trim(),
 
+    /*
+     * فقط شماره عمومی پروفایل.
+     * شماره login حساب هیچ‌وقت expose نمی‌شود.
+     */
     phone:
-      user.phone ??
+      lawyer.contactPhone ??
       null,
 
     email:
@@ -171,12 +303,30 @@ export function toLawyerDirectoryDTO(
       lawyer.bio ??
       "",
 
+    education:
+      (
+        lawyer.education ??
+        []
+      ).map(
+        mapEducation,
+      ),
+
+    experience:
+      (
+        lawyer.experience ??
+        []
+      ).map(
+        mapExperience,
+      ),
+
     skills:
       (
         lawyer.skills ??
         []
       ).map(
-        (skill) =>
+        (
+          skill,
+        ) =>
           skill.name,
       ),
 
@@ -188,22 +338,20 @@ export function toLawyerDirectoryDTO(
     ],
 
     isFeatured:
-      lawyer
-        .clientDirectory
+      lawyer.clientDirectory
         ?.isFeatured ??
       false,
 
     displayOrder:
-      lawyer
-        .clientDirectory
+      lawyer.clientDirectory
         ?.displayOrder ??
       0,
 
     publishedAt:
       toISOString(
-        lawyer
-          .clientDirectory
+        lawyer.clientDirectory
           ?.publishedAt,
       ),
   };
 }
+

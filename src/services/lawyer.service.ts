@@ -1,4 +1,4 @@
-import mongoose, {
+import {
   Types,
   type UpdateQuery,
 } from "mongoose";
@@ -6,10 +6,6 @@ import mongoose, {
 import {
   env,
 } from "../config/env";
-
-import {
-  LAWYER_STATUSES,
-} from "../constants/lawyer.constants";
 
 import {
   MESSAGES,
@@ -30,7 +26,6 @@ import {
 
 import type {
   Lawyer,
-  LawyerProfileInput,
 } from "../interfaces/lawyer.interface";
 
 import type {
@@ -45,8 +40,14 @@ import {
   UserRepository,
 } from "../repositories/user.repository";
 
+import type {
+  LawyerProfilePatchInput,
+} from "../validators/lawyer.validator";
+
+
 const LANGUAGE =
   env.LANGUAGE;
+
 
 export class LawyerService {
   constructor(
@@ -57,14 +58,6 @@ export class LawyerService {
       new UserRepository(),
   ) {}
 
-  private normalizePhone(
-    phone?: string,
-  ): string | undefined {
-    return (
-      phone?.trim() ||
-      undefined
-    );
-  }
 
   private normalizeLicenseNumber(
     licenseNumber:
@@ -76,6 +69,7 @@ export class LawyerService {
     );
   }
 
+
   private sameLawyer(
     recordId:
       unknown,
@@ -83,30 +77,33 @@ export class LawyerService {
     lawyerId:
       string,
   ): boolean {
-    return (
-      String(
-        recordId,
-      ) ===
-      lawyerId
-    );
+    return String(
+      recordId,
+    ) === lawyerId;
   }
 
+
   private preserveSubdocumentId(
-    id?: string,
+    id?:
+      string,
   ):
     | Types.ObjectId
     | undefined {
-    return (
-      id &&
-      Types.ObjectId.isValid(
+    if (
+      !id ||
+      !Types.ObjectId.isValid(
         id,
       )
-    )
-      ? new Types.ObjectId(
-          id,
-        )
-      : undefined;
+    ) {
+      return undefined;
+    }
+
+
+    return new Types.ObjectId(
+      id,
+    );
   }
+
 
   public async findById(
     lawyerId:
@@ -126,6 +123,7 @@ export class LawyerService {
         ),
       ]);
 
+
     if (
       !lawyer ||
       !user
@@ -133,12 +131,14 @@ export class LawyerService {
       return null;
     }
 
+
     return toPublicLawyerDTO(
       lawyer,
 
       user,
     );
   }
+
 
   public async findProfileById(
     lawyerId:
@@ -158,6 +158,7 @@ export class LawyerService {
         ),
       ]);
 
+
     if (
       !lawyer ||
       !user
@@ -173,6 +174,7 @@ export class LawyerService {
       );
     }
 
+
     return toLawyerProfileDTO(
       lawyer,
 
@@ -180,14 +182,17 @@ export class LawyerService {
     );
   }
 
+
   public async listClientDirectory(
     options:
       LawyerDirectoryListOptions,
   ) {
     const result =
-      await this.repo.findClientDirectory(
-        options,
-      );
+      await this.repo
+        .findClientDirectory(
+          options,
+        );
+
 
     return {
       items:
@@ -221,14 +226,17 @@ export class LawyerService {
     };
   }
 
+
   public async getClientDirectoryLawyer(
     lawyerId:
       string,
   ) {
     const lawyer =
-      await this.repo.findClientDirectoryById(
-        lawyerId,
-      );
+      await this.repo
+        .findClientDirectoryById(
+          lawyerId,
+        );
+
 
     if (
       !lawyer
@@ -244,6 +252,7 @@ export class LawyerService {
       );
     }
 
+
     return toLawyerDirectoryDTO(
       lawyer,
 
@@ -251,12 +260,13 @@ export class LawyerService {
     );
   }
 
+
   public async updateProfile(
     lawyerId:
       string,
 
     input:
-      LawyerProfileInput,
+      LawyerProfilePatchInput,
   ) {
     const [
       current,
@@ -271,6 +281,7 @@ export class LawyerService {
           lawyerId,
         ),
       ]);
+
 
     if (
       !current ||
@@ -287,119 +298,102 @@ export class LawyerService {
       );
     }
 
-    const normalizedPhone =
-      this.normalizePhone(
-        input.phone,
-      );
-
-    const normalizedLicense =
-      this.normalizeLicenseNumber(
-        input.licenseNumber,
-      );
-
-    if (
-      !normalizedPhone &&
-      !currentUser.email
-    ) {
-      throw new HttpException(
-        400,
-
-        MESSAGES.noEmailNorPhone[
-          LANGUAGE
-        ],
-
-        "EMAIL_OR_PHONE_REQUIRED",
-      );
-    }
-
-    const phoneChanged =
-      normalizedPhone !==
-      currentUser.phone;
-
-    const licenseChanged =
-      normalizedLicense !==
-      current.licenseNumber;
-
-    const [
-      phoneOwner,
-      licenseOwner,
-    ] =
-      await Promise.all([
-        normalizedPhone &&
-        phoneChanged
-          ? this.userRepo.findByPhone(
-              normalizedPhone,
-            )
-          : Promise.resolve(
-              null,
-            ),
-
-        normalizedLicense &&
-        licenseChanged
-          ? this.repo.findByLicenseNumber(
-              normalizedLicense,
-            )
-          : Promise.resolve(
-              null,
-            ),
-      ]);
-
-    if (
-      phoneOwner &&
-      !this.sameLawyer(
-        phoneOwner._id,
-
-        lawyerId,
-      )
-    ) {
-      throw new HttpException(
-        409,
-
-        MESSAGES.phoneExsist[
-          LANGUAGE
-        ],
-
-        "PHONE_ALREADY_EXISTS",
-      );
-    }
-
-    if (
-      licenseOwner &&
-      !this.sameLawyer(
-        licenseOwner._id,
-
-        lawyerId,
-      )
-    ) {
-      throw new HttpException(
-        409,
-
-        MESSAGES.barExsist[
-          LANGUAGE
-        ],
-
-        "LICENSE_NUMBER_ALREADY_EXISTS",
-      );
-    }
 
     const setFields:
       Record<
         string,
         unknown
-      > = {
-      specialization:
-        input.specialization,
+      > = {};
 
-      yearsOfExperience:
-        input.yearsOfExperience,
 
-      address:
-        input.address,
+    const unsetFields:
+      Record<
+        string,
+        1
+      > = {};
 
-      bio:
-        input.bio,
 
-      education:
+    /*
+     * اطلاعات پایه
+     */
+    if (
+      input.specialization !==
+      undefined
+    ) {
+      setFields.specialization =
+        input.specialization;
+    }
+
+
+    if (
+      input.yearsOfExperience !==
+      undefined
+    ) {
+      setFields.yearsOfExperience =
+        input.yearsOfExperience;
+    }
+
+
+    
+    if (
+      input.phone !==
+      undefined
+    ) {
+      if (
+        input.phone ===
+          null ||
+        input.phone.trim() ===
+          ""
+      ) {
+        unsetFields.contactPhone =
+          1;
+      } else {
+        setFields.contactPhone =
+          input.phone.trim();
+      }
+    }
+
+
+    if (
+      input.website !==
+      undefined
+    ) {
+      if (
+        input.website
+      ) {
+        setFields.website =
+          input.website;
+      } else {
+        unsetFields.website =
+          1;
+      }
+    }
+
+
+    if (
+      input.address !==
+      undefined
+    ) {
+      setFields.address =
+        input.address;
+    }
+
+
+    if (
+      input.bio !==
+      undefined
+    ) {
+      setFields.bio =
+        input.bio;
+    }
+
+
+    
+    if (
+      input.education !==
+      undefined
+    ) {
+      setFields.education =
         input.education.map(
           (
             item,
@@ -408,6 +402,7 @@ export class LawyerService {
               this.preserveSubdocumentId(
                 item.id,
               );
+
 
             return {
               ...(
@@ -431,9 +426,17 @@ export class LawyerService {
                 item.year,
             };
           },
-        ),
+        );
+    }
 
-      experience:
+
+  
+    
+    if (
+      input.experience !==
+      undefined
+    ) {
+      setFields.experience =
         input.experience.map(
           (
             item,
@@ -442,6 +445,7 @@ export class LawyerService {
               this.preserveSubdocumentId(
                 item.id,
               );
+
 
             return {
               ...(
@@ -469,9 +473,17 @@ export class LawyerService {
                 "",
             };
           },
-        ),
+        );
+    }
 
-      skills:
+
+   
+    
+    if (
+      input.skills !==
+      undefined
+    ) {
+      setFields.skills =
         input.skills.map(
           (
             item,
@@ -480,6 +492,7 @@ export class LawyerService {
               this.preserveSubdocumentId(
                 item.id,
               );
+
 
             return {
               ...(
@@ -497,59 +510,117 @@ export class LawyerService {
                 item.level,
             };
           },
-        ),
-
-      languages:
-        input.languages,
-    };
-
-    const unsetFields:
-      Record<
-        string,
-        1
-      > = {};
-
-    if (
-      input.website
-    ) {
-      setFields.website =
-        input.website;
-    } else {
-      unsetFields.website =
-        1;
+        );
     }
 
+
+  
+    
     if (
-      normalizedLicense
+      input.languages !==
+      undefined
     ) {
-      setFields.licenseNumber =
-        normalizedLicense;
-    } else {
-      unsetFields.licenseNumber =
-        1;
+      setFields.languages =
+        input.languages;
     }
 
+
+    /*
+     * شماره پروانه همچنان unique است،
+     * چون هویت حرفه‌ای وکیل است.
+     */
     if (
-      licenseChanged
+      input.licenseNumber !==
+      undefined
     ) {
-      setFields.licenseVerifiedAt =
-        null;
+      const normalizedLicense =
+        this.normalizeLicenseNumber(
+          input.licenseNumber,
+        );
+
+
+      const currentLicense =
+        this.normalizeLicenseNumber(
+          current.licenseNumber ??
+            "",
+        );
+
+
+      const licenseChanged =
+        normalizedLicense !==
+        currentLicense;
+
 
       if (
-        current.status ===
-        LAWYER_STATUSES.ACTIVE
+        normalizedLicense &&
+        licenseChanged
       ) {
-        setFields.status =
-          LAWYER_STATUSES.PENDING_VERIFICATION;
+        const licenseOwner =
+          await this.repo
+            .findByLicenseNumber(
+              normalizedLicense,
+            );
+
+
+        if (
+          licenseOwner &&
+          !this.sameLawyer(
+            licenseOwner._id,
+
+            lawyerId,
+          )
+        ) {
+          throw new HttpException(
+            409,
+
+            MESSAGES.barExsist[
+              LANGUAGE
+            ],
+
+            "LICENSE_NUMBER_ALREADY_EXISTS",
+          );
+        }
+      }
+
+
+      if (
+        normalizedLicense
+      ) {
+        setFields.licenseNumber =
+          normalizedLicense;
+      } else {
+        unsetFields.licenseNumber =
+          1;
+      }
+
+
+      if (
+        licenseChanged
+      ) {
+        /*
+         * بررسی مجوز قبلی با تغییر شماره پروانه
+         * دیگر معتبر نیست.
+         */
+        setFields.licenseVerifiedAt =
+          null;
       }
     }
 
+
     const update:
-      UpdateQuery<Lawyer> =
-      {
-        $set:
-          setFields,
-      };
+      UpdateQuery<Lawyer> = {};
+
+
+    if (
+      Object.keys(
+        setFields,
+      ).length >
+      0
+    ) {
+      update.$set =
+        setFields;
+    }
+
 
     if (
       Object.keys(
@@ -561,106 +632,37 @@ export class LawyerService {
         unsetFields;
     }
 
-    if (
-      !phoneChanged
-    ) {
-      const updated =
-        await this.repo.updateProfileById(
+
+ 
+    
+    const updated =
+      await this.repo
+        .updateProfileById(
           lawyerId,
 
           update,
         );
 
-      if (
-        !updated
-      ) {
-        throw new HttpException(
-          404,
 
-          MESSAGES.noUserWithId[
-            LANGUAGE
-          ],
+    if (
+      !updated
+    ) {
+      throw new HttpException(
+        404,
 
-          "LAWYER_NOT_FOUND",
-        );
-      }
+        MESSAGES.noUserWithId[
+          LANGUAGE
+        ],
 
-      return toLawyerProfileDTO(
-        updated,
-
-        currentUser,
+        "LAWYER_NOT_FOUND",
       );
     }
 
-    const session =
-      await mongoose.startSession();
 
-    try {
-      const result =
-        await session.withTransaction(
-          async () => {
-            const updatedLawyer =
-              await this.repo.updateProfileById(
-                lawyerId,
+    return toLawyerProfileDTO(
+      updated,
 
-                update,
-
-                session,
-              );
-
-            const updatedUser =
-              await this.userRepo.updatePhoneById(
-                lawyerId,
-
-                normalizedPhone,
-
-                session,
-              );
-
-            if (
-              !updatedLawyer ||
-              !updatedUser
-            ) {
-              throw new HttpException(
-                404,
-
-                MESSAGES.noUserWithId[
-                  LANGUAGE
-                ],
-
-                "LAWYER_NOT_FOUND",
-              );
-            }
-
-            return {
-              updatedLawyer,
-
-              updatedUser,
-            };
-          },
-        );
-
-      if (
-        !result
-      ) {
-        throw new HttpException(
-          500,
-
-          MESSAGES.serverError[
-            LANGUAGE
-          ],
-
-          "PROFILE_UPDATE_FAILED",
-        );
-      }
-
-      return toLawyerProfileDTO(
-        result.updatedLawyer,
-
-        result.updatedUser,
-      );
-    } finally {
-      await session.endSession();
-    }
+      currentUser,
+    );
   }
 }

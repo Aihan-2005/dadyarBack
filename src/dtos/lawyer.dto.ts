@@ -1,13 +1,19 @@
-import { Types } from "mongoose";
+import {
+  Types,
+} from "mongoose";
 
-import type { LawyerRole, LawyerStatus } from "../constants/lawyer.constants";
+import type {
+  LawyerStatus,
+} from "../constants/lawyer.constants";
 
 import {
-  resolveLawyerRole,
   resolveLawyerStatus,
 } from "../constants/lawyer.constants";
 
-import type { UserRecord, UserRole } from "../interfaces/user.interface";
+import type {
+  UserRecord,
+  UserRole,
+} from "../interfaces/user.interface";
 
 import type {
   Education,
@@ -17,6 +23,7 @@ import type {
   WorkExperience,
 } from "../interfaces/lawyer.interface";
 
+
 export interface PublicEducationDTO {
   id: string;
   degree: string;
@@ -24,6 +31,7 @@ export interface PublicEducationDTO {
   university: string;
   year: string;
 }
+
 
 export interface PublicExperienceDTO {
   id: string;
@@ -34,199 +42,421 @@ export interface PublicExperienceDTO {
   description: string;
 }
 
+
 export interface PublicSkillDTO {
   id: string;
   name: string;
   level: SkillLevel;
 }
 
+
 export interface LawyerProfileDTO {
   specialization: string;
+
   licenseNumber: string;
+
   yearsOfExperience: number;
+
+  /*
+   * شماره عمومی پروفایل.
+   */
   phone: string;
+
   website: string;
+
   address: string;
+
   bio: string;
-  education: PublicEducationDTO[];
-  experience: PublicExperienceDTO[];
-  skills: PublicSkillDTO[];
-  languages: string[];
+
+  education:
+    PublicEducationDTO[];
+
+  experience:
+    PublicExperienceDTO[];
+
+  skills:
+    PublicSkillDTO[];
+
+  languages:
+    string[];
 }
+
 
 export interface PublicLawyerDTO {
   id: string;
 
   firstName: string;
+
   lastName: string;
 
-  email: string | null;
+  email:
+    | string
+    | null;
 
-  role: UserRole;
+  role:
+    UserRole;
 
-  status: LawyerStatus;
+  status:
+    LawyerStatus;
 
   verification: {
     email: {
-      verified: boolean;
-      verifiedAt: string | null;
+      verified:
+        boolean;
+
+      verifiedAt:
+        string |
+        null;
     };
 
     phone: {
-      verified: boolean;
-      verifiedAt: string | null;
+      verified:
+        boolean;
+
+      verifiedAt:
+        string |
+        null;
     };
 
     license: {
-      verified: boolean;
-      verifiedAt: string | null;
+      verified:
+        boolean;
+
+      verifiedAt:
+        string |
+        null;
     };
   };
 
-  profile: LawyerProfileDTO;
+  profile:
+    LawyerProfileDTO;
 
-  lastLoginAt: string | null;
+  lastLoginAt:
+    string |
+    null;
 
-  createdAt: string | null;
-  updatedAt: string | null;
+  createdAt:
+    string |
+    null;
+
+  updatedAt:
+    string |
+    null;
 }
 
-function toId(value: unknown): string {
-  if (value instanceof Types.ObjectId) {
+
+function toId(
+  value:
+    unknown,
+): string {
+  if (
+    value instanceof
+    Types.ObjectId
+  ) {
     return value.toHexString();
   }
 
-  if (typeof value === "string" && value.length > 0) {
+
+  if (
+    typeof value ===
+      "string" &&
+    value.length >
+      0
+  ) {
     return value;
   }
 
-  throw new Error("Invalid MongoDB identifier");
+
+  throw new Error(
+    "Invalid MongoDB identifier",
+  );
 }
 
-function toISODate(value: unknown): string | null {
-  if (value instanceof Date) {
+
+function toISODate(
+  value:
+    unknown,
+): string | null {
+  if (
+    value instanceof
+    Date
+  ) {
     return value.toISOString();
   }
 
-  if (typeof value === "string") {
-    const date = new Date(value);
 
-    if (!Number.isNaN(date.getTime())) {
+  if (
+    typeof value ===
+    "string"
+  ) {
+    const date =
+      new Date(
+        value,
+      );
+
+
+    if (
+      !Number.isNaN(
+        date.getTime(),
+      )
+    ) {
       return date.toISOString();
     }
   }
 
+
   return null;
 }
 
-function mapEducation(item: Education): PublicEducationDTO {
+
+function mapEducation(
+  item:
+    Education,
+): PublicEducationDTO {
   return {
-    id: toId(item._id),
-    degree: item.degree ?? "",
-    field: item.field ?? "",
-    university: item.university ?? "",
-    year: item.year ?? "",
+    id:
+      toId(
+        item._id,
+      ),
+
+    degree:
+      item.degree ??
+      "",
+
+    field:
+      item.field ??
+      "",
+
+    university:
+      item.university ??
+      "",
+
+    year:
+      item.year ??
+      "",
   };
 }
 
-function mapExperience(item: WorkExperience): PublicExperienceDTO {
+
+function mapExperience(
+  item:
+    WorkExperience,
+): PublicExperienceDTO {
   return {
-    id: toId(item._id),
-    title: item.title,
-    company: item.company,
-    startYear: item.startYear,
-    endYear: item.endYear,
-    description: item.description ?? "",
+    id:
+      toId(
+        item._id,
+      ),
+
+    title:
+      item.title,
+
+    company:
+      item.company,
+
+    startYear:
+      item.startYear,
+
+    endYear:
+      item.endYear,
+
+    description:
+      item.description ??
+      "",
   };
 }
 
-function mapSkill(item: Skill): PublicSkillDTO {
+
+function mapSkill(
+  item:
+    Skill,
+): PublicSkillDTO {
   return {
-    id: toId(item._id),
-    name: item.name,
-    level: item.level,
+    id:
+      toId(
+        item._id,
+      ),
+
+    name:
+      item.name,
+
+    level:
+      item.level,
   };
 }
+
 
 export function toLawyerProfileDTO(
-  lawyer: LawyerRecord,
-  user: UserRecord,
+  lawyer:
+    LawyerRecord,
+
+  _user:
+    UserRecord,
 ): LawyerProfileDTO {
   return {
-    specialization: lawyer.specialization ?? "",
+    specialization:
+      lawyer.specialization ??
+      "",
 
-    licenseNumber: lawyer.licenseNumber ?? "",
+    licenseNumber:
+      lawyer.licenseNumber ??
+      "",
 
-    yearsOfExperience: lawyer.yearsOfExperience ?? 0,
+    yearsOfExperience:
+      lawyer.yearsOfExperience ??
+      0,
 
-    phone: user.phone ?? "",
+    /*
+     * User.phone عمداً اینجا استفاده نمی‌شود.
+     */
+    phone:
+      lawyer.contactPhone ??
+      "",
 
-    website: lawyer.website ?? "",
+    website:
+      lawyer.website ??
+      "",
 
-    address: lawyer.address ?? "",
+    address:
+      lawyer.address ??
+      "",
 
-    bio: lawyer.bio ?? "",
+    bio:
+      lawyer.bio ??
+      "",
 
-    education: (lawyer.education ?? []).map(mapEducation),
+    education:
+      (
+        lawyer.education ??
+        []
+      ).map(
+        mapEducation,
+      ),
 
-    experience: (lawyer.experience ?? []).map(mapExperience),
+    experience:
+      (
+        lawyer.experience ??
+        []
+      ).map(
+        mapExperience,
+      ),
 
-    skills: (lawyer.skills ?? []).map(mapSkill),
+    skills:
+      (
+        lawyer.skills ??
+        []
+      ).map(
+        mapSkill,
+      ),
 
-    languages: [...(lawyer.languages ?? [])],
+    languages: [
+      ...(
+        lawyer.languages ??
+        []
+      ),
+    ],
   };
 }
 
+
 export function toPublicLawyerDTO(
-  lawyer: LawyerRecord,
-  user: UserRecord,
+  lawyer:
+    LawyerRecord,
+
+  user:
+    UserRecord,
 ): PublicLawyerDTO {
-  const emailVerifiedAt = toISODate(user.emailVerifiedAt);
+  const emailVerifiedAt =
+    toISODate(
+      user.emailVerifiedAt,
+    );
 
-  const phoneVerifiedAt = toISODate(user.phoneVerifiedAt);
 
-  const licenseVerifiedAt = toISODate(lawyer.licenseVerifiedAt);
+  const phoneVerifiedAt =
+    toISODate(
+      user.phoneVerifiedAt,
+    );
+
+
+  const licenseVerifiedAt =
+    toISODate(
+      lawyer.licenseVerifiedAt,
+    );
+
 
   return {
-    id: toId(lawyer._id),
+    id:
+      toId(
+        lawyer._id,
+      ),
 
-    firstName: lawyer.firstName,
+    firstName:
+      lawyer.firstName,
 
-    lastName: lawyer.lastName,
+    lastName:
+      lawyer.lastName,
 
-    email: user.email ?? null,
+    email:
+      user.email ??
+      null,
 
-    role: user.role,
+    role:
+      user.role,
 
-    status: resolveLawyerStatus(lawyer.status),
+    status:
+      resolveLawyerStatus(
+        lawyer.status,
+      ),
 
     verification: {
       email: {
-        verified: emailVerifiedAt !== null,
+        verified:
+          emailVerifiedAt !==
+          null,
 
-        verifiedAt: emailVerifiedAt,
+        verifiedAt:
+          emailVerifiedAt,
       },
 
       phone: {
-        verified: phoneVerifiedAt !== null,
+        verified:
+          phoneVerifiedAt !==
+          null,
 
-        verifiedAt: phoneVerifiedAt,
+        verifiedAt:
+          phoneVerifiedAt,
       },
 
       license: {
-        verified: licenseVerifiedAt !== null,
+        verified:
+          licenseVerifiedAt !==
+          null,
 
-        verifiedAt: licenseVerifiedAt,
+        verifiedAt:
+          licenseVerifiedAt,
       },
     },
 
-    profile: toLawyerProfileDTO(lawyer, user),
+    profile:
+      toLawyerProfileDTO(
+        lawyer,
 
-    lastLoginAt: toISODate(user.lastLoginAt),
+        user,
+      ),
 
-    createdAt: toISODate(lawyer.createdAt),
+    lastLoginAt:
+      toISODate(
+        user.lastLoginAt,
+      ),
 
-    updatedAt: toISODate(lawyer.updatedAt),
+    createdAt:
+      toISODate(
+        lawyer.createdAt,
+      ),
+
+    updatedAt:
+      toISODate(
+        lawyer.updatedAt,
+      ),
   };
 }
-

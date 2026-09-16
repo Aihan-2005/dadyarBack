@@ -1,4 +1,6 @@
-import { z } from "zod";
+import {
+  z,
+} from "zod";
 
 import {
   SKILL_LEVELS,
@@ -8,18 +10,22 @@ import {
   MongoIdSchema,
   cleanOptionalString,
   normalizePersianDigits,
-  PhoneSchema,
 } from "./common.validator";
 
+
 const profileTextSchema = (
-  maxLength: number,
+  maxLength:
+    number,
 ) =>
   z.preprocess(
-    (value) => {
+    (
+      value,
+    ) => {
       if (
         value ===
           undefined ||
-        value === null
+        value ===
+          null
       ) {
         return "";
       }
@@ -35,18 +41,77 @@ const profileTextSchema = (
       ),
   );
 
-const optionalPhoneSchema =
-  PhoneSchema.optional();
+
+const publicContactPhoneSchema =
+  z.preprocess(
+    (
+      value,
+    ) => {
+      if (
+        value ===
+        undefined
+      ) {
+        return undefined;
+      }
+
+      if (
+        value ===
+        null
+      ) {
+        return null;
+      }
+
+      if (
+        typeof value !==
+        "string"
+      ) {
+        return value;
+      }
+
+      const normalized =
+        normalizePersianDigits(
+          value.trim(),
+        );
+
+      return normalized ===
+        ""
+        ? null
+        : normalized;
+    },
+
+    z
+      .union([
+        z
+          .string()
+          .regex(
+            /^09\d{9}$/,
+
+            "شماره تماس باید ۱۱ رقم و با ۰۹ شروع شود",
+          ),
+
+        z.null(),
+      ])
+      .optional(),
+  );
+
 
 const optionalWebsiteSchema =
   z.preprocess(
-    (value) => {
+    (
+      value,
+    ) => {
       if (
         value ===
-          undefined ||
-        value === null
+        undefined
       ) {
         return undefined;
+      }
+
+      if (
+        value ===
+        null
+      ) {
+        return null;
       }
 
       if (
@@ -63,7 +128,7 @@ const optionalWebsiteSchema =
         trimmed ===
         ""
       ) {
-        return undefined;
+        return null;
       }
 
       return /^https?:\/\//i.test(
@@ -74,24 +139,40 @@ const optionalWebsiteSchema =
     },
 
     z
-      .url(
-        "آدرس وب‌سایت معتبر نیست",
-      )
-      .max(
-        500,
-        "آدرس وب‌سایت بیش از حد طولانی است",
-      )
+      .union([
+        z
+          .url(
+            "آدرس وب‌سایت معتبر نیست",
+          )
+          .max(
+            500,
+
+            "آدرس وب‌سایت بیش از حد طولانی است",
+          ),
+
+        z.null(),
+      ])
       .optional(),
   );
 
+
 const yearsOfExperienceSchema =
   z.preprocess(
-    (value) => {
+    (
+      value,
+    ) => {
       if (
         value ===
-          undefined ||
-        value === null ||
-        value === ""
+        undefined
+      ) {
+        return undefined;
+      }
+
+      if (
+        value ===
+          null ||
+        value ===
+          ""
       ) {
         return 0;
       }
@@ -123,13 +204,17 @@ const yearsOfExperienceSchema =
       )
       .min(
         0,
+
         "سابقه کاری نمی‌تواند منفی باشد",
       )
       .max(
         80,
+
         "سابقه کاری نمی‌تواند بیشتر از ۸۰ سال باشد",
-      ),
+      )
+      .optional(),
   );
+
 
 const yearSchema =
   z
@@ -139,22 +224,28 @@ const yearSchema =
       normalizePersianDigits,
     )
     .refine(
-      (value) =>
+      (
+        value,
+      ) =>
         /^(13|14)\d{2}$/.test(
           value,
         ),
+
       {
         message:
           "سال باید چهاررقمی باشد",
       },
     );
 
+
 const endYearSchema =
   z
     .string()
     .trim()
     .transform(
-      (value) => {
+      (
+        value,
+      ) => {
         if (
           value ===
             "" ||
@@ -172,17 +263,21 @@ const endYearSchema =
       },
     )
     .refine(
-      (value) =>
+      (
+        value,
+      ) =>
         value ===
           "اکنون" ||
         /^(13|14)\d{2}$/.test(
           value,
         ),
+
       {
         message:
           "سال پایان باید چهاررقمی یا «اکنون» باشد",
       },
     );
+
 
 export const LawyerEducationSchema =
   z
@@ -235,18 +330,17 @@ export const LawyerEducationSchema =
         if (
           !hasValue
         ) {
-          context.addIssue(
-            {
-              code:
-                "custom",
+          context.addIssue({
+            code:
+              "custom",
 
-              message:
-                "حداقل یکی از اطلاعات سابقه تحصیلی باید تکمیل شود",
-            },
-          );
+            message:
+              "حداقل یکی از اطلاعات سابقه تحصیلی باید تکمیل شود",
+          });
         }
       },
     );
+
 
 export const LawyerExperienceSchema =
   z
@@ -264,6 +358,7 @@ export const LawyerExperienceSchema =
           .trim()
           .min(
             1,
+
             "عنوان شغلی الزامی است",
           )
           .max(150),
@@ -274,6 +369,7 @@ export const LawyerExperienceSchema =
           .trim()
           .min(
             1,
+
             "نام شرکت یا دفتر الزامی است",
           )
           .max(150),
@@ -305,26 +401,27 @@ export const LawyerExperienceSchema =
               data.startYear,
             )
         ) {
-          context.addIssue(
-            {
-              code:
-                "custom",
+          context.addIssue({
+            code:
+              "custom",
 
-              path: [
-                "endYear",
-              ],
+            path: [
+              "endYear",
+            ],
 
-              message:
-                "سال پایان نمی‌تواند قبل از سال شروع باشد",
-            },
-          );
+            message:
+              "سال پایان نمی‌تواند قبل از سال شروع باشد",
+          });
         }
       },
     );
 
+
 export const LawyerSkillLevelSchema =
   z.preprocess(
-    (value) =>
+    (
+      value,
+    ) =>
       typeof value ===
       "string"
         ? Number(
@@ -340,6 +437,7 @@ export const LawyerSkillLevelSchema =
       z.literal(5),
     ]),
   );
+
 
 export const LawyerSkillSchema =
   z
@@ -357,6 +455,7 @@ export const LawyerSkillSchema =
           .trim()
           .min(
             1,
+
             "نام مهارت الزامی است",
           )
           .max(100),
@@ -366,19 +465,71 @@ export const LawyerSkillSchema =
     })
     .strict();
 
+
 const languageSchema =
   z
     .string()
     .trim()
     .min(
       1,
+
       "نام زبان نمی‌تواند خالی باشد",
     )
     .max(
       80,
+
       "نام زبان بیش از حد طولانی است",
     );
 
+
+const languagesSchema =
+  z
+    .array(
+      languageSchema,
+    )
+    .max(30)
+    .transform(
+      (
+        languages,
+      ) => {
+        const uniqueLanguages =
+          new Map<
+            string,
+            string
+          >();
+
+        for (
+          const language of
+          languages
+        ) {
+          const key =
+            language.toLocaleLowerCase(
+              "fa-IR",
+            );
+
+          if (
+            !uniqueLanguages.has(
+              key,
+            )
+          ) {
+            uniqueLanguages.set(
+              key,
+
+              language,
+            );
+          }
+        }
+
+        return Array.from(
+          uniqueLanguages.values(),
+        );
+      },
+    );
+
+
+/*
+ * Schema کامل برای compatibility و مستندات.
+ */
 export const LawyerProfileSchema =
   z
     .object({
@@ -393,10 +544,11 @@ export const LawyerProfileSchema =
         ),
 
       yearsOfExperience:
-        yearsOfExperienceSchema,
+        yearsOfExperienceSchema
+          .default(0),
 
       phone:
-        optionalPhoneSchema,
+        publicContactPhoneSchema,
 
       website:
         optionalWebsiteSchema,
@@ -436,50 +588,96 @@ export const LawyerProfileSchema =
           .default([]),
 
       languages:
-        z
-          .array(
-            languageSchema,
-          )
-          .max(30)
-          .default([])
-          .transform(
-            (
-              languages,
-            ) => {
-              const uniqueLanguages =
-                new Map<
-                  string,
-                  string
-                >();
-
-              for (
-                const language of
-                languages
-              ) {
-                const key =
-                  language.toLocaleLowerCase(
-                    "fa-IR",
-                  );
-
-                if (
-                  !uniqueLanguages.has(
-                    key,
-                  )
-                ) {
-                  uniqueLanguages.set(
-                    key,
-                    language,
-                  );
-                }
-              }
-
-              return Array.from(
-                uniqueLanguages.values(),
-              );
-            },
-          ),
+        languagesSchema
+          .default([]),
     })
     .strict();
+
+
+
+    
+export const LawyerProfilePatchSchema =
+  z
+    .object({
+      specialization:
+        profileTextSchema(
+          150,
+        ).optional(),
+
+      licenseNumber:
+        profileTextSchema(
+          50,
+        ).optional(),
+
+      yearsOfExperience:
+        yearsOfExperienceSchema,
+
+      phone:
+        publicContactPhoneSchema,
+
+      website:
+        optionalWebsiteSchema,
+
+      address:
+        profileTextSchema(
+          500,
+        ).optional(),
+
+      bio:
+        profileTextSchema(
+          2000,
+        ).optional(),
+
+      education:
+        z
+          .array(
+            LawyerEducationSchema,
+          )
+          .max(30)
+          .optional(),
+
+      experience:
+        z
+          .array(
+            LawyerExperienceSchema,
+          )
+          .max(30)
+          .optional(),
+
+      skills:
+        z
+          .array(
+            LawyerSkillSchema,
+          )
+          .max(50)
+          .optional(),
+
+      languages:
+        languagesSchema
+          .optional(),
+    })
+    .strict()
+    .refine(
+      (
+        data,
+      ) =>
+        Object.keys(
+          data,
+        ).length >
+        0,
+
+      {
+        message:
+          "حداقل یک بخش از پروفایل برای بروزرسانی الزامی است",
+      },
+    );
+
+
+export type LawyerProfilePatchInput =
+  z.output<
+    typeof LawyerProfilePatchSchema
+  >;
+
 
 export const SkillLevelsSchema =
   z.enum(
@@ -494,15 +692,19 @@ export const SkillLevelsSchema =
     ],
   );
 
+
 const optionalQueryBooleanSchema =
   z.preprocess(
-    (value) => {
+    (
+      value,
+    ) => {
       if (
         value ===
           undefined ||
         value ===
           null ||
-        value === ""
+        value ===
+          ""
       ) {
         return undefined;
       }
@@ -541,6 +743,7 @@ const optionalQueryBooleanSchema =
       .optional(),
   );
 
+
 export const LawyerDirectoryListQuerySchema =
   z
     .object({
@@ -578,6 +781,7 @@ export const LawyerDirectoryListQuerySchema =
     })
     .strict();
 
+
 export const LawyerDirectoryIdParamSchema =
   z
     .object({
@@ -585,4 +789,6 @@ export const LawyerDirectoryIdParamSchema =
         MongoIdSchema,
     })
     .strict();
+
+
     

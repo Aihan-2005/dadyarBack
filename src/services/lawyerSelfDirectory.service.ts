@@ -17,7 +17,6 @@ import {
 } from "../exceptions/httpException";
 
 import type {
-  LawyerProfileInput,
   LawyerRecord,
 } from "../interfaces/lawyer.interface";
 
@@ -33,9 +32,22 @@ import {
   UserRepository,
 } from "../repositories/user.repository";
 
+import type {
+  LawyerProfilePatchInput,
+} from "../validators/lawyer.validator";
+
 
 const LANGUAGE =
   env.LANGUAGE;
+
+
+type RequiredDirectoryField = {
+  key:
+    string;
+
+  label:
+    string;
+};
 
 
 export class LawyerSelfDirectoryService {
@@ -48,18 +60,26 @@ export class LawyerSelfDirectoryService {
   ) {}
 
 
-  private getMissingFieldsFromRecord(
-    lawyer:
-      LawyerRecord,
+  private collectMissingBasicFields(
+    input: {
+      specialization:
+        unknown;
 
-    user:
-      UserRecord,
-  ) {
+      licenseNumber:
+        unknown;
+
+      phone:
+        unknown;
+
+      address:
+        unknown;
+
+      bio:
+        unknown;
+    },
+  ): RequiredDirectoryField[] {
     const missingFields:
-      Array<{
-        key: string;
-        label: string;
-      }> = [];
+      RequiredDirectoryField[] = [];
 
 
     const requireText = (
@@ -79,6 +99,7 @@ export class LawyerSelfDirectoryService {
       ) {
         missingFields.push({
           key,
+
           label,
         });
       }
@@ -87,211 +108,124 @@ export class LawyerSelfDirectoryService {
 
     requireText(
       "specialization",
+
       "تخصص",
-      lawyer.specialization,
+
+      input.specialization,
     );
+
 
     requireText(
       "licenseNumber",
+
       "شماره پروانه وکالت",
-      lawyer.licenseNumber,
+
+      input.licenseNumber,
     );
+
+
+    requireText(
+      "phone",
+
+      "شماره تماس عمومی",
+
+      input.phone,
+    );
+
 
     requireText(
       "address",
+
       "آدرس دفتر",
-      lawyer.address,
+
+      input.address,
     );
+
 
     requireText(
       "bio",
+
       "بیوگرافی",
-      lawyer.bio,
+
+      input.bio,
     );
-
-
-    if (
-      !(
-        lawyer.skills ??
-        []
-      ).some(
-        (
-          skill,
-        ) =>
-          Boolean(
-            skill.name?.trim(),
-          ),
-      )
-    ) {
-      missingFields.push({
-        key:
-          "skills",
-
-        label:
-          "حداقل یک مهارت",
-      });
-    }
-
-
-    if (
-      !(
-        lawyer.languages ??
-        []
-      ).some(
-        (
-          language,
-        ) =>
-          Boolean(
-            language?.trim(),
-          ),
-      )
-    ) {
-      missingFields.push({
-        key:
-          "languages",
-
-        label:
-          "حداقل یک زبان",
-      });
-    }
-
-
-    if (
-      !user.phone &&
-      !user.email
-    ) {
-      missingFields.push({
-        key:
-          "contact",
-
-        label:
-          "شماره تماس یا ایمیل",
-      });
-    }
 
 
     return missingFields;
   }
 
 
-  private getMissingFieldsFromProfileInput(
+  private getMissingFieldsFromRecord(
+    lawyer:
+      LawyerRecord,
+  ): RequiredDirectoryField[] {
+    return this.collectMissingBasicFields({
+      specialization:
+        lawyer.specialization,
+
+      licenseNumber:
+        lawyer.licenseNumber,
+
+      /*
+       * شماره عمومی پروفایل وکیل.
+       * User.phone مربوط به login است و اینجا استفاده نمی‌شود.
+       */
+      phone:
+        lawyer.contactPhone,
+
+      address:
+        lawyer.address,
+
+      bio:
+        lawyer.bio,
+    });
+  }
+
+
+  /*
+   * برای PATCH فقط فیلد ارسال‌شده را با مقدار جدید جایگزین می‌کنیم.
+   * بقیه‌ی اطلاعات از رکورد فعلی وکیل خوانده می‌شوند.
+   *
+   * بنابراین PATCH زبان‌ها هیچ اثری روی اطلاعات پایه ندارد.
+   */
+  private getMissingFieldsAfterPatch(
+    lawyer:
+      LawyerRecord,
+
     input:
-      LawyerProfileInput,
+      LawyerProfilePatchInput,
+  ): RequiredDirectoryField[] {
+    return this.collectMissingBasicFields({
+      specialization:
+        input.specialization !==
+        undefined
+          ? input.specialization
+          : lawyer.specialization,
 
-    accountEmail:
-      string |
-      null |
-      undefined,
-  ) {
-    const missingFields:
-      Array<{
-        key: string;
-        label: string;
-      }> = [];
+      licenseNumber:
+        input.licenseNumber !==
+        undefined
+          ? input.licenseNumber
+          : lawyer.licenseNumber,
 
+      phone:
+        input.phone !==
+        undefined
+          ? input.phone
+          : lawyer.contactPhone,
 
-    const requireText = (
-      key:
-        string,
+      address:
+        input.address !==
+        undefined
+          ? input.address
+          : lawyer.address,
 
-      label:
-        string,
-
-      value:
-        string |
-        undefined,
-    ) => {
-      if (
-        !value?.trim()
-      ) {
-        missingFields.push({
-          key,
-          label,
-        });
-      }
-    };
-
-
-    requireText(
-      "specialization",
-      "تخصص",
-      input.specialization,
-    );
-
-    requireText(
-      "licenseNumber",
-      "شماره پروانه وکالت",
-      input.licenseNumber,
-    );
-
-    requireText(
-      "address",
-      "آدرس دفتر",
-      input.address,
-    );
-
-    requireText(
-      "bio",
-      "بیوگرافی",
-      input.bio,
-    );
-
-
-    if (
-      !input.skills.some(
-        (
-          skill,
-        ) =>
-          Boolean(
-            skill.name.trim(),
-          ),
-      )
-    ) {
-      missingFields.push({
-        key:
-          "skills",
-
-        label:
-          "حداقل یک مهارت",
-      });
-    }
-
-
-    if (
-      !input.languages.some(
-        (
-          language,
-        ) =>
-          Boolean(
-            language.trim(),
-          ),
-      )
-    ) {
-      missingFields.push({
-        key:
-          "languages",
-
-        label:
-          "حداقل یک زبان",
-      });
-    }
-
-
-    if (
-      !input.phone?.trim() &&
-      !accountEmail
-    ) {
-      missingFields.push({
-        key:
-          "contact",
-
-        label:
-          "شماره تماس یا ایمیل",
-      });
-    }
-
-
-    return missingFields;
+      bio:
+        input.bio !==
+        undefined
+          ? input.bio
+          : lawyer.bio,
+    });
   }
 
 
@@ -305,7 +239,6 @@ export class LawyerSelfDirectoryService {
     const missingFields =
       this.getMissingFieldsFromRecord(
         lawyer,
-        user,
       );
 
 
@@ -369,6 +302,11 @@ export class LawyerSelfDirectoryService {
 
       publishedAt,
 
+      /*
+       * فقط اطلاعات پایه شرط انتشار هستند.
+       * education / experience / skills / languages
+       * همگی اختیاری هستند.
+       */
       profileComplete:
         missingFields.length ===
         0,
@@ -426,6 +364,7 @@ export class LawyerSelfDirectoryService {
 
     return {
       lawyer,
+
       user,
     };
   }
@@ -446,21 +385,23 @@ export class LawyerSelfDirectoryService {
 
     return this.buildState(
       lawyer,
+
       user,
     );
   }
 
 
+
+  
   public async assertPublishedProfileCanBeUpdated(
     lawyerId:
       string,
 
     input:
-      LawyerProfileInput,
+      LawyerProfilePatchInput,
   ): Promise<void> {
     const {
       lawyer,
-      user,
     } =
       await this.requireLawyerAndUser(
         lawyerId,
@@ -476,9 +417,10 @@ export class LawyerSelfDirectoryService {
 
 
     const missingFields =
-      this.getMissingFieldsFromProfileInput(
+      this.getMissingFieldsAfterPatch(
+        lawyer,
+
         input,
-        user.email,
       );
 
 
@@ -493,7 +435,7 @@ export class LawyerSelfDirectoryService {
     throw new HttpException(
       409,
 
-      `پروفایل منتشرشده باید کامل بماند. ابتدا نمایش در بخش موکلین را غیرفعال کنید یا این موارد را تکمیل نگه دارید: ${missingFields
+      `پروفایل منتشرشده باید اطلاعات پایه را کامل نگه دارد. ابتدا نمایش در بخش موکلین را غیرفعال کنید یا این موارد را تکمیل نگه دارید: ${missingFields
         .map(
           (
             item,
@@ -506,65 +448,6 @@ export class LawyerSelfDirectoryService {
 
       "PUBLISHED_LAWYER_PROFILE_MUST_REMAIN_COMPLETE",
     );
-  }
-
-
-
-  
-  public async keepPublishedLawyerActive(
-    lawyerId:
-      string,
-  ): Promise<void> {
-    const current =
-      await this.lawyerRepository
-        .findClientDirectoryStateById(
-          lawyerId,
-        );
-
-
-    if (
-      !current?.clientDirectory
-        ?.isVisible
-    ) {
-      return;
-    }
-
-
-    if (
-      current.status !==
-      LAWYER_STATUSES.PENDING_VERIFICATION
-    ) {
-      return;
-    }
-
-
-    const updated =
-      await this.lawyerRepository
-        .updateClientDirectoryById(
-          lawyerId,
-
-          {
-            $set: {
-              status:
-                LAWYER_STATUSES.ACTIVE,
-            },
-          },
-        );
-
-
-    if (
-      !updated
-    ) {
-      throw new HttpException(
-        404,
-
-        MESSAGES.noUserWithId[
-          LANGUAGE
-        ],
-
-        "LAWYER_NOT_FOUND",
-      );
-    }
   }
 
 
@@ -587,6 +470,7 @@ export class LawyerSelfDirectoryService {
     const state =
       this.buildState(
         lawyer,
+
         user,
       );
 
@@ -642,7 +526,7 @@ export class LawyerSelfDirectoryService {
         throw new HttpException(
           409,
 
-          `برای نمایش در بخش موکلین ابتدا این موارد را کامل کنید: ${state.missingFields
+          `برای نمایش در بخش موکلین ابتدا اطلاعات پایه را کامل کنید: ${state.missingFields
             .map(
               (
                 item,
@@ -670,6 +554,7 @@ export class LawyerSelfDirectoryService {
             await this.lawyerRepository
               .findClientDirectoryStateById(
                 lawyerId,
+
                 session,
               );
 
@@ -712,25 +597,6 @@ export class LawyerSelfDirectoryService {
               current.clientDirectory
                 ?.isVisible
             ) {
-              if (
-                current.status !==
-                LAWYER_STATUSES.ACTIVE
-              ) {
-                await this.lawyerRepository
-                  .updateClientDirectoryById(
-                    lawyerId,
-
-                    {
-                      $set: {
-                        status:
-                          LAWYER_STATUSES.ACTIVE,
-                      },
-                    },
-
-                    session,
-                  );
-              }
-
               return;
             }
 
@@ -750,10 +616,9 @@ export class LawyerSelfDirectoryService {
                   {
                     $set: {
                       /*
-                       * ACTIVE در اینجا یعنی پروفایل حرفه‌ای
-                       * برای ارائه سرویس فعال شده است.
+                       * برای حفظ رفتار فعلی Directory.
                        *
-                       * licenseVerifiedAt عمداً دست نمی‌خورد.
+                       * licenseVerifiedAt دست‌نخورده باقی می‌ماند.
                        */
                       status:
                         LAWYER_STATUSES.ACTIVE,
@@ -821,11 +686,13 @@ export class LawyerSelfDirectoryService {
             Math.min(
               Math.max(
                 rawOrder,
+
                 1,
               ),
 
               Math.max(
                 total,
+
                 1,
               ),
             );
@@ -874,6 +741,7 @@ export class LawyerSelfDirectoryService {
           await this.lawyerRepository
             .shiftClientDirectoryForRemoval(
               currentOrder,
+
               session,
             );
         },

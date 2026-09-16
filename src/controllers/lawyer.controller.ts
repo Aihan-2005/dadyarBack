@@ -27,7 +27,7 @@ import {
 import {
   LawyerDirectoryIdParamSchema,
   LawyerDirectoryListQuerySchema,
-  LawyerProfileSchema,
+  LawyerProfilePatchSchema,
 } from "../validators/lawyer.validator";
 
 import {
@@ -314,17 +314,17 @@ export class LawyerController {
 
 
         const input =
-          LawyerSelfDirectoryVisibilitySchema
-            .parse(
-              req.body ??
-                {},
-            );
+          LawyerSelfDirectoryVisibilitySchema.parse(
+            req.body ??
+              {},
+          );
 
 
         const state =
           await this.selfDirectoryService
             .setVisibility(
               lawyerId,
+
               input.isVisible,
             );
 
@@ -421,18 +421,26 @@ export class LawyerController {
           );
 
 
+        /*
+         * PATCH واقعی:
+         * فقط فیلدهای ارسال‌شده validate می‌شوند.
+         */
         const input =
-          await LawyerProfileSchema
+          await LawyerProfilePatchSchema
             .parseAsync(
               req.body ??
                 {},
             );
 
 
-            
+        /*
+         * اگر پروفایل منتشر شده باشد، فقط بررسی می‌کنیم
+         * که PATCH فعلی باعث ناقص‌شدن اطلاعات پایه نشود.
+         */
         await this.selfDirectoryService
           .assertPublishedProfileCanBeUpdated(
             lawyerId,
+
             input,
           );
 
@@ -441,16 +449,9 @@ export class LawyerController {
           await this.lawyerService
             .updateProfile(
               lawyerId,
+
               input,
             );
-
-
-        
-            
-        await this.selfDirectoryService
-          .keepPublishedLawyerActive(
-            lawyerId,
-          );
 
 
         return res
