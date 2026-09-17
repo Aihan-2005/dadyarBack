@@ -10,9 +10,9 @@ import type {
 
 import IndexRoute from "../src/routes/index.route";
 
-import LawyerRoute from "../src/routes/lawyer.route";
-
 import AuthRoute from "../src/routes/auth.route";
+
+import LawyerRoute from "../src/routes/lawyer.route";
 
 import CaseRoute from "../src/routes/case.route";
 
@@ -61,6 +61,13 @@ import {
   LawyerConsultationBookingRoute,
 } from "../src/routes/consultationBooking.route";
 
+import {
+  ClientOnlineContractRoute,
+  LawyerOnlineContractRoute,
+} from "../src/routes/onlineContract.route";
+
+
+
 
 const routes:
   Route[] = [
@@ -94,9 +101,19 @@ const routes:
 
     new ClientConsultationBookingRoute(),
 
+ 
+    
+    new ClientOnlineContractRoute(),
+
+   
+    
     new LawyerClientInquiryRoute(),
 
     new LawyerConsultationBookingRoute(),
+
+   
+    
+    new LawyerOnlineContractRoute(),
 
     new AdminRoute(),
 
@@ -106,6 +123,7 @@ const routes:
   ];
 
 
+  
 const app =
   new App(
     routes,
@@ -116,8 +134,55 @@ const database =
   new Database();
 
 
+  
 let connected =
   false;
+
+  
+let connectionPromise:
+  Promise<void> | null =
+  null;
+
+
+async function ensureDatabaseConnection():
+  Promise<void> {
+  if (
+    connected
+  ) {
+    return;
+  }
+
+
+  if (
+    !connectionPromise
+  ) {
+    connectionPromise =
+      database
+        .connect()
+        .then(
+          () => {
+            connected =
+              true;
+          },
+        )
+        .catch(
+          (
+            error:
+              unknown,
+          ) => {
+         
+            
+            connectionPromise =
+              null;
+
+            throw error;
+          },
+        );
+  }
+
+
+  await connectionPromise;
+}
 
 
 export default async function handler(
@@ -127,19 +192,45 @@ export default async function handler(
   res:
     any,
 ) {
-  if (
-    !connected
+  try {
+    await ensureDatabaseConnection();
+
+
+    return app
+      .getApp()(
+        req,
+        res,
+      );
+  } catch (
+    error:
+      unknown
   ) {
-    await database.connect();
-
-    connected =
-      true;
-  }
-
-  return app
-    .getApp()(
-      req,
-
-      res,
+    console.error(
+      "[Vercel] Backend initialization failed:",
+      error,
     );
+
+
+    if (
+      !res.headersSent
+    ) {
+      return res
+        .status(
+          500,
+        )
+        .json({
+          success:
+            false,
+
+          code:
+            "BACKEND_INITIALIZATION_FAILED",
+
+          message:
+            "راه‌اندازی سرویس بک‌اند انجام نشد.",
+        });
+    }
+
+
+    return undefined;
+  }
 }
