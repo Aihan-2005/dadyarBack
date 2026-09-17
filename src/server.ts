@@ -10,6 +10,12 @@ import {
   env,
 } from "./config/env";
 
+import {
+  ClientOnlineContractRoute,
+  LawyerOnlineContractRoute,
+} from "./routes/onlineContract.route";
+
+
 import type {
   Route,
 } from "./interfaces/route.interface";
@@ -208,10 +214,14 @@ async function bootstrap(): Promise<void> {
         new ClientLawyerAvailabilityRoute(),
 
         new ClientConsultationBookingRoute(),
+        new ClientOnlineContractRoute(),
+
 
         new LawyerClientInquiryRoute(),
 
         new LawyerConsultationBookingRoute(),
+
+        new LawyerOnlineContractRoute(),
 
         new AdminRoute(),
 
