@@ -1,12 +1,8 @@
 import App from "../src/app";
 
-import {
-  Database,
-} from "../src/config/db";
+import { Database } from "../src/config/db";
 
-import type {
-  Route,
-} from "../src/interfaces/route.interface";
+import type { Route } from "../src/interfaces/route.interface";
 
 import IndexRoute from "../src/routes/index.route";
 
@@ -18,22 +14,16 @@ import CaseRoute from "../src/routes/case.route";
 
 import LawyerClientRoute from "../src/routes/lawyerClient.route";
 
-import {
-  ClientProfileRoute,
-} from "../src/routes/clientProfile.route";
+import { ClientProfileRoute } from "../src/routes/clientProfile.route";
 
 import {
   ClientLawyerAvailabilityRoute,
   LawyerAvailabilityRoute,
 } from "../src/routes/lawyerAvailability.route";
 
-import {
-  FinancialReportRoute,
-} from "../src/routes/financialReport.route";
+import { FinancialReportRoute } from "../src/routes/financialReport.route";
 
-import {
-  ApiDocsRoute,
-} from "../src/routes/apiDocs.route";
+import { ApiDocsRoute } from "../src/routes/apiDocs.route";
 
 import NotificationRoute from "../src/routes/notification.route";
 
@@ -41,13 +31,9 @@ import TicketRoute from "../src/routes/ticket.route";
 
 import ClientCaseRoute from "../src/routes/clientCase.route";
 
-import {
-  AdminRoute,
-} from "../src/routes/admin.route";
+import { AdminRoute } from "../src/routes/admin.route";
 
-import {
-  FAQRoute,
-} from "../src/routes/faq.route";
+import { FAQRoute } from "../src/routes/faq.route";
 
 import ClientPetitionRoute from "../src/routes/clientPetition.route";
 
@@ -61,175 +47,110 @@ import {
   LawyerConsultationBookingRoute,
 } from "../src/routes/consultationBooking.route";
 
+import { SubscriptionPlanRoute } from "../src/routes/subscriptionPlan.route";
 import {
   ClientOnlineContractRoute,
   LawyerOnlineContractRoute,
 } from "../src/routes/onlineContract.route";
 
+const routes: Route[] = [
+  new IndexRoute(),
 
+  new AuthRoute(),
 
+  new LawyerRoute(),
 
-const routes:
-  Route[] = [
-    new IndexRoute(),
+  new LawyerAvailabilityRoute(),
 
-    new AuthRoute(),
+  new ClientProfileRoute(),
 
-    new LawyerRoute(),
+  new LawyerClientRoute(),
 
-    new LawyerAvailabilityRoute(),
+  new CaseRoute(),
 
-    new ClientProfileRoute(),
+  new FinancialReportRoute(),
 
-    new LawyerClientRoute(),
+  new NotificationRoute(),
 
-    new CaseRoute(),
+  new TicketRoute(),
 
-    new FinancialReportRoute(),
+  new ClientCaseRoute(),
 
-    new NotificationRoute(),
+  new ClientPetitionRoute(),
 
-    new TicketRoute(),
+  new ClientLawyerInquiryRoute(),
 
-    new ClientCaseRoute(),
+  new ClientLawyerAvailabilityRoute(),
 
-    new ClientPetitionRoute(),
+  new ClientConsultationBookingRoute(),
 
-    new ClientLawyerInquiryRoute(),
+  new ClientOnlineContractRoute(),
 
-    new ClientLawyerAvailabilityRoute(),
+  new LawyerClientInquiryRoute(),
 
-    new ClientConsultationBookingRoute(),
+  new LawyerConsultationBookingRoute(),
 
- 
-    
-    new ClientOnlineContractRoute(),
+  new LawyerOnlineContractRoute(),
 
-   
-    
-    new LawyerClientInquiryRoute(),
+  new AdminRoute(),
 
-    new LawyerConsultationBookingRoute(),
+  new FAQRoute(),
 
-   
-    
-    new LawyerOnlineContractRoute(),
+  new ApiDocsRoute(),
 
-    new AdminRoute(),
+  new SubscriptionPlanRoute(),
+];
 
-    new FAQRoute(),
+const app = new App(routes);
 
-    new ApiDocsRoute(),
-  ];
+const database = new Database();
 
+let connected = false;
 
-  
-const app =
-  new App(
-    routes,
-  );
+let connectionPromise: Promise<void> | null = null;
 
-
-const database =
-  new Database();
-
-
-  
-let connected =
-  false;
-
-  
-let connectionPromise:
-  Promise<void> | null =
-  null;
-
-
-async function ensureDatabaseConnection():
-  Promise<void> {
-  if (
-    connected
-  ) {
+async function ensureDatabaseConnection(): Promise<void> {
+  if (connected) {
     return;
   }
 
+  if (!connectionPromise) {
+    connectionPromise = database
+      .connect()
+      .then(() => {
+        connected = true;
+      })
+      .catch((error: unknown) => {
+        connectionPromise = null;
 
-  if (
-    !connectionPromise
-  ) {
-    connectionPromise =
-      database
-        .connect()
-        .then(
-          () => {
-            connected =
-              true;
-          },
-        )
-        .catch(
-          (
-            error:
-              unknown,
-          ) => {
-         
-            
-            connectionPromise =
-              null;
-
-            throw error;
-          },
-        );
+        throw error;
+      });
   }
-
 
   await connectionPromise;
 }
 
-
 export default async function handler(
-  req:
-    any,
+  req: any,
 
-  res:
-    any,
+  res: any,
 ) {
   try {
     await ensureDatabaseConnection();
 
+    return app.getApp()(req, res);
+  } catch (error: unknown) {
+    console.error("[Vercel] Backend initialization failed:", error);
 
-    return app
-      .getApp()(
-        req,
-        res,
-      );
-  } catch (
-    error:
-      unknown
-  ) {
-    console.error(
-      "[Vercel] Backend initialization failed:",
-      error,
-    );
+    if (!res.headersSent) {
+      return res.status(500).json({
+        success: false,
 
+        code: "BACKEND_INITIALIZATION_FAILED",
 
-    if (
-      !res.headersSent
-    ) {
-      return res
-        .status(
-          500,
-        )
-        .json({
-          success:
-            false,
-
-          code:
-            "BACKEND_INITIALIZATION_FAILED",
-
-          message:
-            "راه‌اندازی سرویس بک‌اند انجام نشد.",
-        });
+        message: "راه‌اندازی سرویس بک‌اند انجام نشد.",
+      });
     }
-
 
     return undefined;
   }

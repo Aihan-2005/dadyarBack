@@ -8,3 +8,4 @@ import "./ticket.openapi";
 import "./clientCase.openapi";
 import "./admin.openapi";
 import "./faq.openapi";
+import "./subscriptionPlan.openapi";
