@@ -6,9 +6,9 @@ import type { Route } from "../src/interfaces/route.interface";
 
 import IndexRoute from "../src/routes/index.route";
 
-import LawyerRoute from "../src/routes/lawyer.route";
-
 import AuthRoute from "../src/routes/auth.route";
+
+import LawyerRoute from "../src/routes/lawyer.route";
 
 import CaseRoute from "../src/routes/case.route";
 
@@ -48,6 +48,13 @@ import {
 } from "../src/routes/consultationBooking.route";
 
 import { SubscriptionPlanRoute } from "../src/routes/subscriptionPlan.route";
+import {
+  ClientOnlineContractRoute,
+  LawyerOnlineContractRoute,
+} from "../src/routes/onlineContract.route";
+
+
+
 
 const routes: Route[] = [
   new IndexRoute(),
@@ -80,11 +87,21 @@ const routes: Route[] = [
 
   new ClientConsultationBookingRoute(),
 
-  new LawyerClientInquiryRoute(),
+ 
+    
+    new ClientOnlineContractRoute(),
+
+   
+    
+    new LawyerClientInquiryRoute(),
 
   new LawyerConsultationBookingRoute(),
 
-  new AdminRoute(),
+   
+    
+    new LawyerOnlineContractRoute(),
+
+    new AdminRoute(),
 
   new FAQRoute(),
 
@@ -93,26 +110,113 @@ const routes: Route[] = [
   new SubscriptionPlanRoute(),
 ];
 
-const app = new App(routes);
+  
+const app =
+  new App(
+    routes,
+  );
+
+
+const database =
+  new Database();
 
 const database = new Database();
 
-let connected = false;
+  
+let connected =
+  false;
+
+  
+let connectionPromise:
+  Promise<void> | null =
+  null;
+
+
+async function ensureDatabaseConnection():
+  Promise<void> {
+  if (
+    connected
+  ) {
+    return;
+  }
+
+
+  if (
+    !connectionPromise
+  ) {
+    connectionPromise =
+      database
+        .connect()
+        .then(
+          () => {
+            connected =
+              true;
+          },
+        )
+        .catch(
+          (
+            error:
+              unknown,
+          ) => {
+         
+            
+            connectionPromise =
+              null;
+
+            throw error;
+          },
+        );
+  }
+
+
+  await connectionPromise;
+}
+
 
 export default async function handler(
   req: any,
 
   res: any,
 ) {
-  if (!connected) {
-    await database.connect();
+  try {
+    await ensureDatabaseConnection();
 
-    connected = true;
+
+    return app
+      .getApp()(
+        req,
+        res,
+      );
+  } catch (
+    error:
+      unknown
+  ) {
+    console.error(
+      "[Vercel] Backend initialization failed:",
+      error,
+    );
+
+
+    if (
+      !res.headersSent
+    ) {
+      return res
+        .status(
+          500,
+        )
+        .json({
+          success:
+            false,
+
+          code:
+            "BACKEND_INITIALIZATION_FAILED",
+
+          message:
+            "راه‌اندازی سرویس بک‌اند انجام نشد.",
+        });
+    }
+
+
+    return undefined;
   }
-
-  return app.getApp()(
-    req,
-
-    res,
-  );
 }

@@ -6,7 +6,15 @@ import { Database } from "./config/db";
 
 import { env } from "./config/env";
 
-import type { Route } from "./interfaces/route.interface";
+import {
+  ClientOnlineContractRoute,
+  LawyerOnlineContractRoute,
+} from "./routes/onlineContract.route";
+
+
+import type {
+  Route,
+} from "./interfaces/route.interface";
 
 import AuthRoute from "./routes/auth.route";
 
@@ -136,13 +144,17 @@ async function bootstrap(): Promise<void> {
 
       new ClientLawyerAvailabilityRoute(),
 
-      new ClientConsultationBookingRoute(),
+        new ClientConsultationBookingRoute(),
+        new ClientOnlineContractRoute(),
+
 
       new LawyerClientInquiryRoute(),
 
       new LawyerConsultationBookingRoute(),
 
-      new AdminRoute(),
+        new LawyerOnlineContractRoute(),
+
+        new AdminRoute(),
 
       new FAQRoute(),
 
