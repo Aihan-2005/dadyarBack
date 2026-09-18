@@ -50,10 +50,8 @@ import {
   ClientConsultationBookingRoute,
   LawyerConsultationBookingRoute,
 } from "./routes/consultationBooking.route";
-import {
-  AdminSubscriptionPlanRoute,
-  SubscriptionPlanRoute,
-} from "./routes/subscriptionPlan.route";
+
+import { SubscriptionPlanRoute } from "./routes/subscriptionPlan.route";
 
 let isShuttingDown = false;
 
@@ -151,8 +149,6 @@ async function bootstrap(): Promise<void> {
       new ApiDocsRoute(),
 
       new SubscriptionPlanRoute(),
-
-      new AdminSubscriptionPlanRoute(),
     ];
 
     const app = new App(routes);

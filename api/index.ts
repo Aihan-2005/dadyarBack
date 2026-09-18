@@ -46,10 +46,8 @@ import {
   ClientConsultationBookingRoute,
   LawyerConsultationBookingRoute,
 } from "../src/routes/consultationBooking.route";
-import {
-  AdminSubscriptionPlanRoute,
-  SubscriptionPlanRoute,
-} from "../src/routes/subscriptionPlan.route";
+
+import { SubscriptionPlanRoute } from "../src/routes/subscriptionPlan.route";
 
 const routes: Route[] = [
   new IndexRoute(),
@@ -93,8 +91,6 @@ const routes: Route[] = [
   new ApiDocsRoute(),
 
   new SubscriptionPlanRoute(),
-
-  new AdminSubscriptionPlanRoute(),
 ];
 
 const app = new App(routes);
