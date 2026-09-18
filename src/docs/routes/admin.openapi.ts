@@ -35,6 +35,16 @@ import {
 } from "../../validators/ticket.validator";
 
 import { ParamTicketMessageIdSchema } from "../../validators/ticketMessage.validator";
+import {
+  CreateSubscriptionPlanSchema,
+  SubscriptionPlanIdParamSchema,
+  UpdateSubscriptionPlanSchema,
+} from "../../validators/subscriptionPlan.validator";
+import {
+  SubscriptionPlanListSuccessSchema,
+  SubscriptionPlanOptionsSuccessSchema,
+  SubscriptionPlanSuccessSchema,
+} from "../schemas/subscriptionPlan.openapi.schemas";
 
 // ========================================================
 // Shared Security
@@ -1484,6 +1494,494 @@ The returned URL follows the same attachment download behavior as the lawyer-fac
     403: forbiddenResponse,
 
     404: ticketNotFoundResponse,
+
+    500: serverErrorResponse,
+  },
+});
+
+// ========================================================
+// GET /admin/subscription-plans
+// ========================================================
+
+openApiRegistry.registerPath({
+  method: "get",
+
+  path: "/admin/subscription-plans",
+
+  operationId: "listAdminSubscriptionPlans",
+
+  tags: ["Admin"],
+
+  summary: "List all subscription plans for administration",
+
+  description: `
+Returns the complete subscription-plan catalog for the administration panel.
+
+This endpoint requires:
+
+\`Authorization: Bearer <accessToken>\`
+
+and the authenticated User must have role:
+
+\`ADMIN\`
+
+Unlike the public subscription-plan endpoint, this endpoint returns **both active and inactive plans**.
+
+This allows administrators to:
+
+- inspect currently available plans
+- inspect archived or disabled plans
+- reactivate an existing plan
+- edit pricing, duration, presentation, tier, and enabled features
+
+### Archiving
+
+Subscription plans are not currently deleted through an administration endpoint.
+
+Instead, an administrator can update:
+
+\`\`\`json
+{
+  "isActive": false
+}
+\`\`\`
+
+Inactive plans remain stored so future LawyerSubscription and Payment records can safely continue referencing historical plans.
+
+### Ordering
+
+Results are ordered by:
+
+1. \`sortOrder ASC\`
+2. \`createdAt DESC\`
+`,
+
+  security: adminSecurity,
+
+  responses: {
+    200: {
+      description: "All subscription plans returned successfully.",
+
+      content: {
+        "application/json": {
+          schema: SubscriptionPlanListSuccessSchema,
+        },
+      },
+    },
+
+    401: unauthorizedResponse,
+
+    403: forbiddenResponse,
+
+    500: serverErrorResponse,
+  },
+});
+
+// ========================================================
+// GET /admin/subscription-plans/options
+// ========================================================
+
+openApiRegistry.registerPath({
+  method: "get",
+
+  path: "/admin/subscription-plans/options",
+
+  operationId: "getAdminSubscriptionPlanOptions",
+
+  tags: ["Admin"],
+
+  summary: "Get available plan tiers and features",
+
+  description: `
+Returns the backend-defined options required by the administration interface when creating or editing a subscription plan.
+
+This endpoint requires an authenticated:
+
+\`ADMIN\`
+
+account.
+
+The response contains:
+
+- supported subscription tiers
+- supported subscription features
+
+The administration frontend should use this endpoint rather than maintaining its own hard-coded list of subscription capabilities.
+
+This keeps the backend as the source of truth.
+
+### Tiers
+
+Current tier values are:
+
+- \`BASIC\`
+- \`STANDARD\`
+- \`PREMIUM\`
+
+### Features
+
+Each feature contains:
+
+- \`code\`
+- \`title\`
+- \`description\`
+
+The \`code\` is the machine-readable value stored in a SubscriptionPlan.
+
+The \`title\` and \`description\` are presentation metadata that can be used by the administration UI to render checkboxes, toggles, or other controls.
+
+For example:
+
+\`\`\`json
+{
+  "code": "ONLINE_MEETINGS",
+  "title": "Online meetings",
+  "description": "Ability to create and manage online meetings."
+}
+\`\`\`
+
+The admin frontend can display a switch for this option and submit:
+
+\`\`\`json
+{
+  "features": [
+    "ONLINE_MEETINGS"
+  ]
+}
+\`\`\`
+
+when creating or updating a plan.
+
+Feature definitions are application capabilities defined by backend code.
+
+Administrators can choose which supported capabilities belong to a plan, but they cannot dynamically create arbitrary new feature codes through the API.
+`,
+
+  security: adminSecurity,
+
+  responses: {
+    200: {
+      description: "Subscription plan options returned successfully.",
+
+      content: {
+        "application/json": {
+          schema: SubscriptionPlanOptionsSuccessSchema,
+        },
+      },
+    },
+
+    401: unauthorizedResponse,
+
+    403: forbiddenResponse,
+
+    500: serverErrorResponse,
+  },
+});
+
+// ========================================================
+// POST /admin/subscription-plans
+// ========================================================
+
+openApiRegistry.registerPath({
+  method: "post",
+
+  path: "/admin/subscription-plans",
+
+  operationId: "createAdminSubscriptionPlan",
+
+  tags: ["Admin"],
+
+  summary: "Create a subscription plan",
+
+  description: `
+Creates a new subscription plan.
+
+This endpoint requires:
+
+\`Authorization: Bearer <accessToken>\`
+
+and the authenticated User must have role:
+
+\`ADMIN\`.
+
+### Required values
+
+A plan requires:
+
+- \`title\`
+- \`description\`
+- \`tier\`
+- \`durationMonths\`
+- \`price\`
+- at least one supported \`feature\`
+
+### Optional/defaulted values
+
+The following fields have defaults when omitted:
+
+- \`tags = []\`
+- \`discountPercent = 0\`
+- \`isActive = true\`
+- \`sortOrder = 0\`
+
+### Tier
+
+The submitted tier must be one of:
+
+- \`BASIC\`
+- \`STANDARD\`
+- \`PREMIUM\`
+
+### Features
+
+Every feature must be one of the backend-defined subscription feature codes.
+
+Duplicate feature values are rejected.
+
+At least one feature is required.
+
+Available values can be retrieved from:
+
+\`GET /admin/subscription-plans/options\`
+
+### Tags
+
+Tags are presentation/marketing metadata.
+
+A plan may contain at most 10 tags.
+
+Each tag:
+
+- must not be empty
+- may contain at most 50 characters
+
+Tag uniqueness is checked case-insensitively.
+
+Therefore:
+
+\`\`\`json
+[
+  "Popular",
+  "popular"
+]
+\`\`\`
+
+is rejected.
+
+### Duration
+
+\`durationMonths\` must be an integer between:
+
+\`1\` and \`120\`
+
+### Price
+
+\`price\` must be a non-negative integer.
+
+The API currently does not expose a separate currency field, so callers must use the monetary unit defined by the application's commercial/payment configuration consistently.
+
+### Discount
+
+\`discountPercent\` must be an integer between:
+
+\`0\` and \`100\`
+
+### Example
+
+\`\`\`json
+{
+  "title": "Professional Monthly",
+  "description": "Tools for lawyers managing an active legal practice.",
+  "tier": "STANDARD",
+  "tags": [
+    "Popular"
+  ],
+  "durationMonths": 1,
+  "price": 900000,
+  "discountPercent": 10,
+  "features": [
+    "CASE_MANAGEMENT",
+    "FINANCIAL_REPORTS",
+    "SCHEDULING",
+    "ONLINE_MEETINGS"
+  ],
+  "isActive": true,
+  "sortOrder": 2
+}
+\`\`\`
+`,
+
+  security: adminSecurity,
+
+  request: {
+    body: {
+      required: true,
+
+      content: {
+        "application/json": {
+          schema: CreateSubscriptionPlanSchema,
+        },
+      },
+    },
+  },
+
+  responses: {
+    201: {
+      description: "Subscription plan created successfully.",
+
+      content: {
+        "application/json": {
+          schema: SubscriptionPlanSuccessSchema,
+        },
+      },
+    },
+
+    400: badRequestResponse,
+
+    401: unauthorizedResponse,
+
+    403: forbiddenResponse,
+
+    500: serverErrorResponse,
+  },
+});
+
+// ========================================================
+// PATCH /admin/subscription-plans/{id}
+// ========================================================
+
+openApiRegistry.registerPath({
+  method: "patch",
+
+  path: "/admin/subscription-plans/{id}",
+
+  operationId: "updateAdminSubscriptionPlan",
+
+  tags: ["Admin"],
+
+  summary: "Update a subscription plan",
+
+  description: `
+Updates one existing subscription plan.
+
+This endpoint requires:
+
+\`Authorization: Bearer <accessToken>\`
+
+and the authenticated User must have role:
+
+\`ADMIN\`.
+
+The request is a partial update.
+
+Any supported plan field may be changed independently, including:
+
+- title
+- description
+- tier
+- tags
+- duration
+- price
+- discount
+- features
+- active status
+- sort order
+
+An empty request body is rejected.
+
+### Disabling a plan
+
+To stop offering a plan publicly without deleting its historical record:
+
+\`\`\`json
+{
+  "isActive": false
+}
+\`\`\`
+
+After this change:
+
+\`GET /subscription-plans\`
+
+will no longer return the plan.
+
+However:
+
+\`GET /admin/subscription-plans\`
+
+will continue returning it.
+
+The plan can later be reactivated with:
+
+\`\`\`json
+{
+  "isActive": true
+}
+\`\`\`
+
+### Updating features
+
+The complete feature array supplied in this request becomes the plan's current feature set.
+
+For example:
+
+\`\`\`json
+{
+  "features": [
+    "CASE_MANAGEMENT",
+    "FINANCIAL_REPORTS",
+    "SCHEDULING",
+    "ONLINE_MEETINGS",
+    "CLIENT_DIRECTORY_VISIBILITY"
+  ]
+}
+\`\`\`
+
+Available feature codes should be obtained from:
+
+\`GET /admin/subscription-plans/options\`
+
+### Historical subscriptions
+
+This endpoint changes the SubscriptionPlan document itself.
+
+When LawyerSubscription and Payment functionality are introduced, purchase-time information that must remain historically accurate should be snapshotted by those records rather than inferred solely from a plan that may later be edited.
+`,
+
+  security: adminSecurity,
+
+  request: {
+    params: SubscriptionPlanIdParamSchema,
+
+    body: {
+      required: true,
+
+      content: {
+        "application/json": {
+          schema: UpdateSubscriptionPlanSchema,
+        },
+      },
+    },
+  },
+
+  responses: {
+    200: {
+      description: "Subscription plan updated successfully.",
+
+      content: {
+        "application/json": {
+          schema: SubscriptionPlanSuccessSchema,
+        },
+      },
+    },
+
+    400: badRequestResponse,
+
+    401: unauthorizedResponse,
+
+    403: forbiddenResponse,
+
+    404: notFoundResponse,
 
     500: serverErrorResponse,
   },
