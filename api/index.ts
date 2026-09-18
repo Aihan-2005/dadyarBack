@@ -1,12 +1,8 @@
 import App from "../src/app";
 
-import {
-  Database,
-} from "../src/config/db";
+import { Database } from "../src/config/db";
 
-import type {
-  Route,
-} from "../src/interfaces/route.interface";
+import type { Route } from "../src/interfaces/route.interface";
 
 import IndexRoute from "../src/routes/index.route";
 
@@ -18,22 +14,16 @@ import CaseRoute from "../src/routes/case.route";
 
 import LawyerClientRoute from "../src/routes/lawyerClient.route";
 
-import {
-  ClientProfileRoute,
-} from "../src/routes/clientProfile.route";
+import { ClientProfileRoute } from "../src/routes/clientProfile.route";
 
 import {
   ClientLawyerAvailabilityRoute,
   LawyerAvailabilityRoute,
 } from "../src/routes/lawyerAvailability.route";
 
-import {
-  FinancialReportRoute,
-} from "../src/routes/financialReport.route";
+import { FinancialReportRoute } from "../src/routes/financialReport.route";
 
-import {
-  ApiDocsRoute,
-} from "../src/routes/apiDocs.route";
+import { ApiDocsRoute } from "../src/routes/apiDocs.route";
 
 import NotificationRoute from "../src/routes/notification.route";
 
@@ -41,13 +31,9 @@ import TicketRoute from "../src/routes/ticket.route";
 
 import ClientCaseRoute from "../src/routes/clientCase.route";
 
-import {
-  AdminRoute,
-} from "../src/routes/admin.route";
+import { AdminRoute } from "../src/routes/admin.route";
 
-import {
-  FAQRoute,
-} from "../src/routes/faq.route";
+import { FAQRoute } from "../src/routes/faq.route";
 
 import ClientPetitionRoute from "../src/routes/clientPetition.route";
 
@@ -60,86 +46,77 @@ import {
   ClientConsultationBookingRoute,
   LawyerConsultationBookingRoute,
 } from "../src/routes/consultationBooking.route";
+import {
+  AdminSubscriptionPlanRoute,
+  SubscriptionPlanRoute,
+} from "../src/routes/subscriptionPlan.route";
 
+const routes: Route[] = [
+  new IndexRoute(),
 
-const routes:
-  Route[] = [
-    new IndexRoute(),
+  new AuthRoute(),
 
-    new AuthRoute(),
+  new LawyerRoute(),
 
-    new LawyerRoute(),
+  new LawyerAvailabilityRoute(),
 
-    new LawyerAvailabilityRoute(),
+  new ClientProfileRoute(),
 
-    new ClientProfileRoute(),
+  new LawyerClientRoute(),
 
-    new LawyerClientRoute(),
+  new CaseRoute(),
 
-    new CaseRoute(),
+  new FinancialReportRoute(),
 
-    new FinancialReportRoute(),
+  new NotificationRoute(),
 
-    new NotificationRoute(),
+  new TicketRoute(),
 
-    new TicketRoute(),
+  new ClientCaseRoute(),
 
-    new ClientCaseRoute(),
+  new ClientPetitionRoute(),
 
-    new ClientPetitionRoute(),
+  new ClientLawyerInquiryRoute(),
 
-    new ClientLawyerInquiryRoute(),
+  new ClientLawyerAvailabilityRoute(),
 
-    new ClientLawyerAvailabilityRoute(),
+  new ClientConsultationBookingRoute(),
 
-    new ClientConsultationBookingRoute(),
+  new LawyerClientInquiryRoute(),
 
-    new LawyerClientInquiryRoute(),
+  new LawyerConsultationBookingRoute(),
 
-    new LawyerConsultationBookingRoute(),
+  new AdminRoute(),
 
-    new AdminRoute(),
+  new FAQRoute(),
 
-    new FAQRoute(),
+  new ApiDocsRoute(),
 
-    new ApiDocsRoute(),
-  ];
+  new SubscriptionPlanRoute(),
 
+  new AdminSubscriptionPlanRoute(),
+];
 
-const app =
-  new App(
-    routes,
-  );
+const app = new App(routes);
 
+const database = new Database();
 
-const database =
-  new Database();
-
-
-let connected =
-  false;
-
+let connected = false;
 
 export default async function handler(
-  req:
-    any,
+  req: any,
 
-  res:
-    any,
+  res: any,
 ) {
-  if (
-    !connected
-  ) {
+  if (!connected) {
     await database.connect();
 
-    connected =
-      true;
+    connected = true;
   }
 
-  return app
-    .getApp()(
-      req,
+  return app.getApp()(
+    req,
 
-      res,
-    );
+    res,
+  );
 }

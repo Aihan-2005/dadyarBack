@@ -413,4 +413,10 @@ export const MESSAGES = {
     en: "FAQ was not found",
     fa: "سوال متداول موردنظر یافت نشد",
   },
+
+  subscriptionPlanNotFound: {
+    en: "Subscription plan was not found",
+
+    fa: "پلن اشتراک موردنظر یافت نشد",
+  },
 };
