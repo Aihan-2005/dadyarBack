@@ -11,10 +11,7 @@ import {
   LawyerOnlineContractRoute,
 } from "./routes/onlineContract.route";
 
-
-import type {
-  Route,
-} from "./interfaces/route.interface";
+import type { Route } from "./interfaces/route.interface";
 
 import AuthRoute from "./routes/auth.route";
 
@@ -60,6 +57,7 @@ import {
 } from "./routes/consultationBooking.route";
 
 import { SubscriptionPlanRoute } from "./routes/subscriptionPlan.route";
+import { LawyerSubscriptionRoute } from "./routes/lawyerSubscription.route";
 
 let isShuttingDown = false;
 
@@ -144,23 +142,24 @@ async function bootstrap(): Promise<void> {
 
       new ClientLawyerAvailabilityRoute(),
 
-        new ClientConsultationBookingRoute(),
-        new ClientOnlineContractRoute(),
-
+      new ClientConsultationBookingRoute(),
+      new ClientOnlineContractRoute(),
 
       new LawyerClientInquiryRoute(),
 
       new LawyerConsultationBookingRoute(),
 
-        new LawyerOnlineContractRoute(),
+      new LawyerOnlineContractRoute(),
 
-        new AdminRoute(),
+      new AdminRoute(),
 
       new FAQRoute(),
 
       new ApiDocsRoute(),
 
       new SubscriptionPlanRoute(),
+
+      new LawyerSubscriptionRoute(),
     ];
 
     const app = new App(routes);

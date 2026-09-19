@@ -108,10 +108,12 @@ export const MESSAGES = {
     en: "Case Need Atleast One Client",
     fa: "هر پرونده حداقل به یک موکل نیاز دارد",
   },
+
   endYearBeforeStart: {
     en: "End Year Can't Be Before Start Year",
     fa: "سال انتها نمیتواند ثبل از شروع باشد",
   },
+
   /**
    * @deprecated Use caseNumberAlreadyExists.
    * Kept temporarily so older callers do not break during deployment.
@@ -125,58 +127,72 @@ export const MESSAGES = {
     en: "A case with this case number already exists",
     fa: "پرونده‌ای با این شماره پرونده از قبل ثبت شده است",
   },
+
   caseNotFound: {
     en: "Case Was Not Found",
     fa: "پرونده یافت نشد",
   },
+
   noCaseFieldFound: {
     en: "At least one case field is required",
     fa: "حداقل یک فیلد برای پرونده باید داده بشود",
   },
+
   noCourtFieldFound: {
     en: "At least one court field is required",
     fa: "حداقل یک فیلد برای دادگاه باید داده بشود",
   },
+
   noClientFieldFound: {
     en: "At least one client field is required",
     fa: "حداقل یک فیلد برای کابر باید داده بشود",
   },
+
   noOpposingFieldFound: {
     en: "At least one opposing party field is required",
     fa: "حداقل یک فیلد برای طرف مخالف باید داده بشود",
   },
+
   noOpposingLawyerFiledFound: {
     en: "At least one opposing lawyer field is required",
     fa: "حداقل یک فیلد برای وکیل مخالف باید داده بشود",
   },
+
   noAssistantFieldFound: {
     en: "At least one assistant lawyer field is required",
     fa: "حداقل یک فیلد برای وکیل مساعد باید داده بشود",
   },
+
   noRelatedPersonFieldFound: {
     en: "At least one related person field is required",
     fa: "حداقل یک فیلد برای شخص مرتبط باید داده بشود",
   },
+
   clientNotFound: {
     en: "Client was not found",
     fa: "کاربر یافت نشد",
   },
+
   opposingNotFound: {
     en: "opposing party was found",
     fa: "هیچ فردی از گروه مخالف پیدا نشد",
   },
+
   assistantNotFound: {
     en: "Assistant lawyer not found",
     fa: "وکیل مساعد یافت نشد",
   },
+
   opposingLawyernotFound: {
     en: "Opposing lawyer not found",
     fa: "وکیل مخالف پیدا نشد",
   },
+
   relatedPersonNotFound: {
     en: "Related person not found",
     fa: "فرد مرتبط یافت نشد",
   },
+
   invalidCredentials: {
     en: "Email/phone or password is incorrect",
     fa: "ایمیل/شماره همراه یا رمز عبور صحیح نیست",
@@ -217,22 +233,27 @@ export const MESSAGES = {
     en: "The account role is not allowed",
     fa: "نقش این حساب اجازه دسترسی به این بخش را ندارد",
   },
+
   nationalIdExists: {
     en: "User with this national id already exsist",
     fa: "کاربر با این کد ملی از قبل موجود است",
   },
+
   clientDataConflict: {
     en: "Client with the same phone number but different national id exsist",
     fa: "موکلی با همین شماره اما کد ملی متفاوت وجود دارد",
   },
+
   notYetBorn: {
     en: "Birthday can't be in the furture",
     fa: "تاریخ تولد نمی‌تواند در آینده باشد",
   },
+
   invalidPhoneFormat: {
     en: "The given phone number is not a valid iranian phone number",
     fa: "شماره تلفن داده شده صحیح نیست",
   },
+
   assignmentTotalMismatch: {
     en: "The assigned client amounts must equal the total case value",
     fa: "مجموع مبالغ تعیین‌شده برای موکلان باید برابر ارزش کل پرونده باشد",
@@ -267,6 +288,7 @@ export const MESSAGES = {
     en: "At least one payment field must be provided",
     fa: "حداقل یک فیلد پرداخت باید ارسال شود",
   },
+
   paymentNotFound: {
     en: "Payment not found",
     fa: "پرداخت یافت نشد",
@@ -286,6 +308,7 @@ export const MESSAGES = {
     en: "The same payment cannot be submitted more than once",
     fa: "یک پرداخت نمی‌تواند بیش از یک بار ارسال شود",
   },
+
   expenseNotFound: {
     en: "Expense not found",
     fa: "هزینه یافت نشد",
@@ -300,6 +323,7 @@ export const MESSAGES = {
     en: "Notification was not found",
     fa: "اعلان یافت نشد",
   },
+
   otpInvalidOrExpired: {
     en: "The verification code is invalid or expired.",
     fa: "کد تأیید نامعتبر است یا منقضی شده است.",
@@ -418,5 +442,29 @@ export const MESSAGES = {
     en: "Subscription plan was not found",
 
     fa: "پلن اشتراک موردنظر یافت نشد",
+  },
+
+  lawyerSubscriptionAlreadyActive: {
+    en: "Lawyer already has an active subscription",
+
+    fa: "وکیل در حال حاضر اشتراک فعال دارد",
+  },
+
+  lawyerSubscriptionNotFound: {
+    en: "Active lawyer subscription was not found",
+
+    fa: "اشتراک فعال وکیل یافت نشد",
+  },
+
+  activeSubscriptionRequired: {
+    en: "An active subscription is required",
+
+    fa: "داشتن اشتراک فعال الزامی است",
+  },
+
+  subscriptionFeatureRequired: {
+    en: "Your subscription does not include this feature",
+
+    fa: "اشتراک شما شامل این قابلیت نیست",
   },
 };

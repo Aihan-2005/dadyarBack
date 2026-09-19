@@ -52,6 +52,7 @@ import {
   ClientOnlineContractRoute,
   LawyerOnlineContractRoute,
 } from "../src/routes/onlineContract.route";
+import { LawyerSubscriptionRoute } from "../src/routes/lawyerSubscription.route";
 
 const routes: Route[] = [
   new IndexRoute(),
@@ -99,6 +100,8 @@ const routes: Route[] = [
   new ApiDocsRoute(),
 
   new SubscriptionPlanRoute(),
+
+  new LawyerSubscriptionRoute(),
 ];
 
 const app = new App(routes);
