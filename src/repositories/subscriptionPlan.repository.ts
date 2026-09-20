@@ -1,3 +1,4 @@
+import type { ClientSession } from "mongoose";
 import type {
   CreateSubscriptionPlanInput,
   SubscriptionPlan,
@@ -27,15 +28,17 @@ export class SubscriptionPlanRepository extends BaseRepository<SubscriptionPlan>
       .exec();
   }
 
-  public findPublicPlanById(id: string) {
-    return this.model
-      .findOne({
-        _id: this.toObjectId(id),
+  public findPublicPlanById(id: string, session?: ClientSession) {
+    const query = this.model.findOne({
+      _id: this.toObjectId(id),
+      isActive: true,
+    });
 
-        isActive: true,
-      })
-      .lean()
-      .exec();
+    if (session) {
+      query.session(session);
+    }
+
+    return query.lean().exec();
   }
 
   public findAllForAdmin() {

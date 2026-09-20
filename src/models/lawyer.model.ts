@@ -1,7 +1,4 @@
-import {
-  model,
-  Schema,
-} from "mongoose";
+import { model, Schema } from "mongoose";
 
 import {
   DEFAULT_LAWYER_STATUS,
@@ -9,506 +6,372 @@ import {
   SKILL_LEVELS,
 } from "../constants/lawyer.constants";
 
-import type {
-  Lawyer,
-} from "../interfaces/lawyer.interface";
+import type { Lawyer } from "../interfaces/lawyer.interface";
 
+export const EducationSchema = new Schema(
+  {
+    degree: {
+      type: String,
 
-export const EducationSchema =
-  new Schema(
-    {
-      degree: {
-        type:
-          String,
+      trim: true,
 
-        trim:
-          true,
+      maxlength: 120,
 
-        maxlength:
-          120,
-
-        default:
-          "",
-      },
-
-      field: {
-        type:
-          String,
-
-        trim:
-          true,
-
-        maxlength:
-          120,
-
-        default:
-          "",
-      },
-
-      university: {
-        type:
-          String,
-
-        trim:
-          true,
-
-        maxlength:
-          160,
-
-        default:
-          "",
-      },
-
-      year: {
-        type:
-          String,
-
-        trim:
-          true,
-
-        maxlength:
-          20,
-
-        default:
-          "",
-      },
+      default: "",
     },
 
-    {
-      versionKey:
-        false,
-    },
-  );
+    field: {
+      type: String,
 
+      trim: true,
 
-export const WorkExperienceSchema =
-  new Schema(
-    {
-      title: {
-        type:
-          String,
+      maxlength: 120,
 
-        required:
-          true,
-
-        trim:
-          true,
-
-        maxlength:
-          150,
-      },
-
-      company: {
-        type:
-          String,
-
-        required:
-          true,
-
-        trim:
-          true,
-
-        maxlength:
-          150,
-      },
-
-      startYear: {
-        type:
-          String,
-
-        required:
-          true,
-
-        trim:
-          true,
-
-        maxlength:
-          20,
-      },
-
-      endYear: {
-        type:
-          String,
-
-        required:
-          true,
-
-        trim:
-          true,
-
-        maxlength:
-          20,
-      },
-
-      description: {
-        type:
-          String,
-
-        trim:
-          true,
-
-        maxlength:
-          2000,
-
-        default:
-          "",
-      },
+      default: "",
     },
 
-    {
-      versionKey:
-        false,
-    },
-  );
+    university: {
+      type: String,
 
+      trim: true,
 
-export const SkillSchema =
-  new Schema(
-    {
-      name: {
-        type:
-          String,
+      maxlength: 160,
 
-        required:
-          true,
-
-        trim:
-          true,
-
-        maxlength:
-          100,
-      },
-
-      level: {
-        type:
-          Number,
-
-        required:
-          true,
-
-        enum:
-          SKILL_LEVELS,
-
-        min:
-          1,
-
-        max:
-          5,
-      },
+      default: "",
     },
 
-    {
-      versionKey:
-        false,
+    year: {
+      type: String,
+
+      trim: true,
+
+      maxlength: 20,
+
+      default: "",
     },
-  );
+  },
 
+  {
+    versionKey: false,
+  },
+);
 
-export const ClientDirectorySchema =
-  new Schema(
-    {
-      isVisible: {
-        type:
-          Boolean,
+export const WorkExperienceSchema = new Schema(
+  {
+    title: {
+      type: String,
 
-        required:
-          true,
+      required: true,
 
-        default:
-          false,
-      },
+      trim: true,
 
-      isFeatured: {
-        type:
-          Boolean,
-
-        required:
-          true,
-
-        default:
-          false,
-      },
-
-      displayOrder: {
-        type:
-          Number,
-
-        min:
-          1,
-
-        default:
-          null,
-      },
-
-      publishedAt: {
-        type:
-          Date,
-
-        default:
-          null,
-      },
+      maxlength: 150,
     },
 
-    {
-      _id:
-        false,
+    company: {
+      type: String,
 
-      versionKey:
-        false,
-    },
-  );
+      required: true,
 
+      trim: true,
 
-export const LawyerSchema =
-  new Schema(
-    {
-      firstName: {
-        type:
-          String,
-
-        required:
-          true,
-
-        trim:
-          true,
-
-        maxlength:
-          100,
-      },
-
-      lastName: {
-        type:
-          String,
-
-        required:
-          true,
-
-        trim:
-          true,
-
-        maxlength:
-          100,
-      },
-
-      status: {
-        type:
-          String,
-
-        enum:
-          Object.values(
-            LAWYER_STATUSES,
-          ),
-
-        default:
-          DEFAULT_LAWYER_STATUS,
-
-        required:
-          true,
-
-        index:
-          true,
-      },
-
-      licenseVerifiedAt: {
-        type:
-          Date,
-
-        default:
-          null,
-      },
-
-      specialization: {
-        type:
-          String,
-
-        trim:
-          true,
-
-        maxlength:
-          150,
-
-        default:
-          "",
-      },
-
-      licenseNumber: {
-        type:
-          String,
-
-        unique:
-          true,
-
-        trim:
-          true,
-
-        sparse:
-          true,
-
-        maxlength:
-          50,
-      },
-
-      yearsOfExperience: {
-        type:
-          Number,
-
-        required:
-          true,
-
-        min:
-          0,
-
-        max:
-          80,
-
-        default:
-          0,
-      },
- 
-      contactPhone: {
-        type:
-          String,
-
-        trim:
-          true,
-
-        maxlength:
-          20,
-
-        default:
-          "",
-      },
-
-      website: {
-        type:
-          String,
-
-        trim:
-          true,
-
-        maxlength:
-          500,
-      },
-
-      address: {
-        type:
-          String,
-
-        trim:
-          true,
-
-        maxlength:
-          500,
-
-        default:
-          "",
-      },
-
-      bio: {
-        type:
-          String,
-
-        trim:
-          true,
-
-        maxlength:
-          2000,
-
-        default:
-          "",
-      },
-
-      education: {
-        type: [
-          EducationSchema,
-        ],
-
-        default:
-          [],
-      },
-
-      experience: {
-        type: [
-          WorkExperienceSchema,
-        ],
-
-        default:
-          [],
-      },
-
-      skills: {
-        type: [
-          SkillSchema,
-        ],
-
-        default:
-          [],
-      },
-
-      languages: {
-        type: [
-          {
-            type:
-              String,
-
-            trim:
-              true,
-
-            maxlength:
-              80,
-          },
-        ],
-
-        default:
-          [],
-      },
-
-      clientDirectory: {
-        type:
-          ClientDirectorySchema,
-
-        default:
-          () => ({
-            isVisible:
-              false,
-
-            isFeatured:
-              false,
-
-            displayOrder:
-              null,
-
-            publishedAt:
-              null,
-          }),
-      },
+      maxlength: 150,
     },
 
-    {
-      timestamps:
-        true,
+    startYear: {
+      type: String,
 
-      versionKey:
-        false,
+      required: true,
+
+      trim: true,
+
+      maxlength: 20,
     },
-  );
 
+    endYear: {
+      type: String,
+
+      required: true,
+
+      trim: true,
+
+      maxlength: 20,
+    },
+
+    description: {
+      type: String,
+
+      trim: true,
+
+      maxlength: 2000,
+
+      default: "",
+    },
+  },
+
+  {
+    versionKey: false,
+  },
+);
+
+export const SkillSchema = new Schema(
+  {
+    name: {
+      type: String,
+
+      required: true,
+
+      trim: true,
+
+      maxlength: 100,
+    },
+
+    level: {
+      type: Number,
+
+      required: true,
+
+      enum: SKILL_LEVELS,
+
+      min: 1,
+
+      max: 5,
+    },
+  },
+
+  {
+    versionKey: false,
+  },
+);
+
+export const ClientDirectorySchema = new Schema(
+  {
+    isVisible: {
+      type: Boolean,
+
+      required: true,
+
+      default: false,
+    },
+
+    isFeatured: {
+      type: Boolean,
+
+      required: true,
+
+      default: false,
+    },
+
+    displayOrder: {
+      type: Number,
+
+      min: 1,
+
+      default: null,
+    },
+
+    publishedAt: {
+      type: Date,
+
+      default: null,
+    },
+  },
+
+  {
+    _id: false,
+
+    versionKey: false,
+  },
+);
+
+export const LawyerSchema = new Schema(
+  {
+    firstName: {
+      type: String,
+
+      required: true,
+
+      trim: true,
+
+      maxlength: 100,
+    },
+
+    lastName: {
+      type: String,
+
+      required: true,
+
+      trim: true,
+
+      maxlength: 100,
+    },
+
+    status: {
+      type: String,
+
+      enum: Object.values(LAWYER_STATUSES),
+
+      default: DEFAULT_LAWYER_STATUS,
+
+      required: true,
+
+      index: true,
+    },
+
+    licenseVerifiedAt: {
+      type: Date,
+
+      default: null,
+    },
+
+    specialization: {
+      type: String,
+
+      trim: true,
+
+      maxlength: 150,
+
+      default: "",
+    },
+
+    licenseNumber: {
+      type: String,
+
+      unique: true,
+
+      trim: true,
+
+      sparse: true,
+
+      maxlength: 50,
+    },
+
+    yearsOfExperience: {
+      type: Number,
+
+      required: true,
+
+      min: 0,
+
+      max: 80,
+
+      default: 0,
+    },
+
+    contactPhone: {
+      type: String,
+
+      trim: true,
+
+      maxlength: 20,
+
+      default: "",
+    },
+
+    website: {
+      type: String,
+
+      trim: true,
+
+      maxlength: 500,
+    },
+
+    address: {
+      type: String,
+
+      trim: true,
+
+      maxlength: 500,
+
+      default: "",
+    },
+
+    bio: {
+      type: String,
+
+      trim: true,
+
+      maxlength: 2000,
+
+      default: "",
+    },
+
+    education: {
+      type: [EducationSchema],
+
+      default: [],
+    },
+
+    experience: {
+      type: [WorkExperienceSchema],
+
+      default: [],
+    },
+
+    skills: {
+      type: [SkillSchema],
+
+      default: [],
+    },
+
+    languages: {
+      type: [
+        {
+          type: String,
+
+          trim: true,
+
+          maxlength: 80,
+        },
+      ],
+
+      default: [],
+    },
+
+    clientDirectory: {
+      type: ClientDirectorySchema,
+
+      default: () => ({
+        isVisible: false,
+
+        isFeatured: false,
+
+        displayOrder: null,
+
+        publishedAt: null,
+      }),
+    },
+
+    subscriptionRevision: {
+      type: Number,
+
+      required: true,
+
+      default: 0,
+
+      min: 0,
+
+      select: false,
+    },
+  },
+
+  {
+    timestamps: true,
+
+    versionKey: false,
+  },
+);
 
 LawyerSchema.index({
-  "clientDirectory.isVisible":
-    1,
+  "clientDirectory.isVisible": 1,
 
-  "clientDirectory.displayOrder":
-    1,
+  "clientDirectory.displayOrder": 1,
 });
 
+const LawyerModel = model<Lawyer>(
+  "Lawyer",
 
-const LawyerModel =
-  model<Lawyer>(
-    "Lawyer",
-
-    LawyerSchema,
-  );
-
+  LawyerSchema,
+);
 
 export default LawyerModel;

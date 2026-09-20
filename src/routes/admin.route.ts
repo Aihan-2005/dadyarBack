@@ -21,6 +21,7 @@ import { SubscriptionPlanService } from "../services/subscriptionPlan.service";
 import requireAuth, { requireRole } from "../middlewares/auth.middleware";
 
 import { uploadAttachment } from "../middlewares/upload.middleware";
+import { LawyerSubscriptionController } from "../controllers/lawyerSubscription.controller";
 
 export class AdminRoute implements Route {
   public path = "/admin";
@@ -38,6 +39,9 @@ export class AdminRoute implements Route {
   private readonly subscriptionPlanController = new SubscriptionPlanController(
     new SubscriptionPlanService(),
   );
+
+  private readonly lawyerSubscriptionController =
+    new LawyerSubscriptionController();
 
   constructor() {
     this.initializeRoutes();
@@ -146,6 +150,25 @@ export class AdminRoute implements Route {
     this.router.patch(
       "/subscription-plans/:id",
       this.subscriptionPlanController.updatePlan,
+    );
+
+    // Lawyer subscriptions
+    this.router.get(
+      "/lawyers/:id/subscriptions",
+
+      this.lawyerSubscriptionController.getSubscriptionHistoryForAdmin,
+    );
+
+    this.router.post(
+      "/lawyers/:id/subscriptions",
+
+      this.lawyerSubscriptionController.createSubscriptionForAdmin,
+    );
+
+    this.router.patch(
+      "/lawyers/:id/subscriptions/current/cancel",
+
+      this.lawyerSubscriptionController.cancelCurrentSubscriptionForAdmin,
     );
   }
 }
