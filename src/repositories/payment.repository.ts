@@ -21,13 +21,21 @@ export class PaymentRepository extends BaseRepository<Payment> {
     session?: ClientSession,
   ) {
     if (!session) {
-      const payment = await this.model.create(input);
+      const payment = await this.model.create({
+        ...input,
+        lawyerId: this.toObjectId(input.lawyerId),
+      });
 
       return payment.toObject();
     }
 
     const [payment] = await this.model.create(
-      [input],
+      [
+        {
+          ...input,
+          lawyerId: this.toObjectId(input.lawyerId),
+        },
+      ],
 
       {
         session,
@@ -70,8 +78,12 @@ export class PaymentRepository extends BaseRepository<Payment> {
     },
   ) {
     return this.model
-      .findByIdAndUpdate(
-        this.toObjectId(paymentId),
+      .findOneAndUpdate(
+        {
+          _id: this.toObjectId(paymentId),
+
+          status: "PENDING",
+        },
 
         {
           $set: {
@@ -90,6 +102,47 @@ export class PaymentRepository extends BaseRepository<Payment> {
                   providerFeeType: input.providerFeeType,
                 }
               : {}),
+          },
+        },
+
+        {
+          new: true,
+
+          runValidators: true,
+        },
+      )
+      .lean()
+      .exec();
+  }
+
+  public markPendingPaymentFailed(
+    paymentId: string,
+
+    input: {
+      failureCode: string;
+
+      failureMessage: string;
+    },
+
+    failedAt = new Date(),
+  ) {
+    return this.model
+      .findOneAndUpdate(
+        {
+          _id: this.toObjectId(paymentId),
+
+          status: "PENDING",
+        },
+
+        {
+          $set: {
+            status: "FAILED",
+
+            failedAt,
+
+            failureCode: input.failureCode,
+
+            failureMessage: input.failureMessage,
           },
         },
 

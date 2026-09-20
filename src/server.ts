@@ -58,6 +58,7 @@ import {
 
 import { SubscriptionPlanRoute } from "./routes/subscriptionPlan.route";
 import { LawyerSubscriptionRoute } from "./routes/lawyerSubscription.route";
+import { PaymentRoute } from "./routes/payment.route";
 
 let isShuttingDown = false;
 
@@ -160,6 +161,8 @@ async function bootstrap(): Promise<void> {
       new SubscriptionPlanRoute(),
 
       new LawyerSubscriptionRoute(),
+
+      new PaymentRoute(),
     ];
 
     const app = new App(routes);

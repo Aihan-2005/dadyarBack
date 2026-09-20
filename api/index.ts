@@ -53,6 +53,7 @@ import {
   LawyerOnlineContractRoute,
 } from "../src/routes/onlineContract.route";
 import { LawyerSubscriptionRoute } from "../src/routes/lawyerSubscription.route";
+import { PaymentRoute } from "../src/routes/payment.route";
 
 const routes: Route[] = [
   new IndexRoute(),
@@ -102,6 +103,8 @@ const routes: Route[] = [
   new SubscriptionPlanRoute(),
 
   new LawyerSubscriptionRoute(),
+
+  new PaymentRoute(),
 ];
 
 const app = new App(routes);

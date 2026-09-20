@@ -12,3 +12,5 @@ export const PAYMENT_STATUSES = [
 export const ZARINPAL_SUCCESS_CODE = 100;
 
 export const ZARINPAL_ALREADY_VERIFIED_CODE = 101;
+
+export const ZARINPAL_MIN_AMOUNT = 1000;

@@ -467,4 +467,16 @@ export const MESSAGES = {
 
     fa: "اشتراک شما شامل این قابلیت نیست",
   },
+
+  paymentRequestFailed: {
+    en: "Unable to create the payment request",
+
+    fa: "ایجاد درخواست پرداخت با مشکل مواجه شد",
+  },
+
+  paymentAmountTooLow: {
+    en: "The payable amount is below the payment gateway minimum",
+
+    fa: "مبلغ قابل پرداخت کمتر از حداقل مبلغ مجاز درگاه است",
+  },
 };
