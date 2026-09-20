@@ -86,6 +86,8 @@ export class LawyerSubscriptionRepository extends BaseRepository<LawyerSubscript
     lawyerId: string,
 
     cancelledAt = new Date(),
+
+    session?: ClientSession,
   ) {
     return this.model
       .findOneAndUpdate(
@@ -113,6 +115,8 @@ export class LawyerSubscriptionRepository extends BaseRepository<LawyerSubscript
           new: true,
 
           runValidators: true,
+
+          session,
         },
       )
       .lean()

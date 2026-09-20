@@ -46,6 +46,16 @@ export class LawyerSubscriptionService {
     lawyerId: string,
     options: LawyerSubscriptionHistoryOptions,
   ) {
+    const lawyer = await this.lawyerRepository.findById(lawyerId);
+
+    if (!lawyer) {
+      throw new HttpException(
+        404,
+        MESSAGES.noUserWithId[LANGUAGE],
+        "LAWYER_NOT_FOUND",
+      );
+    }
+
     const result = await this.repository.findHistoryByLawyerId(
       lawyerId,
       options,
@@ -70,18 +80,6 @@ export class LawyerSubscriptionService {
 
     adminUserId: string,
   ) {
-    const lawyer = await this.lawyerRepository.findById(lawyerId);
-
-    if (!lawyer) {
-      throw new HttpException(
-        404,
-
-        MESSAGES.noUserWithId[LANGUAGE],
-
-        "LAWYER_NOT_FOUND",
-      );
-    }
-
     const session = await mongoose.startSession();
 
     try {
@@ -94,8 +92,26 @@ export class LawyerSubscriptionService {
         if (!plan) {
           throw new HttpException(
             404,
+
             MESSAGES.subscriptionPlanNotFound[LANGUAGE],
+
             "SUBSCRIPTION_PLAN_NOT_FOUND",
+          );
+        }
+
+        const lawyer =
+          await this.lawyerRepository.acquireSubscriptionWriteGuard(
+            lawyerId,
+            session,
+          );
+
+        if (!lawyer) {
+          throw new HttpException(
+            404,
+
+            MESSAGES.noUserWithId[LANGUAGE],
+
+            "LAWYER_NOT_FOUND",
           );
         }
 
@@ -110,7 +126,9 @@ export class LawyerSubscriptionService {
         if (currentSubscription) {
           throw new HttpException(
             409,
+
             MESSAGES.lawyerSubscriptionAlreadyActive[LANGUAGE],
+
             "LAWYER_SUBSCRIPTION_ALREADY_ACTIVE",
           );
         }
@@ -123,25 +141,36 @@ export class LawyerSubscriptionService {
         return this.repository.createSubscription(
           {
             lawyerId: lawyer._id,
+
             planId: plan._id,
 
             planSnapshot: {
               title: plan.title,
+
               description: plan.description,
+
               tier: plan.tier,
+
               tags: [...plan.tags],
+
               durationMonths: plan.durationMonths,
+
               price: plan.price,
+
               discountPercent: plan.discountPercent,
+
               features: [...plan.features],
             },
 
             startsAt,
+
             endsAt,
 
             activationSource: "ADMIN",
+
             activatedByUserId: new Types.ObjectId(adminUserId),
           },
+
           session,
         );
       });
@@ -149,7 +178,9 @@ export class LawyerSubscriptionService {
       if (!subscription) {
         throw new HttpException(
           500,
+
           MESSAGES.serverError[LANGUAGE],
+
           "LAWYER_SUBSCRIPTION_CREATE_FAILED",
         );
       }
@@ -161,31 +192,58 @@ export class LawyerSubscriptionService {
   }
 
   public async cancelCurrentSubscriptionForAdmin(lawyerId: string) {
-    const lawyer = await this.lawyerRepository.findById(lawyerId);
+    const session = await mongoose.startSession();
 
-    if (!lawyer) {
-      throw new HttpException(
-        404,
+    try {
+      const subscription = await session.withTransaction(async () => {
+        const lawyer =
+          await this.lawyerRepository.acquireSubscriptionWriteGuard(
+            lawyerId,
+            session,
+          );
 
-        MESSAGES.noUserWithId[LANGUAGE],
+        if (!lawyer) {
+          throw new HttpException(
+            404,
 
-        "LAWYER_NOT_FOUND",
-      );
+            MESSAGES.noUserWithId[LANGUAGE],
+
+            "LAWYER_NOT_FOUND",
+          );
+        }
+
+        const subscription = await this.repository.cancelCurrentByLawyerId(
+          lawyerId,
+          new Date(),
+          session,
+        );
+
+        if (!subscription) {
+          throw new HttpException(
+            404,
+
+            MESSAGES.lawyerSubscriptionNotFound[LANGUAGE],
+
+            "LAWYER_SUBSCRIPTION_NOT_FOUND",
+          );
+        }
+
+        return subscription;
+      });
+
+      if (!subscription) {
+        throw new HttpException(
+          500,
+
+          MESSAGES.serverError[LANGUAGE],
+
+          "LAWYER_SUBSCRIPTION_CANCEL_FAILED",
+        );
+      }
+
+      return toLawyerSubscriptionDTO(subscription);
+    } finally {
+      await session.endSession();
     }
-
-    const subscription =
-      await this.repository.cancelCurrentByLawyerId(lawyerId);
-
-    if (!subscription) {
-      throw new HttpException(
-        404,
-
-        MESSAGES.lawyerSubscriptionNotFound[LANGUAGE],
-
-        "LAWYER_SUBSCRIPTION_NOT_FOUND",
-      );
-    }
-
-    return toLawyerSubscriptionDTO(subscription);
   }
 }
