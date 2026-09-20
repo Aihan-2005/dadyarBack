@@ -4,6 +4,7 @@ import { LawyerSubscriptionService } from "../services/lawyerSubscription.servic
 
 import {
   CreateLawyerSubscriptionSchema,
+  LawyerSubscriptionHistoryQuerySchema,
   LawyerSubscriptionLawyerIdParamSchema,
 } from "../validators/lawyerSubscription.validator";
 
@@ -44,12 +45,16 @@ export class LawyerSubscriptionController {
     try {
       const { id } = LawyerSubscriptionLawyerIdParamSchema.parse(req.params);
 
-      const subscriptions = await this.service.getSubscriptionHistory(id);
+      const query = LawyerSubscriptionHistoryQuerySchema.parse(req.query);
+
+      const result = await this.service.getSubscriptionHistory(id, query);
 
       return res.status(200).json({
         success: true,
 
-        data: subscriptions,
+        data: result.items,
+
+        pagination: result.pagination,
       });
     } catch (error) {
       return next(error);

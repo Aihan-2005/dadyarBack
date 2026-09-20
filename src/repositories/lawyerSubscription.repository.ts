@@ -1,6 +1,8 @@
+import type { ClientSession } from "mongoose";
 import type {
   CreateLawyerSubscriptionData,
   LawyerSubscription,
+  LawyerSubscriptionHistoryOptions,
 } from "../interfaces/lawyerSubscription.interface";
 
 import { LawyerSubscriptionModel } from "../models/lawyerSubscription.model";
@@ -12,43 +14,72 @@ export class LawyerSubscriptionRepository extends BaseRepository<LawyerSubscript
     super(LawyerSubscriptionModel);
   }
 
-  public async createSubscription(input: CreateLawyerSubscriptionData) {
-    return this.model.create(input);
+  public async createSubscription(
+    input: CreateLawyerSubscriptionData,
+    session?: ClientSession,
+  ) {
+    if (!session) {
+      return this.model.create(input);
+    }
+
+    const [subscription] = await this.model.create([input], { session });
+
+    return subscription;
   }
 
   public findCurrentByLawyerId(
     lawyerId: string,
-
     now = new Date(),
+    session?: ClientSession,
   ) {
-    return this.model
-      .findOne({
-        lawyerId: this.toObjectId(lawyerId),
+    const query = this.model.findOne({
+      lawyerId: this.toObjectId(lawyerId),
+      cancelledAt: null,
 
-        cancelledAt: null,
+      startsAt: {
+        $lte: now,
+      },
 
-        startsAt: {
-          $lte: now,
-        },
+      endsAt: {
+        $gt: now,
+      },
+    });
 
-        endsAt: {
-          $gt: now,
-        },
-      })
-      .lean()
-      .exec();
+    if (session) {
+      query.session(session);
+    }
+
+    return query.lean().exec();
   }
 
-  public findHistoryByLawyerId(lawyerId: string) {
-    return this.model
-      .find({
-        lawyerId: this.toObjectId(lawyerId),
-      })
-      .sort({
-        createdAt: -1,
-      })
-      .lean()
-      .exec();
+  public async findHistoryByLawyerId(
+    lawyerId: string,
+    options: LawyerSubscriptionHistoryOptions,
+  ) {
+    const filter = {
+      lawyerId: this.toObjectId(lawyerId),
+    };
+
+    const skip = (options.page - 1) * options.limit;
+
+    const [items, total] = await Promise.all([
+      this.model
+        .find(filter)
+        .sort({
+          createdAt: -1,
+        })
+        .skip(skip)
+        .limit(options.limit)
+        .lean()
+        .exec(),
+
+      this.model.countDocuments(filter).exec(),
+    ]);
+
+    return {
+      items,
+      total,
+    };
   }
 
   public cancelCurrentByLawyerId(

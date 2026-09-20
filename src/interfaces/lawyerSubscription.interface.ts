@@ -9,7 +9,10 @@ import {
 
 import { LawyerSubscriptionSchema } from "../models/lawyerSubscription.model";
 
-import { CreateLawyerSubscriptionSchema } from "../validators/lawyerSubscription.validator";
+import {
+  CreateLawyerSubscriptionSchema,
+  LawyerSubscriptionHistoryQuerySchema,
+} from "../validators/lawyerSubscription.validator";
 
 export type LawyerSubscription = InferSchemaType<
   typeof LawyerSubscriptionSchema
@@ -27,14 +30,16 @@ export type LawyerSubscriptionStatus =
 
 export type LawyerSubscriptionPlanSnapshot = LawyerSubscription["planSnapshot"];
 
-export type CreateLawyerSubscriptionData = Pick<
-  LawyerSubscription,
-  | "lawyerId"
-  | "planId"
-  | "planSnapshot"
-  | "startsAt"
-  | "endsAt"
-  | "cancelledAt"
-  | "activationSource"
-  | "activatedByUserId"
+export interface CreateLawyerSubscriptionData {
+  lawyerId: LawyerSubscription["lawyerId"];
+  planId: LawyerSubscription["planId"];
+  planSnapshot: LawyerSubscriptionPlanSnapshot;
+  startsAt: LawyerSubscription["startsAt"];
+  endsAt: LawyerSubscription["endsAt"];
+  activationSource: LawyerSubscriptionActivationSource;
+  activatedByUserId: LawyerSubscription["activatedByUserId"];
+}
+
+export type LawyerSubscriptionHistoryOptions = z.output<
+  typeof LawyerSubscriptionHistoryQuerySchema
 >;
