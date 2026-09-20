@@ -1956,7 +1956,9 @@ Available feature codes should be obtained from:
 
 This endpoint changes the SubscriptionPlan document itself.
 
-When LawyerSubscription and Payment functionality are introduced, purchase-time information that must remain historically accurate should be snapshotted by those records rather than inferred solely from a plan that may later be edited.
+Existing LawyerSubscription records preserve their purchase-time plan information in \`planSnapshot\`, so later edits to the SubscriptionPlan do not rewrite historical subscription data.
+
+Future Payment records should follow the same principle for payment-time information that must remain historically accurate.
 `,
 
   security: adminSecurity,
