@@ -19,12 +19,14 @@ export class LawyerSubscriptionRepository extends BaseRepository<LawyerSubscript
     session?: ClientSession,
   ) {
     if (!session) {
-      return this.model.create(input);
+      const subscription = await this.model.create(input);
+
+      return subscription.toObject();
     }
 
     const [subscription] = await this.model.create([input], { session });
 
-    return subscription;
+    return subscription.toObject();
   }
 
   public findCurrentByLawyerId(
