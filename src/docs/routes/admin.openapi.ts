@@ -46,6 +46,17 @@ import {
   SubscriptionPlanSuccessSchema,
 } from "../schemas/subscriptionPlan.openapi.schemas";
 
+import {
+  LawyerSubscriptionLawyerIdParamSchema,
+  LawyerSubscriptionHistoryQuerySchema,
+  CreateLawyerSubscriptionSchema,
+} from "../../validators/lawyerSubscription.validator";
+
+import {
+  LawyerSubscriptionHistorySuccessSchema,
+  LawyerSubscriptionSuccessSchema,
+} from "../schemas/lawyerSubscription.openapi.schemas";
+
 // ========================================================
 // Shared Security
 // ========================================================
@@ -1982,6 +1993,308 @@ When LawyerSubscription and Payment functionality are introduced, purchase-time 
     403: forbiddenResponse,
 
     404: notFoundResponse,
+
+    500: serverErrorResponse,
+  },
+});
+
+// ========================================================
+// GET /admin/lawyers/{id}/subscriptions
+// ========================================================
+
+openApiRegistry.registerPath({
+  method: "get",
+
+  path: "/admin/lawyers/{id}/subscriptions",
+
+  operationId: "listAdminLawyerSubscriptionHistory",
+
+  tags: ["Admin"],
+
+  summary: "List a lawyer's subscription history",
+
+  description: `
+Returns the subscription history belonging to one lawyer.
+
+The supplied ID must identify an existing Lawyer.
+
+Results are ordered by subscription creation time, newest first.
+
+### Pagination
+
+Defaults:
+
+- \`page=1\`
+- \`limit=20\`
+
+Maximum limit:
+
+- \`100\`
+
+The response contains:
+
+- \`data\` — subscription records for the requested page
+- \`pagination.page\`
+- \`pagination.limit\`
+- \`pagination.total\`
+- \`pagination.totalPages\`
+
+### Historical plan information
+
+Each subscription contains a \`planSnapshot\`.
+
+The snapshot preserves the relevant SubscriptionPlan values that existed when the subscription was activated.
+
+Therefore changing or disabling the associated SubscriptionPlan later does not rewrite historical subscription information.
+
+### Status
+
+Subscription status is calculated from:
+
+- \`cancelledAt\`
+- \`endsAt\`
+
+and is not persisted as an independent status field.
+`,
+
+  security: adminSecurity,
+
+  request: {
+    params: LawyerSubscriptionLawyerIdParamSchema,
+
+    query: LawyerSubscriptionHistoryQuerySchema,
+  },
+
+  responses: {
+    200: {
+      description: "Lawyer subscription history returned successfully.",
+
+      content: {
+        "application/json": {
+          schema: LawyerSubscriptionHistorySuccessSchema,
+        },
+      },
+    },
+
+    400: badRequestResponse,
+
+    401: unauthorizedResponse,
+
+    403: forbiddenResponse,
+
+    404: notFoundResponse,
+
+    500: serverErrorResponse,
+  },
+});
+
+// ========================================================
+// POST /admin/lawyers/{id}/subscriptions
+// ========================================================
+
+openApiRegistry.registerPath({
+  method: "post",
+
+  path: "/admin/lawyers/{id}/subscriptions",
+
+  operationId: "createAdminLawyerSubscription",
+
+  tags: ["Admin"],
+
+  summary: "Activate a subscription for a lawyer",
+
+  description: `
+Creates and immediately activates a subscription for one lawyer.
+
+This endpoint is intended for administrator-driven subscription activation.
+
+The request body contains the SubscriptionPlan ID:
+
+\`\`\`json
+{
+  "planId": "507f1f77bcf86cd799439011"
+}
+\`\`\`
+
+The selected plan must:
+
+- exist
+- currently have \`isActive = true\`
+
+### Existing subscription
+
+A lawyer cannot receive a second subscription while another current subscription is active.
+
+If an active subscription already exists, the endpoint returns:
+
+\`409 Conflict\`
+
+### Activation source
+
+Subscriptions created through this endpoint use:
+
+\`activationSource = ADMIN\`
+
+The authenticated admin User ID is stored as:
+
+\`activatedByUserId\`
+
+The \`PAYMENT\` activation source is reserved for payment-driven activation flows.
+
+### Plan snapshot
+
+The plan's commercial and feature information is copied into \`planSnapshot\` when the subscription is created.
+
+This prevents later SubscriptionPlan edits from changing the meaning of an existing subscription.
+
+### Duration
+
+The current subscription implementation converts each \`durationMonths\` unit into a fixed 30-day duration.
+
+For example:
+
+- 1 month = 30 days
+- 3 months = 90 days
+- 12 months = 360 days
+
+The subscription begins immediately.
+
+\`startsAt\` is set to the activation time and \`endsAt\` is calculated from the configured duration.
+
+### Concurrency
+
+Subscription state mutations for the same lawyer are serialized transactionally.
+
+This prevents concurrent activation requests from creating multiple simultaneously active subscriptions.
+`,
+
+  security: adminSecurity,
+
+  request: {
+    params: LawyerSubscriptionLawyerIdParamSchema,
+
+    body: {
+      required: true,
+
+      content: {
+        "application/json": {
+          schema: CreateLawyerSubscriptionSchema,
+        },
+      },
+    },
+  },
+
+  responses: {
+    201: {
+      description: "Lawyer subscription activated successfully.",
+
+      content: {
+        "application/json": {
+          schema: LawyerSubscriptionSuccessSchema,
+        },
+      },
+    },
+
+    400: badRequestResponse,
+
+    401: unauthorizedResponse,
+
+    403: forbiddenResponse,
+
+    404: notFoundResponse,
+
+    409: {
+      description: "The lawyer already has an active subscription.",
+
+      content: {
+        "application/json": {
+          schema: ApiErrorSchema,
+        },
+      },
+    },
+
+    500: serverErrorResponse,
+  },
+});
+
+// ========================================================
+// PATCH /admin/lawyers/{id}/subscriptions/current/cancel
+// ========================================================
+
+openApiRegistry.registerPath({
+  method: "patch",
+
+  path: "/admin/lawyers/{id}/subscriptions/current/cancel",
+
+  operationId: "cancelAdminLawyerSubscription",
+
+  tags: ["Admin"],
+
+  summary: "Cancel a lawyer's current subscription",
+
+  description: `
+Cancels the currently active subscription belonging to one lawyer.
+
+The lawyer must exist and must currently have an active subscription.
+
+Cancellation sets:
+
+\`cancelledAt\`
+
+to the current time.
+
+The subscription record is not deleted.
+
+This preserves subscription history and the original plan snapshot.
+
+After cancellation, the calculated subscription status becomes:
+
+\`CANCELLED\`
+
+and the subscription is no longer returned by:
+
+\`GET /lawyer-subscriptions/current\`
+
+### Concurrency
+
+Cancellation uses the same transactional lawyer-level subscription guard as activation.
+
+Therefore create and cancel operations affecting the same lawyer are serialized.
+`,
+
+  security: adminSecurity,
+
+  request: {
+    params: LawyerSubscriptionLawyerIdParamSchema,
+  },
+
+  responses: {
+    200: {
+      description: "Current lawyer subscription cancelled successfully.",
+
+      content: {
+        "application/json": {
+          schema: LawyerSubscriptionSuccessSchema,
+        },
+      },
+    },
+
+    400: badRequestResponse,
+
+    401: unauthorizedResponse,
+
+    403: forbiddenResponse,
+
+    404: {
+      description:
+        "The lawyer does not exist or does not currently have an active subscription.",
+
+      content: {
+        "application/json": {
+          schema: ApiErrorSchema,
+        },
+      },
+    },
 
     500: serverErrorResponse,
   },
