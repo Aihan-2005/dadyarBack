@@ -2,7 +2,10 @@ import type { NextFunction, Request, Response } from "express";
 
 import { PaymentService } from "../services/payment.service";
 
-import { CreateSubscriptionPaymentSchema } from "../validators/payment.validator";
+import {
+  CreateSubscriptionPaymentSchema,
+  ZarinPalCallbackQuerySchema,
+} from "../validators/payment.validator";
 
 export class PaymentController {
   constructor(
@@ -26,6 +29,28 @@ export class PaymentController {
       );
 
       return res.status(201).json({
+        success: true,
+
+        data: result,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  public handleZarinPalCallback = async (
+    req: Request,
+
+    res: Response,
+
+    next: NextFunction,
+  ): Promise<Response | void> => {
+    try {
+      const input = ZarinPalCallbackQuerySchema.parse(req.query);
+
+      const result = await this.service.handleZarinPalCallback(input);
+
+      return res.status(200).json({
         success: true,
 
         data: result,

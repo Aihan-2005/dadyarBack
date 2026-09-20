@@ -21,6 +21,12 @@ export class PaymentRoute implements Route {
   }
 
   private initializeRoutes(): void {
+    this.router.get(
+      "/zarinpal/callback",
+
+      this.controller.handleZarinPalCallback,
+    );
+
     this.router.post(
       "/subscriptions",
 

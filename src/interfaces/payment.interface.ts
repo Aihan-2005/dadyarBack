@@ -4,13 +4,17 @@ import type { z } from "zod";
 
 import type {
   PAYMENT_CURRENCIES,
+  PAYMENT_FULFILLMENT_STATUSES,
   PAYMENT_PROVIDERS,
   PAYMENT_STATUSES,
 } from "../constants/payment.constants";
 
 import { PaymentSchema } from "../models/payment.model";
 
-import { CreateSubscriptionPaymentSchema } from "../validators/payment.validator";
+import {
+  CreateSubscriptionPaymentSchema,
+  ZarinPalCallbackQuerySchema,
+} from "../validators/payment.validator";
 
 export type Payment = InferSchemaType<typeof PaymentSchema>;
 
@@ -39,3 +43,24 @@ export interface CreatePendingPaymentData {
 export type CreateSubscriptionPaymentInput = z.infer<
   typeof CreateSubscriptionPaymentSchema
 >;
+
+export type PaymentFulfillmentStatus =
+  (typeof PAYMENT_FULFILLMENT_STATUSES)[number];
+
+export type ZarinPalCallbackInput = z.output<
+  typeof ZarinPalCallbackQuerySchema
+>;
+
+export interface PaymentVerificationData {
+  providerVerificationCode: number;
+
+  referenceId: string | null;
+
+  cardPan: string | null;
+
+  cardHash: string | null;
+
+  providerFee: number | null;
+
+  providerFeeType: string | null;
+}

@@ -9,6 +9,13 @@ export const PAYMENT_STATUSES = [
   "CANCELLED",
 ] as const;
 
+export const PAYMENT_FULFILLMENT_STATUSES = [
+  "PENDING",
+  "FULFILLED",
+  "REQUIRES_ACTION",
+  "NOT_APPLICABLE",
+] as const;
+
 export const ZARINPAL_SUCCESS_CODE = 100;
 
 export const ZARINPAL_ALREADY_VERIFIED_CODE = 101;

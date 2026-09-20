@@ -479,4 +479,10 @@ export const MESSAGES = {
 
     fa: "مبلغ قابل پرداخت کمتر از حداقل مبلغ مجاز درگاه است",
   },
+
+  paymentVerificationFailed: {
+    en: "Unable to verify the payment",
+
+    fa: "تأیید پرداخت با مشکل مواجه شد",
+  },
 };

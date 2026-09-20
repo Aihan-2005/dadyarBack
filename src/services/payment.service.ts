@@ -8,7 +8,11 @@ import { HttpException } from "../exceptions/httpException";
 
 import { PaymentProviderException } from "../exceptions/paymentProvider.exception";
 
-import type { CreateSubscriptionPaymentInput } from "../interfaces/payment.interface";
+import type {
+  CreateSubscriptionPaymentInput,
+  PaymentVerificationData,
+  ZarinPalCallbackInput,
+} from "../interfaces/payment.interface";
 
 import type { PaymentProvider } from "../interfaces/paymentProvider.interface";
 
@@ -19,6 +23,9 @@ import { SubscriptionPlanRepository } from "../repositories/subscriptionPlan.rep
 import { LawyerSubscriptionRepository } from "../repositories/lawyerSubscription.repository";
 
 import { ZarinPalProvider } from "../providers/payment/zarinpal.provider";
+import { LawyerRepository } from "../repositories/lawyer.repository";
+import mongoose from "mongoose";
+import { SUBSCRIPTION_MONTH_DURATION_IN_MS } from "../constants/lawyerSubscription.constants";
 
 const LANGUAGE = env.LANGUAGE;
 
@@ -30,8 +37,227 @@ export class PaymentService {
 
     private readonly lawyerSubscriptionRepository: LawyerSubscriptionRepository = new LawyerSubscriptionRepository(),
 
+    private readonly lawyerRepository: LawyerRepository = new LawyerRepository(),
+
     private readonly provider: PaymentProvider = new ZarinPalProvider(),
   ) {}
+
+  private toCallbackResult(payment: {
+    _id: {
+      toString(): string;
+    };
+
+    status: string;
+
+    fulfillmentStatus: string;
+
+    referenceId?: string | null;
+
+    subscriptionId?: {
+      toString(): string;
+    } | null;
+  }) {
+    return {
+      paymentId: payment._id.toString(),
+
+      paymentStatus: payment.status,
+
+      fulfillmentStatus: payment.fulfillmentStatus,
+
+      referenceId: payment.referenceId ?? null,
+
+      subscriptionId: payment.subscriptionId?.toString() ?? null,
+    };
+  }
+
+  private async finalizeVerifiedSubscriptionPayment(
+    authority: string,
+
+    verification: PaymentVerificationData,
+  ) {
+    const session = await mongoose.startSession();
+
+    try {
+      const result = await session.withTransaction(async () => {
+        const payment = await this.repository.findByProviderAuthority(
+          "ZARINPAL",
+
+          authority,
+
+          session,
+        );
+
+        if (!payment) {
+          throw new HttpException(
+            404,
+
+            MESSAGES.paymentNotFound[LANGUAGE],
+
+            "SUBSCRIPTION_PAYMENT_NOT_FOUND",
+          );
+        }
+
+        /*
+         * Another callback may already have completed
+         * everything while we were verifying with ZarinPal.
+         */
+        if (payment.status === "PAID") {
+          return payment;
+        }
+
+        if (payment.status !== "PENDING") {
+          return payment;
+        }
+
+        const now = new Date();
+
+        const lawyerId = payment.lawyerId.toString();
+
+        /*
+         * This is the exact same concurrency guard used
+         * by admin subscription creation/cancellation.
+         */
+        const lawyer =
+          await this.lawyerRepository.acquireSubscriptionWriteGuard(
+            lawyerId,
+
+            session,
+          );
+
+        /*
+         * Money is already verified.
+         * Missing lawyer must NOT turn the payment into FAILED.
+         */
+        if (!lawyer) {
+          return this.repository.markPendingPaymentPaidRequiresAction(
+            payment._id.toString(),
+
+            verification,
+
+            {
+              errorCode: "LAWYER_NOT_FOUND",
+
+              errorMessage: "The lawyer no longer exists",
+            },
+
+            now,
+
+            session,
+          );
+        }
+
+        const currentSubscription =
+          await this.lawyerSubscriptionRepository.findCurrentByLawyerId(
+            lawyerId,
+
+            now,
+
+            session,
+          );
+
+        /*
+         * Again: ZarinPal already confirmed the money.
+         * Preserve PAID and flag fulfillment separately.
+         */
+        if (currentSubscription) {
+          return this.repository.markPendingPaymentPaidRequiresAction(
+            payment._id.toString(),
+
+            verification,
+
+            {
+              errorCode: "LAWYER_SUBSCRIPTION_ALREADY_ACTIVE",
+
+              errorMessage:
+                "A subscription became active before payment fulfillment",
+            },
+
+            now,
+
+            session,
+          );
+        }
+
+        const endsAt = new Date(
+          now.getTime() +
+            payment.planSnapshot.durationMonths *
+              SUBSCRIPTION_MONTH_DURATION_IN_MS,
+        );
+
+        const subscription =
+          await this.lawyerSubscriptionRepository.createSubscription(
+            {
+              lawyerId: lawyer._id,
+
+              planId: payment.planId,
+
+              planSnapshot: {
+                title: payment.planSnapshot.title,
+
+                description: payment.planSnapshot.description,
+
+                tier: payment.planSnapshot.tier,
+
+                tags: [...payment.planSnapshot.tags],
+
+                durationMonths: payment.planSnapshot.durationMonths,
+
+                price: payment.planSnapshot.price,
+
+                discountPercent: payment.planSnapshot.discountPercent,
+
+                features: [...payment.planSnapshot.features],
+              },
+
+              startsAt: now,
+
+              endsAt,
+
+              activationSource: "PAYMENT",
+
+              activatedByUserId: null,
+            },
+
+            session,
+          );
+
+        const finalizedPayment =
+          await this.repository.markPendingPaymentFulfilled(
+            payment._id.toString(),
+
+            verification,
+
+            subscription._id,
+
+            now,
+
+            session,
+          );
+
+        if (!finalizedPayment) {
+          throw new Error(
+            "Payment state changed during subscription fulfillment",
+          );
+        }
+
+        return finalizedPayment;
+      });
+
+      if (!result) {
+        throw new HttpException(
+          500,
+
+          MESSAGES.serverError[LANGUAGE],
+
+          "PAYMENT_FINALIZATION_FAILED",
+        );
+      }
+
+      return this.toCallbackResult(result);
+    } finally {
+      await session.endSession();
+    }
+  }
 
   public async createSubscriptionPayment(
     lawyerId: string,
@@ -168,5 +394,98 @@ export class PaymentService {
 
       throw error;
     }
+  }
+
+  public async handleZarinPalCallback(input: ZarinPalCallbackInput) {
+    let payment = await this.repository.findByProviderAuthority(
+      "ZARINPAL",
+
+      input.Authority,
+    );
+
+    if (!payment) {
+      throw new HttpException(
+        404,
+
+        MESSAGES.paymentNotFound[LANGUAGE],
+
+        "SUBSCRIPTION_PAYMENT_NOT_FOUND",
+      );
+    }
+
+    // Already completely handled.
+    if (payment.status === "PAID") {
+      return this.toCallbackResult(payment);
+    }
+
+    // User cancelled or did not complete payment.
+    if (input.Status !== "OK") {
+      if (payment.status === "PENDING") {
+        const cancelled = await this.repository.markPendingPaymentCancelled(
+          payment._id.toString(),
+        );
+
+        if (cancelled) {
+          payment = cancelled;
+        }
+      }
+
+      return this.toCallbackResult(payment);
+    }
+
+    /*
+     * Do NOT mark the payment FAILED if verification throws.
+     *
+     * Status=OK means money may actually have moved.
+     * A timeout/network/provider error during verification is
+     * not proof that payment failed.
+     *
+     * Leave it recoverable and retryable.
+     */
+    if (payment.status !== "PENDING") {
+      return this.toCallbackResult(payment);
+    }
+
+    let verification;
+
+    try {
+      verification = await this.provider.verifyPayment({
+        amount: payment.amount,
+
+        authority: input.Authority,
+      });
+    } catch (error) {
+      if (error instanceof PaymentProviderException) {
+        throw new HttpException(
+          502,
+
+          MESSAGES.paymentVerificationFailed[LANGUAGE],
+
+          "PAYMENT_VERIFICATION_FAILED",
+        );
+      }
+
+      throw error;
+    }
+
+    const verificationData: PaymentVerificationData = {
+      providerVerificationCode: verification.providerCode,
+
+      referenceId: verification.refId,
+
+      cardPan: verification.cardPan,
+
+      cardHash: verification.cardHash,
+
+      providerFee: verification.fee,
+
+      providerFeeType: verification.feeType,
+    };
+
+    return this.finalizeVerifiedSubscriptionPayment(
+      input.Authority,
+
+      verificationData,
+    );
   }
 }

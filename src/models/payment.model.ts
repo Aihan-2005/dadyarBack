@@ -2,6 +2,7 @@ import { model, Schema } from "mongoose";
 
 import {
   PAYMENT_CURRENCIES,
+  PAYMENT_FULFILLMENT_STATUSES,
   PAYMENT_PROVIDERS,
   PAYMENT_STATUSES,
 } from "../constants/payment.constants";
@@ -117,6 +118,28 @@ export const PaymentSchema = new Schema(
     },
 
     failureMessage: {
+      type: String,
+      trim: true,
+    },
+
+    fulfillmentStatus: {
+      type: String,
+      enum: PAYMENT_FULFILLMENT_STATUSES,
+      required: true,
+      default: "PENDING",
+    },
+
+    fulfilledAt: {
+      type: Date,
+      default: null,
+    },
+
+    fulfillmentErrorCode: {
+      type: String,
+      trim: true,
+    },
+
+    fulfillmentErrorMessage: {
       type: String,
       trim: true,
     },

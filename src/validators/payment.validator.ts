@@ -7,3 +7,12 @@ export const CreateSubscriptionPaymentSchema = z
     planId: MongoIdSchema,
   })
   .strict();
+
+export const ZarinPalCallbackQuerySchema = z.object({
+  Authority: z
+    .string()
+    .trim()
+    .regex(/^[AS][0-9a-zA-Z]{35}$/),
+
+  Status: z.enum(["OK", "NOK"]),
+});
