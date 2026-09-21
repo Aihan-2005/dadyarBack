@@ -9,7 +9,9 @@ import { HttpException } from "../exceptions/httpException";
 import { PaymentProviderException } from "../exceptions/paymentProvider.exception";
 
 import type {
+  AdminPaymentListOptions,
   CreateSubscriptionPaymentInput,
+  PaymentHistoryOptions,
   PaymentVerificationData,
   ZarinPalCallbackInput,
 } from "../interfaces/payment.interface";
@@ -26,6 +28,7 @@ import { ZarinPalProvider } from "../providers/payment/zarinpal.provider";
 import { LawyerRepository } from "../repositories/lawyer.repository";
 import mongoose from "mongoose";
 import { SUBSCRIPTION_MONTH_DURATION_IN_MS } from "../constants/lawyerSubscription.constants";
+import { toAdminPaymentDTO, toLawyerPaymentDTO } from "../dtos/payment.dto";
 
 const LANGUAGE = env.LANGUAGE;
 
@@ -487,5 +490,224 @@ export class PaymentService {
 
       verificationData,
     );
+  }
+
+  public async listLawyerPayments(
+    lawyerId: string,
+
+    options: PaymentHistoryOptions,
+  ) {
+    const result = await this.repository.findHistoryByLawyerId(
+      lawyerId,
+
+      options,
+    );
+
+    return {
+      items: result.items.map(toLawyerPaymentDTO),
+
+      pagination: {
+        page: options.page,
+
+        limit: options.limit,
+
+        total: result.total,
+
+        totalPages: Math.ceil(result.total / options.limit),
+      },
+    };
+  }
+
+  public async getPaymentForAdmin(paymentId: string) {
+    const payment = await this.repository.findPaymentById(paymentId);
+
+    if (!payment) {
+      throw new HttpException(
+        404,
+
+        MESSAGES.paymentNotFound[LANGUAGE],
+
+        "PAYMENT_NOT_FOUND",
+      );
+    }
+
+    return toAdminPaymentDTO(payment);
+  }
+
+  public async retryPaymentFulfillmentForAdmin(paymentId: string) {
+    const session = await mongoose.startSession();
+
+    try {
+      const payment = await session.withTransaction(async () => {
+        const payment = await this.repository.findPaymentById(
+          paymentId,
+
+          session,
+        );
+
+        if (!payment) {
+          throw new HttpException(
+            404,
+
+            MESSAGES.paymentNotFound[LANGUAGE],
+
+            "PAYMENT_NOT_FOUND",
+          );
+        }
+
+        // Makes retry endpoint idempotent.
+        if (
+          payment.status === "PAID" &&
+          payment.fulfillmentStatus === "FULFILLED"
+        ) {
+          return payment;
+        }
+
+        if (
+          payment.status !== "PAID" ||
+          payment.fulfillmentStatus !== "REQUIRES_ACTION"
+        ) {
+          throw new HttpException(
+            409,
+
+            MESSAGES.paymentFulfillmentNotRetryable[LANGUAGE],
+
+            "PAYMENT_FULFILLMENT_NOT_RETRYABLE",
+          );
+        }
+
+        const lawyerId = payment.lawyerId.toString();
+
+        const lawyer =
+          await this.lawyerRepository.acquireSubscriptionWriteGuard(
+            lawyerId,
+
+            session,
+          );
+
+        if (!lawyer) {
+          throw new HttpException(
+            409,
+
+            MESSAGES.paymentFulfillmentBlocked[LANGUAGE],
+
+            "PAYMENT_FULFILLMENT_BLOCKED",
+          );
+        }
+
+        const now = new Date();
+
+        const currentSubscription =
+          await this.lawyerSubscriptionRepository.findCurrentByLawyerId(
+            lawyerId,
+
+            now,
+
+            session,
+          );
+
+        if (currentSubscription) {
+          throw new HttpException(
+            409,
+
+            MESSAGES.lawyerSubscriptionAlreadyActive[LANGUAGE],
+
+            "PAYMENT_FULFILLMENT_BLOCKED_BY_ACTIVE_SUBSCRIPTION",
+          );
+        }
+
+        const endsAt = new Date(
+          now.getTime() +
+            payment.planSnapshot.durationMonths *
+              SUBSCRIPTION_MONTH_DURATION_IN_MS,
+        );
+
+        const subscription =
+          await this.lawyerSubscriptionRepository.createSubscription(
+            {
+              lawyerId: lawyer._id,
+
+              planId: payment.planId,
+
+              planSnapshot: {
+                title: payment.planSnapshot.title,
+
+                description: payment.planSnapshot.description,
+
+                tier: payment.planSnapshot.tier,
+
+                tags: [...payment.planSnapshot.tags],
+
+                durationMonths: payment.planSnapshot.durationMonths,
+
+                price: payment.planSnapshot.price,
+
+                discountPercent: payment.planSnapshot.discountPercent,
+
+                features: [...payment.planSnapshot.features],
+              },
+
+              startsAt: now,
+
+              endsAt,
+
+              activationSource: "PAYMENT",
+
+              activatedByUserId: null,
+            },
+
+            session,
+          );
+
+        const fulfilled =
+          await this.repository.markRequiresActionPaymentFulfilled(
+            payment._id.toString(),
+
+            subscription._id,
+
+            now,
+
+            session,
+          );
+
+        if (!fulfilled) {
+          throw new Error("Payment fulfillment state changed during retry");
+        }
+
+        return fulfilled;
+      });
+
+      if (!payment) {
+        throw new HttpException(
+          500,
+
+          MESSAGES.serverError[LANGUAGE],
+
+          "PAYMENT_FULFILLMENT_RETRY_FAILED",
+        );
+      }
+
+      return toAdminPaymentDTO(payment);
+    } finally {
+      await session.endSession();
+    }
+  }
+
+  public async listPaymentsForAdmin(options: AdminPaymentListOptions) {
+    const result = await this.repository.findForAdmin(options);
+
+    return {
+      items: result.items.map(toAdminPaymentDTO),
+
+      pagination: {
+        page: options.page,
+
+        limit: options.limit,
+
+        total: result.total,
+
+        totalPages: Math.ceil(result.total / options.limit),
+      },
+    };
   }
 }

@@ -12,7 +12,9 @@ import type {
 import { PaymentSchema } from "../models/payment.model";
 
 import {
+  AdminPaymentListQuerySchema,
   CreateSubscriptionPaymentSchema,
+  PaymentHistoryQuerySchema,
   ZarinPalCallbackQuerySchema,
 } from "../validators/payment.validator";
 
@@ -64,3 +66,9 @@ export interface PaymentVerificationData {
 
   providerFeeType: string | null;
 }
+
+export type PaymentHistoryOptions = z.output<typeof PaymentHistoryQuerySchema>;
+
+export type AdminPaymentListOptions = z.output<
+  typeof AdminPaymentListQuerySchema
+>;

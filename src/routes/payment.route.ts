@@ -22,6 +22,16 @@ export class PaymentRoute implements Route {
 
   private initializeRoutes(): void {
     this.router.get(
+      "/",
+
+      requireAuth,
+
+      requireRole("LAWYER"),
+
+      this.controller.listMyPayments,
+    );
+
+    this.router.get(
       "/zarinpal/callback",
 
       this.controller.handleZarinPalCallback,

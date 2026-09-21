@@ -207,4 +207,10 @@ PaymentSchema.index({
   createdAt: -1,
 });
 
+PaymentSchema.index({
+  fulfillmentStatus: 1,
+
+  createdAt: -1,
+});
+
 export const PaymentModel = model("Payment", PaymentSchema);

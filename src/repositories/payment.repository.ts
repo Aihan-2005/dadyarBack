@@ -1,8 +1,10 @@
 import type { ClientSession, Types } from "mongoose";
 
 import type {
+  AdminPaymentListOptions,
   CreatePendingPaymentData,
   Payment,
+  PaymentHistoryOptions,
   PaymentProvider,
   PaymentVerificationData,
 } from "../interfaces/payment.interface";
@@ -335,6 +337,147 @@ export class PaymentRepository extends BaseRepository<Payment> {
                   providerFeeType: verification.providerFeeType,
                 }
               : {}),
+          },
+        },
+
+        {
+          new: true,
+
+          runValidators: true,
+
+          session,
+        },
+      )
+      .lean()
+      .exec();
+  }
+
+  public async findHistoryByLawyerId(
+    lawyerId: string,
+
+    options: PaymentHistoryOptions,
+  ) {
+    const filter = {
+      lawyerId: this.toObjectId(lawyerId),
+
+      ...(options.status
+        ? {
+            status: options.status,
+          }
+        : {}),
+    };
+
+    const skip = (options.page - 1) * options.limit;
+
+    const [items, total] = await Promise.all([
+      this.model
+        .find(filter)
+        .sort({
+          createdAt: -1,
+          _id: -1,
+        })
+        .skip(skip)
+        .limit(options.limit)
+        .lean()
+        .exec(),
+
+      this.model.countDocuments(filter).exec(),
+    ]);
+
+    return {
+      items,
+      total,
+    };
+  }
+
+  public async findForAdmin(options: AdminPaymentListOptions) {
+    const filter: Record<string, unknown> = {};
+
+    if (options.lawyerId) {
+      filter.lawyerId = this.toObjectId(options.lawyerId);
+    }
+
+    if (options.status) {
+      filter.status = options.status;
+    }
+
+    if (options.fulfillmentStatus) {
+      filter.fulfillmentStatus = options.fulfillmentStatus;
+    }
+
+    if (options.provider) {
+      filter.provider = options.provider;
+    }
+
+    const skip = (options.page - 1) * options.limit;
+
+    const [items, total] = await Promise.all([
+      this.model
+        .find(filter)
+        .sort({
+          createdAt: -1,
+          _id: -1,
+        })
+        .skip(skip)
+        .limit(options.limit)
+        .lean()
+        .exec(),
+
+      this.model.countDocuments(filter).exec(),
+    ]);
+
+    return {
+      items,
+      total,
+    };
+  }
+
+  public findPaymentById(
+    paymentId: string,
+
+    session?: ClientSession,
+  ) {
+    const query = this.model.findById(this.toObjectId(paymentId));
+
+    if (session) {
+      query.session(session);
+    }
+
+    return query.lean().exec();
+  }
+
+  public markRequiresActionPaymentFulfilled(
+    paymentId: string,
+
+    subscriptionId: Types.ObjectId,
+
+    fulfilledAt: Date,
+
+    session: ClientSession,
+  ) {
+    return this.model
+      .findOneAndUpdate(
+        {
+          _id: this.toObjectId(paymentId),
+
+          status: "PAID",
+
+          fulfillmentStatus: "REQUIRES_ACTION",
+        },
+
+        {
+          $set: {
+            fulfillmentStatus: "FULFILLED",
+
+            fulfilledAt,
+
+            subscriptionId,
+          },
+
+          $unset: {
+            fulfillmentErrorCode: 1,
+
+            fulfillmentErrorMessage: 1,
           },
         },
 

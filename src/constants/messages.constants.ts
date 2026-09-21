@@ -485,4 +485,16 @@ export const MESSAGES = {
 
     fa: "تأیید پرداخت با مشکل مواجه شد",
   },
+
+  paymentFulfillmentNotRetryable: {
+    en: "This payment is not eligible for fulfillment retry",
+
+    fa: "این پرداخت امکان تلاش مجدد برای فعال‌سازی اشتراک را ندارد",
+  },
+
+  paymentFulfillmentBlocked: {
+    en: "Subscription fulfillment is currently blocked",
+
+    fa: "در حال حاضر امکان فعال‌سازی اشتراک برای این پرداخت وجود ندارد",
+  },
 };

@@ -22,6 +22,7 @@ import requireAuth, { requireRole } from "../middlewares/auth.middleware";
 
 import { uploadAttachment } from "../middlewares/upload.middleware";
 import { LawyerSubscriptionController } from "../controllers/lawyerSubscription.controller";
+import { PaymentController } from "../controllers/payment.controller";
 
 export class AdminRoute implements Route {
   public path = "/admin";
@@ -42,6 +43,8 @@ export class AdminRoute implements Route {
 
   private readonly lawyerSubscriptionController =
     new LawyerSubscriptionController();
+
+  private readonly paymentController = new PaymentController();
 
   constructor() {
     this.initializeRoutes();
@@ -169,6 +172,25 @@ export class AdminRoute implements Route {
       "/lawyers/:id/subscriptions/current/cancel",
 
       this.lawyerSubscriptionController.cancelCurrentSubscriptionForAdmin,
+    );
+
+    // Payments
+    this.router.get(
+      "/payments",
+
+      this.paymentController.listPaymentsForAdmin,
+    );
+
+    this.router.get(
+      "/payments/:id",
+
+      this.paymentController.getPaymentForAdmin,
+    );
+
+    this.router.post(
+      "/payments/:id/retry-fulfillment",
+
+      this.paymentController.retryPaymentFulfillmentForAdmin,
     );
   }
 }
