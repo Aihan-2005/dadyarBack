@@ -112,7 +112,23 @@ openApiRegistry.registerPath({
   description: `
 Creates a new payment attempt for the authenticated lawyer to purchase a subscription plan.
 
-...
+The authenticated User must have role:
+
+\`LAWYER\`
+
+and the lawyer profile must currently be active.
+
+The request contains the selected subscription plan ID.
+
+The plan must:
+
+- exist
+- currently be active
+- produce a payable amount accepted by the configured payment provider
+
+The payable amount is calculated by the backend from the plan price and discount.
+
+The client does not submit the payment amount.
 
 A local \`PENDING\` Payment record is created before requesting a ZarinPal authority.
 
