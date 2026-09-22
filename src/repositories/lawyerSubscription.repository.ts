@@ -114,7 +114,7 @@ export class LawyerSubscriptionRepository extends BaseRepository<LawyerSubscript
         },
 
         {
-          new: true,
+          returnDocument: "after",
 
           runValidators: true,
 

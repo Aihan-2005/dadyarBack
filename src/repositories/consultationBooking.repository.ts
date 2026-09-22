@@ -1,206 +1,139 @@
-import type {
-  ClientSession,
-} from "mongoose";
+import type { ClientSession } from "mongoose";
 
-import {
-  ConsultationBooking,
-} from "../models/consultationBooking.model";
+import { ConsultationBooking } from "../models/consultationBooking.model";
 
-import type {
-  ConsultationBookingStatus,
-} from "../constants/consultationBooking.constants";
+import type { ConsultationBookingStatus } from "../constants/consultationBooking.constants";
 
-import type {
-  IConsultationBooking,
-} from "../interfaces/consultationBooking.interface";
-
+import type { IConsultationBooking } from "../interfaces/consultationBooking.interface";
 
 export class ConsultationBookingRepository {
   public async create(
-    data:
-      IConsultationBooking,
+    data: IConsultationBooking,
 
-    session?:
-      ClientSession,
+    session?: ClientSession,
   ) {
-    if (
-      !session
-    ) {
-      return ConsultationBooking.create(
-        data,
-      );
+    if (!session) {
+      return ConsultationBooking.create(data);
     }
 
-    const [
-      created,
-    ] =
-      await ConsultationBooking.create(
-        [
-          data,
-        ],
+    const [created] = await ConsultationBooking.create(
+      [data],
 
-        {
-          session,
-        },
-      );
+      {
+        session,
+      },
+    );
 
     return created;
   }
 
-
-  public findByClient(
-    clientId:
-      string,
-  ) {
-    return ConsultationBooking
-      .find({
-        clientId,
-      })
+  public findByClient(clientId: string) {
+    return ConsultationBooking.find({
+      clientId,
+    })
       .sort({
-        createdAt:
-          -1,
+        createdAt: -1,
       })
       .exec();
   }
 
-
-  public findByLawyer(
-    lawyerId:
-      string,
-  ) {
-    return ConsultationBooking
-      .find({
-        lawyerId,
-      })
+  public findByLawyer(lawyerId: string) {
+    return ConsultationBooking.find({
+      lawyerId,
+    })
       .sort({
-        createdAt:
-          -1,
+        createdAt: -1,
       })
       .exec();
   }
-
 
   public findById(
-    id:
-      string,
+    id: string,
 
-    session?:
-      ClientSession,
+    session?: ClientSession,
   ) {
-    const query =
-      ConsultationBooking
-        .findById(
-          id,
-        );
+    const query = ConsultationBooking.findById(id);
 
-    if (
-      session
-    ) {
-      query.session(
-        session,
-      );
+    if (session) {
+      query.session(session);
     }
 
     return query.exec();
   }
 
-
   public updateStatusForClient(
-    id:
-      string,
+    id: string,
 
-    clientId:
-      string,
+    clientId: string,
 
-    allowedCurrentStatuses:
-      ConsultationBookingStatus[],
+    allowedCurrentStatuses: ConsultationBookingStatus[],
 
-    status:
-      ConsultationBookingStatus,
+    status: ConsultationBookingStatus,
 
-    session?:
-      ClientSession,
+    session?: ClientSession,
   ) {
-    return ConsultationBooking
-      .findOneAndUpdate(
-        {
-          _id:
-            id,
+    return ConsultationBooking.findOneAndUpdate(
+      {
+        _id: id,
 
-          clientId,
+        clientId,
 
-          status: {
-            $in:
-              allowedCurrentStatuses,
-          },
+        status: {
+          $in: allowedCurrentStatuses,
         },
+      },
 
-        {
-          $set: {
-            status,
-          },
+      {
+        $set: {
+          status,
         },
+      },
 
-        {
-          new:
-            true,
+      {
+        returnDocument: "after",
 
-          runValidators:
-            true,
+        runValidators: true,
 
-          session,
-        },
-      )
-      .exec();
+        session,
+      },
+    ).exec();
   }
 
-
   public updateStatusForLawyer(
-    id:
-      string,
+    id: string,
 
-    lawyerId:
-      string,
+    lawyerId: string,
 
-    allowedCurrentStatuses:
-      ConsultationBookingStatus[],
+    allowedCurrentStatuses: ConsultationBookingStatus[],
 
-    status:
-      ConsultationBookingStatus,
+    status: ConsultationBookingStatus,
 
-    session?:
-      ClientSession,
+    session?: ClientSession,
   ) {
-    return ConsultationBooking
-      .findOneAndUpdate(
-        {
-          _id:
-            id,
+    return ConsultationBooking.findOneAndUpdate(
+      {
+        _id: id,
 
-          lawyerId,
+        lawyerId,
 
-          status: {
-            $in:
-              allowedCurrentStatuses,
-          },
+        status: {
+          $in: allowedCurrentStatuses,
         },
+      },
 
-        {
-          $set: {
-            status,
-          },
+      {
+        $set: {
+          status,
         },
+      },
 
-        {
-          new:
-            true,
+      {
+        returnDocument: "after",
 
-          runValidators:
-            true,
+        runValidators: true,
 
-          session,
-        },
-      )
-      .exec();
+        session,
+      },
+    ).exec();
   }
 }

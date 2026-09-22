@@ -127,7 +127,7 @@ export class CasePaymentRepository extends BaseRepository<CasePayment> {
         update,
 
         {
-          new: true,
+          returnDocument: "after",
 
           runValidators: true,
 
@@ -220,4 +220,3 @@ export class CasePaymentRepository extends BaseRepository<CasePayment> {
       .exec();
   }
 }
-

@@ -10,7 +10,7 @@ export class NotificationRepository extends BaseRepository<Notification> {
     super(NotificationModel);
   }
 
-    private serializeDoc(doc: any) {
+  private serializeDoc(doc: any) {
     if (!doc) {
       return doc;
     }
@@ -27,7 +27,7 @@ export class NotificationRepository extends BaseRepository<Notification> {
     return docs.map((doc) => this.serializeDoc(doc));
   }
 
-    public async findByLawyerId(lawyerId: string) {
+  public async findByLawyerId(lawyerId: string) {
     const docs = await this.model
       .find({ lawyerId: this.toObjectId(lawyerId) })
       .sort({ createdAt: -1 })
@@ -49,14 +49,13 @@ export class NotificationRepository extends BaseRepository<Notification> {
     return this.serializeDoc(doc);
   }
 
-    public async create(data: CreateReminderInput) {
+  public async create(data: CreateReminderInput) {
     const doc = await this.model.create(data);
 
     return this.serializeDoc(doc.toObject());
   }
 
-
-   public async markRead(lawyerId: string, notificationId: string) {
+  public async markRead(lawyerId: string, notificationId: string) {
     const doc = await this.model
       .findOneAndUpdate(
         {
@@ -66,7 +65,10 @@ export class NotificationRepository extends BaseRepository<Notification> {
         {
           $set: { status: "read", readAt: new Date() },
         },
-        { new: true, runValidators: true },
+        {
+          returnDocument: "after",
+          runValidators: true,
+        },
       )
       .lean()
       .exec();
@@ -88,7 +90,10 @@ export class NotificationRepository extends BaseRepository<Notification> {
         {
           $set: { completed },
         },
-        { new: true, runValidators: true },
+        {
+          returnDocument: "after",
+          runValidators: true,
+        },
       )
       .lean()
       .exec();
@@ -106,7 +111,10 @@ export class NotificationRepository extends BaseRepository<Notification> {
         {
           $set: { status: "dismissed" },
         },
-        { new: true, runValidators: true },
+        {
+          returnDocument: "after",
+          runValidators: true,
+        },
       )
       .lean()
       .exec();

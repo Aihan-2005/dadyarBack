@@ -116,7 +116,8 @@ export class TicketRepository extends BaseRepository<Ticket> {
           },
         },
         {
-          new: true,
+          returnDocument: "after",
+
           runValidators: true,
         },
       )
@@ -193,7 +194,8 @@ export class TicketRepository extends BaseRepository<Ticket> {
           },
         },
         {
-          new: true,
+          returnDocument: "after",
+
           runValidators: true,
         },
       )

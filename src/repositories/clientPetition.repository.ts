@@ -1,6 +1,4 @@
-import type {
-  UpdateQuery,
-} from "mongoose";
+import type { UpdateQuery } from "mongoose";
 
 import type {
   ClientPetition,
@@ -9,47 +7,28 @@ import type {
   CreateClientPetitionInput,
 } from "../interfaces/clientPetition.interface";
 
-import {
-  ClientPetitionModel,
-} from "../models/clientPetition.model";
+import { ClientPetitionModel } from "../models/clientPetition.model";
 
-import {
-  BaseRepository,
-} from "./base.repository";
+import { BaseRepository } from "./base.repository";
 
-
-export class ClientPetitionRepository
-  extends BaseRepository<ClientPetition> {
-
+export class ClientPetitionRepository extends BaseRepository<ClientPetition> {
   constructor() {
-    super(
-      ClientPetitionModel,
-    );
+    super(ClientPetitionModel);
   }
-
 
   private buildListQuery(
     clientId: string,
 
-    options:
-      ClientPetitionListOptions,
+    options: ClientPetitionListOptions,
   ) {
-    const search =
-      this.escapeRegex(
-        options.search ??
-          "",
-      );
+    const search = this.escapeRegex(options.search ?? "");
 
     return {
-      clientId:
-        this.toObjectId(
-          clientId,
-        ),
+      clientId: this.toObjectId(clientId),
 
       ...(options.status
         ? {
-            status:
-              options.status,
+            status: options.status,
           }
         : {}),
 
@@ -58,41 +37,33 @@ export class ClientPetitionRepository
             $or: [
               {
                 title: {
-                  $regex:
-                    search,
+                  $regex: search,
 
-                  $options:
-                    "i",
+                  $options: "i",
                 },
               },
 
               {
                 caseNumber: {
-                  $regex:
-                    search,
+                  $regex: search,
 
-                  $options:
-                    "i",
+                  $options: "i",
                 },
               },
 
               {
                 subject: {
-                  $regex:
-                    search,
+                  $regex: search,
 
-                  $options:
-                    "i",
+                  $options: "i",
                 },
               },
 
               {
                 court: {
-                  $regex:
-                    search,
+                  $regex: search,
 
-                  $options:
-                    "i",
+                  $options: "i",
                 },
               },
             ],
@@ -101,61 +72,37 @@ export class ClientPetitionRepository
     };
   }
 
-
   public async createForClient(
     clientId: string,
 
-    input:
-      CreateClientPetitionInput,
+    input: CreateClientPetitionInput,
   ): Promise<ClientPetitionRecord> {
-    const created =
-      await this.model.create({
-        clientId:
-          this.toObjectId(
-            clientId,
-          ),
+    const created = await this.model.create({
+      clientId: this.toObjectId(clientId),
 
-        title:
-          input.title,
+      title: input.title,
 
-        caseNumber:
-          input.caseNumber ??
-          "",
+      caseNumber: input.caseNumber ?? "",
 
-        court:
-          input.court ??
-          "",
+      court: input.court ?? "",
 
-        subject:
-          input.subject ??
-          "",
+      subject: input.subject ?? "",
 
-        facts:
-          input.facts ??
-          "",
+      facts: input.facts ?? "",
 
-        arguments:
-          input.arguments ??
-          "",
+      arguments: input.arguments ?? "",
 
-        evidence:
-          input.evidence ??
-          [],
+      evidence: input.evidence ?? [],
 
-        requestedRelief:
-          input.requestedRelief ??
-          "",
+      requestedRelief: input.requestedRelief ?? "",
 
-        status:
-          "DRAFT",
+      status: "DRAFT",
 
-        submittedAt:
-          null,
-      });
+      submittedAt: null,
+    });
 
     return created.toObject() as unknown as ClientPetitionRecord;
   }
-
 
   public findByIdForClient(
     clientId: string,
@@ -164,122 +111,80 @@ export class ClientPetitionRepository
   ) {
     return this.model
       .findOne({
-        _id:
-          this.toObjectId(
-            petitionId,
-          ),
+        _id: this.toObjectId(petitionId),
 
-        clientId:
-          this.toObjectId(
-            clientId,
-          ),
+        clientId: this.toObjectId(clientId),
       })
       .lean<ClientPetitionRecord>()
       .exec();
   }
 
-
   public listForClient(
     clientId: string,
 
-    options:
-      ClientPetitionListOptions,
+    options: ClientPetitionListOptions,
   ) {
-    const query =
-      this.buildListQuery(
-        clientId,
+    const query = this.buildListQuery(
+      clientId,
 
-        options,
-      );
+      options,
+    );
 
-    const skip =
-      (
-        options.page -
-        1
-      ) *
-      options.limit;
+    const skip = (options.page - 1) * options.limit;
 
     return this.model
-      .find(
-        query,
-      )
+      .find(query)
       .sort({
-        updatedAt:
-          -1,
+        updatedAt: -1,
       })
-      .skip(
-        skip,
-      )
-      .limit(
-        options.limit,
-      )
-      .lean<
-        ClientPetitionRecord[]
-      >()
+      .skip(skip)
+      .limit(options.limit)
+      .lean<ClientPetitionRecord[]>()
       .exec();
   }
-
 
   public countForClient(
     clientId: string,
 
-    options:
-      ClientPetitionListOptions,
+    options: ClientPetitionListOptions,
   ) {
-    const query =
-      this.buildListQuery(
-        clientId,
+    const query = this.buildListQuery(
+      clientId,
 
-        options,
-      );
+      options,
+    );
 
-    return this.model
-      .countDocuments(
-        query,
-      )
-      .exec();
+    return this.model.countDocuments(query).exec();
   }
-
 
   public updateDraftForClient(
     clientId: string,
 
     petitionId: string,
 
-    update:
-      UpdateQuery<ClientPetition>,
+    update: UpdateQuery<ClientPetition>,
   ) {
     return this.model
       .findOneAndUpdate(
         {
-          _id:
-            this.toObjectId(
-              petitionId,
-            ),
+          _id: this.toObjectId(petitionId),
 
-          clientId:
-            this.toObjectId(
-              clientId,
-            ),
+          clientId: this.toObjectId(clientId),
 
-          status:
-            "DRAFT",
+          status: "DRAFT",
         },
 
         update,
 
         {
-          new:
-            true,
+          returnDocument: "after",
 
-          runValidators:
-            true,
+          runValidators: true,
         },
       )
       .lean<ClientPetitionRecord>()
       .exec();
   }
-
 
   public submitDraftForClient(
     clientId: string,
@@ -289,42 +194,30 @@ export class ClientPetitionRepository
     return this.model
       .findOneAndUpdate(
         {
-          _id:
-            this.toObjectId(
-              petitionId,
-            ),
+          _id: this.toObjectId(petitionId),
 
-          clientId:
-            this.toObjectId(
-              clientId,
-            ),
+          clientId: this.toObjectId(clientId),
 
-          status:
-            "DRAFT",
+          status: "DRAFT",
         },
 
         {
           $set: {
-            status:
-              "SUBMITTED",
+            status: "SUBMITTED",
 
-            submittedAt:
-              new Date(),
+            submittedAt: new Date(),
           },
         },
 
         {
-          new:
-            true,
+          returnDocument: "after",
 
-          runValidators:
-            true,
+          runValidators: true,
         },
       )
       .lean<ClientPetitionRecord>()
       .exec();
   }
-
 
   public archiveForClient(
     clientId: string,
@@ -334,39 +227,28 @@ export class ClientPetitionRepository
     return this.model
       .findOneAndUpdate(
         {
-          _id:
-            this.toObjectId(
-              petitionId,
-            ),
+          _id: this.toObjectId(petitionId),
 
-          clientId:
-            this.toObjectId(
-              clientId,
-            ),
+          clientId: this.toObjectId(clientId),
 
-          status:
-            "SUBMITTED",
+          status: "SUBMITTED",
         },
 
         {
           $set: {
-            status:
-              "ARCHIVED",
+            status: "ARCHIVED",
           },
         },
 
         {
-          new:
-            true,
+          returnDocument: "after",
 
-          runValidators:
-            true,
+          runValidators: true,
         },
       )
       .lean<ClientPetitionRecord>()
       .exec();
   }
-
 
   public deleteDraftForClient(
     clientId: string,
@@ -375,18 +257,11 @@ export class ClientPetitionRepository
   ) {
     return this.model
       .findOneAndDelete({
-        _id:
-          this.toObjectId(
-            petitionId,
-          ),
+        _id: this.toObjectId(petitionId),
 
-        clientId:
-          this.toObjectId(
-            clientId,
-          ),
+        clientId: this.toObjectId(clientId),
 
-        status:
-          "DRAFT",
+        status: "DRAFT",
       })
       .lean<ClientPetitionRecord>()
       .exec();

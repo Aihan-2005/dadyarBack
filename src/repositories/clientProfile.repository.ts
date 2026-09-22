@@ -62,7 +62,7 @@ export class ClientProfileRepository extends BaseRepository<ClientProfile> {
           },
         },
         {
-          new: true,
+          returnDocument: "after",
           upsert: true,
           runValidators: true,
           setDefaultsOnInsert: true,
