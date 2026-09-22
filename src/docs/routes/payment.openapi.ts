@@ -112,25 +112,30 @@ openApiRegistry.registerPath({
   description: `
 Creates a new payment attempt for the authenticated lawyer to purchase a subscription plan.
 
-The authenticated User must have role:
-
-\`LAWYER\`
-
-and the lawyer profile must currently be active.
-
-The request contains the selected subscription plan ID.
-
-The plan must:
-
-- exist
-- currently be active
-- produce a payable amount accepted by the configured payment provider
-
-The payable amount is calculated by the backend from the plan price and discount.
-
-The client does not submit the payment amount.
+...
 
 A local \`PENDING\` Payment record is created before requesting a ZarinPal authority.
+
+### Existing pending checkout
+
+Only one unresolved \`PENDING\` subscription payment may exist for a lawyer at a time.
+
+If the lawyer requests checkout again for the same plan while a previous payment is still pending, the backend may reuse the existing payment attempt and its ZarinPal authority instead of creating another chargeable payment.
+
+This prevents repeated clicks or concurrent checkout requests from producing multiple payable gateway sessions.
+
+If the existing pending payment belongs to a different plan, the new checkout request is rejected with:
+
+\`409 Conflict\`
+
+until the existing payment reaches a terminal state such as:
+
+- \`PAID\`
+- \`FAILED\`
+- \`CANCELLED\`
+- \`REVERSED\`
+
+The database also enforces this rule with a unique partial index so concurrent HTTP requests cannot create multiple pending payments for the same lawyer.
 
 On success the response contains:
 
@@ -335,6 +340,28 @@ Public callback used by ZarinPal after the user returns from the payment gateway
 Authentication is not required.
 
 The callback itself is **not trusted as proof of payment**.
+
+### NOK callback status
+
+A callback whose:
+
+\`Status=NOK\`
+
+does not by itself establish a terminal financial result.
+
+The Payment therefore remains:
+
+\`PENDING\`
+
+rather than immediately being marked \`CANCELLED\`.
+
+This keeps the payment recoverable if:
+
+- a later callback reports success
+- verification was delayed
+- administrative reconciliation discovers that the provider has a different final transaction state
+
+A pending payment can later be reconciled against ZarinPal through the administration payment reconciliation flow.
 
 When \`Status=OK\`, the backend loads the Payment using the supplied authority and verifies the transaction directly with ZarinPal using the amount stored in the Payment record.
 
