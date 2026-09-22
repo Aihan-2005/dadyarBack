@@ -32,6 +32,20 @@ import { toAdminPaymentDTO, toLawyerPaymentDTO } from "../dtos/payment.dto";
 
 const LANGUAGE = env.LANGUAGE;
 
+function isMongoDuplicateKeyError(error: unknown): error is Error & {
+  code: 11000;
+} {
+  return (
+    error instanceof Error &&
+    "code" in error &&
+    (
+      error as {
+        code?: unknown;
+      }
+    ).code === 11000
+  );
+}
+
 export class PaymentService {
   constructor(
     private readonly repository: PaymentRepository = new PaymentRepository(),
@@ -44,6 +58,49 @@ export class PaymentService {
 
     private readonly provider: PaymentProvider = new ZarinPalProvider(),
   ) {}
+
+  private reusePendingCheckout(
+    payment: NonNullable<
+      Awaited<ReturnType<PaymentRepository["findPendingByLawyerId"]>>
+    >,
+
+    requestedPlanId: string,
+  ) {
+    if (payment.planId.toString() !== requestedPlanId) {
+      throw new HttpException(
+        409,
+
+        MESSAGES.paymentCheckoutAlreadyPending[LANGUAGE],
+
+        "PAYMENT_CHECKOUT_ALREADY_PENDING",
+      );
+    }
+
+    /*
+     * This can happen briefly when another request
+     * created the local payment but has not yet
+     * received/attached the ZarinPal authority.
+     */
+    if (!payment.authority) {
+      throw new HttpException(
+        409,
+
+        MESSAGES.paymentCheckoutInitializing[LANGUAGE],
+
+        "PAYMENT_CHECKOUT_INITIALIZING",
+      );
+    }
+
+    return {
+      paymentId: payment._id.toString(),
+
+      redirectUrl: this.provider.getPaymentRedirectUrl(payment.authority),
+
+      amount: payment.amount,
+
+      currency: payment.currency,
+    };
+  }
 
   private toCallbackResult(payment: {
     _id: {
@@ -264,21 +321,18 @@ export class PaymentService {
 
   public async createSubscriptionPayment(
     lawyerId: string,
-
     input: CreateSubscriptionPaymentInput,
   ) {
+    // 1. Load plan + current subscription
     const [plan, currentSubscription] = await Promise.all([
       this.subscriptionPlanRepository.findPublicPlanById(input.planId),
-
       this.lawyerSubscriptionRepository.findCurrentByLawyerId(lawyerId),
     ]);
 
     if (!plan) {
       throw new HttpException(
         404,
-
         MESSAGES.subscriptionPlanNotFound[LANGUAGE],
-
         "SUBSCRIPTION_PLAN_NOT_FOUND",
       );
     }
@@ -286,13 +340,20 @@ export class PaymentService {
     if (currentSubscription) {
       throw new HttpException(
         409,
-
         MESSAGES.lawyerSubscriptionAlreadyActive[LANGUAGE],
-
         "LAWYER_SUBSCRIPTION_ALREADY_ACTIVE",
       );
     }
 
+    // 2. Check whether this lawyer already has a pending checkout
+    const existingPendingPayment =
+      await this.repository.findPendingByLawyerId(lawyerId);
+
+    if (existingPendingPayment) {
+      return this.reusePendingCheckout(existingPendingPayment, input.planId);
+    }
+
+    // 3. Calculate amount
     const amount = Math.round(
       (plan.price * (100 - plan.discountPercent)) / 100,
     );
@@ -300,35 +361,65 @@ export class PaymentService {
     if (!Number.isSafeInteger(amount) || amount < ZARINPAL_MIN_AMOUNT) {
       throw new HttpException(
         400,
-
         MESSAGES.paymentAmountTooLow[LANGUAGE],
-
         "PAYMENT_AMOUNT_TOO_LOW",
       );
     }
 
-    const payment = await this.repository.createPendingPayment({
-      lawyerId,
+    // ======================================================
+    // TRY/CATCH #1
+    // Create the LOCAL payment.
+    // This handles simultaneous checkout requests.
+    // ======================================================
 
-      planId: plan._id,
+    let payment;
 
-      planSnapshot: {
-        title: plan.title,
-        description: plan.description,
-        tier: plan.tier,
-        tags: [...plan.tags],
-        durationMonths: plan.durationMonths,
-        price: plan.price,
-        discountPercent: plan.discountPercent,
-        features: [...plan.features],
-      },
+    try {
+      payment = await this.repository.createPendingPayment({
+        lawyerId,
 
-      amount,
+        planId: plan._id,
 
-      currency: "IRR",
+        planSnapshot: {
+          title: plan.title,
+          description: plan.description,
+          tier: plan.tier,
+          tags: [...plan.tags],
+          durationMonths: plan.durationMonths,
+          price: plan.price,
+          discountPercent: plan.discountPercent,
+          features: [...plan.features],
+        },
 
-      provider: "ZARINPAL",
-    });
+        amount,
+
+        currency: "IRR",
+
+        provider: "ZARINPAL",
+      });
+    } catch (error) {
+      if (isMongoDuplicateKeyError(error)) {
+        /*
+         * Another request beat us to creating
+         * the one allowed PENDING payment.
+         */
+        const concurrentPayment =
+          await this.repository.findPendingByLawyerId(lawyerId);
+
+        if (concurrentPayment) {
+          return this.reusePendingCheckout(concurrentPayment, input.planId);
+        }
+      }
+
+      throw error;
+    }
+
+    // ======================================================
+    // TRY/CATCH #2
+    // Now call ZarinPal.
+    //
+    // At this point `payment` definitely exists.
+    // ======================================================
 
     try {
       const providerResult = await this.provider.createPayment({
@@ -341,7 +432,6 @@ export class PaymentService {
 
       const updatedPayment = await this.repository.attachProviderRequest(
         payment._id.toString(),
-
         {
           authority: providerResult.authority,
 
@@ -369,28 +459,22 @@ export class PaymentService {
         currency: updatedPayment.currency,
       };
     } catch (error) {
-      await this.repository.markPendingPaymentFailed(
-        payment._id.toString(),
+      await this.repository.markPendingPaymentFailed(payment._id.toString(), {
+        failureCode:
+          error instanceof PaymentProviderException
+            ? "PAYMENT_PROVIDER_REQUEST_FAILED"
+            : "PAYMENT_INITIALIZATION_FAILED",
 
-        {
-          failureCode:
-            error instanceof PaymentProviderException
-              ? "PAYMENT_PROVIDER_REQUEST_FAILED"
-              : "PAYMENT_INITIALIZATION_FAILED",
-
-          failureMessage:
-            error instanceof Error
-              ? error.message
-              : "Unknown payment initialization error",
-        },
-      );
+        failureMessage:
+          error instanceof Error
+            ? error.message
+            : "Unknown payment initialization error",
+      });
 
       if (error instanceof PaymentProviderException) {
         throw new HttpException(
           502,
-
           MESSAGES.paymentRequestFailed[LANGUAGE],
-
           "PAYMENT_PROVIDER_REQUEST_FAILED",
         );
       }
@@ -421,18 +505,18 @@ export class PaymentService {
       return this.toCallbackResult(payment);
     }
 
-    // User cancelled or did not complete payment.
+    /*
+     * NOK only tells us how the browser returned
+     * from the gateway.
+     *
+     * It is not strong enough evidence to make the
+     * financial record terminal.
+     *
+     * Keep the payment PENDING so it can still be
+     * verified by a later OK callback or reconciled
+     * against ZarinPal.
+     */
     if (input.Status !== "OK") {
-      if (payment.status === "PENDING") {
-        const cancelled = await this.repository.markPendingPaymentCancelled(
-          payment._id.toString(),
-        );
-
-        if (cancelled) {
-          payment = cancelled;
-        }
-      }
-
       return this.toCallbackResult(payment);
     }
 

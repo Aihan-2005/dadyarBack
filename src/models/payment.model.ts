@@ -218,4 +218,19 @@ PaymentSchema.index({
   createdAt: -1,
 });
 
+PaymentSchema.index(
+  {
+    lawyerId: 1,
+  },
+  {
+    unique: true,
+
+    partialFilterExpression: {
+      status: "PENDING",
+    },
+
+    name: "unique_pending_payment_per_lawyer",
+  },
+);
+
 export const PaymentModel = model("Payment", PaymentSchema);

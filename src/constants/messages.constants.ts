@@ -515,4 +515,16 @@ export const MESSAGES = {
 
     fa: "مبلغ ثبت‌شده در درگاه با مبلغ پرداخت ذخیره‌شده مطابقت ندارد",
   },
+
+  paymentCheckoutAlreadyPending: {
+    en: "Another payment checkout is already pending",
+
+    fa: "یک پرداخت در انتظار برای این حساب وجود دارد",
+  },
+
+  paymentCheckoutInitializing: {
+    en: "A payment checkout is currently being initialized",
+
+    fa: "در حال حاضر درخواست پرداخت در حال ایجاد است",
+  },
 };

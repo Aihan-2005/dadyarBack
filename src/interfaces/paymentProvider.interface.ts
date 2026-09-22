@@ -64,4 +64,6 @@ export interface PaymentProvider {
   verifyPayment(input: VerifyPaymentInput): Promise<VerifyPaymentResult>;
 
   inquirePayment(input: InquirePaymentInput): Promise<InquirePaymentResult>;
+
+  getPaymentRedirectUrl(authority: string): string;
 }

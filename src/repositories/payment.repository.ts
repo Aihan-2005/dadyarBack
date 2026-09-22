@@ -109,7 +109,7 @@ export class PaymentRepository extends BaseRepository<Payment> {
         },
 
         {
-          new: true,
+          returnDocument: "after",
 
           runValidators: true,
         },
@@ -152,7 +152,7 @@ export class PaymentRepository extends BaseRepository<Payment> {
         },
 
         {
-          new: true,
+          returnDocument: "after",
 
           runValidators: true,
         },
@@ -185,7 +185,7 @@ export class PaymentRepository extends BaseRepository<Payment> {
         },
 
         {
-          new: true,
+          returnDocument: "after",
 
           runValidators: true,
         },
@@ -260,7 +260,7 @@ export class PaymentRepository extends BaseRepository<Payment> {
         },
 
         {
-          new: true,
+          returnDocument: "after",
 
           runValidators: true,
 
@@ -341,7 +341,7 @@ export class PaymentRepository extends BaseRepository<Payment> {
         },
 
         {
-          new: true,
+          returnDocument: "after",
 
           runValidators: true,
 
@@ -482,7 +482,7 @@ export class PaymentRepository extends BaseRepository<Payment> {
         },
 
         {
-          new: true,
+          returnDocument: "after",
 
           runValidators: true,
 
@@ -532,11 +532,25 @@ export class PaymentRepository extends BaseRepository<Payment> {
         },
 
         {
-          new: true,
+          returnDocument: "after",
 
           runValidators: true,
         },
       )
+      .lean()
+      .exec();
+  }
+
+  public findPendingByLawyerId(lawyerId: string) {
+    return this.model
+      .findOne({
+        lawyerId: this.toObjectId(lawyerId),
+
+        status: "PENDING",
+      })
+      .sort({
+        createdAt: -1,
+      })
       .lean()
       .exec();
   }

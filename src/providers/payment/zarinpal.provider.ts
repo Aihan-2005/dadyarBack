@@ -249,4 +249,8 @@ export class ZarinPalProvider implements PaymentProvider {
       );
     }
   }
+
+  public getPaymentRedirectUrl(authority: string): string {
+    return this.client.payments.getRedirectUrl(authority);
+  }
 }
