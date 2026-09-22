@@ -21,6 +21,14 @@ export class PaymentRoute implements Route {
   }
 
   private initializeRoutes(): void {
+    // Public ZarinPal return route.
+    this.router.get(
+      "/zarinpal/callback",
+
+      this.controller.handleZarinPalCallback,
+    );
+
+    // Lawyer payment history.
     this.router.get(
       "/",
 
@@ -29,12 +37,6 @@ export class PaymentRoute implements Route {
       requireRole("LAWYER"),
 
       this.controller.listMyPayments,
-    );
-
-    this.router.get(
-      "/zarinpal/callback",
-
-      this.controller.handleZarinPalCallback,
     );
 
     this.router.post(
@@ -47,6 +49,17 @@ export class PaymentRoute implements Route {
       requireActiveLawyer,
 
       this.controller.createSubscriptionPayment,
+    );
+
+    // Individual lawyer-owned payment.
+    this.router.get(
+      "/:id",
+
+      requireAuth,
+
+      requireRole("LAWYER"),
+
+      this.controller.getMyPayment,
     );
   }
 }

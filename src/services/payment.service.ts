@@ -710,4 +710,28 @@ export class PaymentService {
       },
     };
   }
+
+  public async getMyPayment(
+    lawyerId: string,
+
+    paymentId: string,
+  ) {
+    const payment = await this.repository.findByIdAndLawyerId(
+      paymentId,
+
+      lawyerId,
+    );
+
+    if (!payment) {
+      throw new HttpException(
+        404,
+
+        MESSAGES.paymentNotFound[LANGUAGE],
+
+        "PAYMENT_NOT_FOUND",
+      );
+    }
+
+    return toLawyerPaymentDTO(payment);
+  }
 }

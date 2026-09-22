@@ -9,6 +9,7 @@ import {
   PaymentIdParamSchema,
   ZarinPalCallbackQuerySchema,
 } from "../validators/payment.validator";
+import { env } from "../config/env";
 
 export class PaymentController {
   constructor(
@@ -53,11 +54,19 @@ export class PaymentController {
 
       const result = await this.service.handleZarinPalCallback(input);
 
-      return res.status(200).json({
-        success: true,
+      const redirectUrl = new URL(env.PAYMENT_RESULT_URL);
 
-        data: result,
-      });
+      redirectUrl.searchParams.set(
+        "paymentId",
+
+        result.paymentId,
+      );
+
+      return res.redirect(
+        303,
+
+        redirectUrl.toString(),
+      );
     } catch (error) {
       return next(error);
     }
@@ -151,6 +160,32 @@ export class PaymentController {
         success: true,
 
         data: result,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  public getMyPayment = async (
+    req: Request,
+
+    res: Response,
+
+    next: NextFunction,
+  ): Promise<Response | void> => {
+    try {
+      const { id } = PaymentIdParamSchema.parse(req.params);
+
+      const payment = await this.service.getMyPayment(
+        req.user!.id,
+
+        id,
+      );
+
+      return res.status(200).json({
+        success: true,
+
+        data: payment,
       });
     } catch (error) {
       return next(error);

@@ -143,6 +143,8 @@ const envSchema = z.object({
   ZARINPAL_SANDBOX: BooleanFromEnvironment.default(true),
 
   ZARINPAL_CALLBACK_URL: z.url(),
+
+  PAYMENT_RESULT_URL: z.url(),
 });
 
 class Env {
@@ -227,6 +229,8 @@ class Env {
   public readonly ZARINPAL_SANDBOX: boolean;
 
   public readonly ZARINPAL_CALLBACK_URL: string;
+
+  public readonly PAYMENT_RESULT_URL: string;
 
   constructor(processEnv = process.env) {
     const parsed = envSchema.safeParse(processEnv);
@@ -322,6 +326,8 @@ class Env {
     this.ZARINPAL_SANDBOX = data.ZARINPAL_SANDBOX;
 
     this.ZARINPAL_CALLBACK_URL = data.ZARINPAL_CALLBACK_URL;
+
+    this.PAYMENT_RESULT_URL = data.PAYMENT_RESULT_URL;
   }
 }
 

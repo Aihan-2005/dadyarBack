@@ -492,4 +492,19 @@ export class PaymentRepository extends BaseRepository<Payment> {
       .lean()
       .exec();
   }
+
+  public findByIdAndLawyerId(
+    paymentId: string,
+
+    lawyerId: string,
+  ) {
+    return this.model
+      .findOne({
+        _id: this.toObjectId(paymentId),
+
+        lawyerId: this.toObjectId(lawyerId),
+      })
+      .lean()
+      .exec();
+  }
 }
