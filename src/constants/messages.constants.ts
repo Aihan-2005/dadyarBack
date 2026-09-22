@@ -467,4 +467,64 @@ export const MESSAGES = {
 
     fa: "اشتراک شما شامل این قابلیت نیست",
   },
+
+  paymentRequestFailed: {
+    en: "Unable to create the payment request",
+
+    fa: "ایجاد درخواست پرداخت با مشکل مواجه شد",
+  },
+
+  paymentAmountTooLow: {
+    en: "The payable amount is below the payment gateway minimum",
+
+    fa: "مبلغ قابل پرداخت کمتر از حداقل مبلغ مجاز درگاه است",
+  },
+
+  paymentVerificationFailed: {
+    en: "Unable to verify the payment",
+
+    fa: "تأیید پرداخت با مشکل مواجه شد",
+  },
+
+  paymentFulfillmentNotRetryable: {
+    en: "This payment is not eligible for fulfillment retry",
+
+    fa: "این پرداخت امکان تلاش مجدد برای فعال‌سازی اشتراک را ندارد",
+  },
+
+  paymentFulfillmentBlocked: {
+    en: "Subscription fulfillment is currently blocked",
+
+    fa: "در حال حاضر امکان فعال‌سازی اشتراک برای این پرداخت وجود ندارد",
+  },
+
+  paymentReconciliationNotAllowed: {
+    en: "This payment cannot be reconciled",
+
+    fa: "این پرداخت امکان تطبیق با درگاه را ندارد",
+  },
+
+  paymentAuthorityMissing: {
+    en: "This payment does not have a gateway authority",
+
+    fa: "برای این پرداخت شناسه درگاه ثبت نشده است",
+  },
+
+  paymentAmountMismatch: {
+    en: "Gateway payment amount does not match the stored payment amount",
+
+    fa: "مبلغ ثبت‌شده در درگاه با مبلغ پرداخت ذخیره‌شده مطابقت ندارد",
+  },
+
+  paymentCheckoutAlreadyPending: {
+    en: "Another payment checkout is already pending",
+
+    fa: "یک پرداخت در انتظار برای این حساب وجود دارد",
+  },
+
+  paymentCheckoutInitializing: {
+    en: "A payment checkout is currently being initialized",
+
+    fa: "در حال حاضر درخواست پرداخت در حال ایجاد است",
+  },
 };

@@ -1,247 +1,156 @@
-import type {
-  ClientSession,
-  UpdateQuery,
-} from "mongoose";
+import type { ClientSession, UpdateQuery } from "mongoose";
 
 import type {
   CaseExpense,
   CreateCaseExpenseInput,
 } from "../interfaces/caseExpense.interface";
 
-import {
-  CaseExpenseModel,
-} from "../models/caseExpense.model";
+import { CaseExpenseModel } from "../models/caseExpense.model";
 
-import {
-  BaseRepository,
-} from "./base.repository";
+import { BaseRepository } from "./base.repository";
 
 export class CaseExpenseRepository extends BaseRepository<CaseExpense> {
   constructor() {
-    super(
-      CaseExpenseModel
-    );
+    super(CaseExpenseModel);
   }
 
-
   public findByCaseIdForLawyer(
-    lawyerId:
-      string,
+    lawyerId: string,
 
-    caseId:
-      string,
+    caseId: string,
 
-    session?:
-      ClientSession
+    session?: ClientSession,
   ) {
-    const query =
-      this.model.find({
-        lawyerId:
-          this.toObjectId(
-            lawyerId
-          ),
+    const query = this.model.find({
+      lawyerId: this.toObjectId(lawyerId),
 
-        caseId:
-          this.toObjectId(
-            caseId
-          ),
-      });
+      caseId: this.toObjectId(caseId),
+    });
 
     if (session) {
-      query.session(
-        session
-      );
+      query.session(session);
     }
 
     return query
       .sort({
-        expenseDate:
-          -1,
+        expenseDate: -1,
 
-        createdAt:
-          -1,
+        createdAt: -1,
       })
       .lean()
       .exec();
   }
 
   public findByCaseIdsForLawyer(
-    lawyerId:
-      string,
+    lawyerId: string,
 
-    caseIds:
-      string[],
+    caseIds: string[],
 
-    session?:
-      ClientSession
+    session?: ClientSession,
   ) {
-    if (
-      caseIds.length ===
-      0
-    ) {
-      return Promise.resolve(
-        []
-      );
+    if (caseIds.length === 0) {
+      return Promise.resolve([]);
     }
 
-    const query =
-      this.model.find({
-        lawyerId:
-          this.toObjectId(
-            lawyerId
-          ),
+    const query = this.model.find({
+      lawyerId: this.toObjectId(lawyerId),
 
-        caseId: {
-          $in:
-            caseIds.map(
-              (
-                caseId
-              ) =>
-                this.toObjectId(
-                  caseId
-                )
-            ),
-        },
-      });
+      caseId: {
+        $in: caseIds.map((caseId) => this.toObjectId(caseId)),
+      },
+    });
 
     if (session) {
-      query.session(
-        session
-      );
+      query.session(session);
     }
 
     return query
       .sort({
-        expenseDate:
-          -1,
+        expenseDate: -1,
 
-        createdAt:
-          -1,
+        createdAt: -1,
       })
       .lean()
       .exec();
   }
 
-  
-
   public async create(
-    lawyerId:
-      string,
+    lawyerId: string,
 
-    caseId:
-      string,
+    caseId: string,
 
-    data:
-      CreateCaseExpenseInput,
+    data: CreateCaseExpenseInput,
 
-    session?:
-      ClientSession
+    session?: ClientSession,
   ) {
-    const [
-      createdExpense,
-    ] =
-      await this.model.create(
-        [
-          {
-            ...data,
-
-            lawyerId:
-              this.toObjectId(
-                lawyerId
-              ),
-
-            caseId:
-              this.toObjectId(
-                caseId
-              ),
-          },
-        ],
-
+    const [createdExpense] = await this.model.create(
+      [
         {
-          session,
-        }
-      );
+          ...data,
+
+          lawyerId: this.toObjectId(lawyerId),
+
+          caseId: this.toObjectId(caseId),
+        },
+      ],
+
+      {
+        session,
+      },
+    );
 
     return createdExpense;
   }
 
-  
-
   public updateByIdForCaseForLawyer(
-    lawyerId:
-      string,
+    lawyerId: string,
 
-    caseId:
-      string,
+    caseId: string,
 
-    expenseId:
-      string,
+    expenseId: string,
 
-    update:
-      UpdateQuery<CaseExpense>,
+    update: UpdateQuery<CaseExpense>,
 
-    session?:
-      ClientSession
+    session?: ClientSession,
   ) {
     return this.model
       .findOneAndUpdate(
         {
-          _id:
-            this.toObjectId(
-              expenseId
-            ),
+          _id: this.toObjectId(expenseId),
 
-          lawyerId:
-            this.toObjectId(
-              lawyerId
-            ),
+          lawyerId: this.toObjectId(lawyerId),
 
-          caseId:
-            this.toObjectId(
-              caseId
-            ),
+          caseId: this.toObjectId(caseId),
         },
 
         update,
 
         {
-          new:
-            true,
+          returnDocument: "after",
 
-          runValidators:
-            true,
+          runValidators: true,
 
           session,
-        }
+        },
       )
       .lean()
       .exec();
   }
 
-
   public deleteManyByIdsForCaseForLawyer(
-    lawyerId:
-      string,
+    lawyerId: string,
 
-    caseId:
-      string,
+    caseId: string,
 
-    expenseIds:
-      string[],
+    expenseIds: string[],
 
-    session?:
-      ClientSession
+    session?: ClientSession,
   ) {
-    if (
-      expenseIds.length ===
-      0
-    ) {
+    if (expenseIds.length === 0) {
       return Promise.resolve({
-        acknowledged:
-          true,
+        acknowledged: true,
 
-        deletedCount:
-          0,
+        deletedCount: 0,
       });
     }
 
@@ -249,64 +158,39 @@ export class CaseExpenseRepository extends BaseRepository<CaseExpense> {
       .deleteMany(
         {
           _id: {
-            $in:
-              expenseIds.map(
-                (
-                  expenseId
-                ) =>
-                  this.toObjectId(
-                    expenseId
-                  )
-              ),
+            $in: expenseIds.map((expenseId) => this.toObjectId(expenseId)),
           },
 
-          lawyerId:
-            this.toObjectId(
-              lawyerId
-            ),
+          lawyerId: this.toObjectId(lawyerId),
 
-          caseId:
-            this.toObjectId(
-              caseId
-            ),
+          caseId: this.toObjectId(caseId),
         },
 
         {
           session,
-        }
+        },
       )
       .exec();
   }
 
-
-
   public deleteByCaseIdForLawyer(
-    lawyerId:
-      string,
+    lawyerId: string,
 
-    caseId:
-      string,
+    caseId: string,
 
-    session?:
-      ClientSession
+    session?: ClientSession,
   ) {
     return this.model
       .deleteMany(
         {
-          lawyerId:
-            this.toObjectId(
-              lawyerId
-            ),
+          lawyerId: this.toObjectId(lawyerId),
 
-          caseId:
-            this.toObjectId(
-              caseId
-            ),
+          caseId: this.toObjectId(caseId),
         },
 
         {
           session,
-        }
+        },
       )
       .exec();
   }

@@ -328,7 +328,7 @@ export class CaseRepository extends BaseRepository<Case> {
       update,
 
       {
-        new: true,
+        returnDocument: "after",
 
         runValidators: true,
       },
@@ -363,7 +363,7 @@ export class CaseRepository extends BaseRepository<Case> {
         },
 
         {
-          new: true,
+          returnDocument: "after",
 
           runValidators: true,
         },
@@ -393,7 +393,7 @@ export class CaseRepository extends BaseRepository<Case> {
       },
 
       {
-        new: true,
+        returnDocument: "after",
 
         runValidators: true,
       },
@@ -439,7 +439,7 @@ export class CaseRepository extends BaseRepository<Case> {
       },
 
       {
-        new: true,
+        returnDocument: "after",
 
         runValidators: true,
       },
@@ -474,7 +474,7 @@ export class CaseRepository extends BaseRepository<Case> {
         },
 
         {
-          new: true,
+          returnDocument: "after",
 
           runValidators: true,
         },
@@ -561,7 +561,7 @@ export class CaseRepository extends BaseRepository<Case> {
         },
 
         {
-          new: true,
+          returnDocument: "after",
 
           runValidators: true,
         },
@@ -648,7 +648,7 @@ export class CaseRepository extends BaseRepository<Case> {
         },
 
         {
-          new: true,
+          returnDocument: "after",
 
           runValidators: true,
         },
@@ -735,7 +735,7 @@ export class CaseRepository extends BaseRepository<Case> {
         },
 
         {
-          new: true,
+          returnDocument: "after",
 
           runValidators: true,
         },

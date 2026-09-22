@@ -137,6 +137,14 @@ const envSchema = z.object({
   MELIPAYAMAK_PASSWORD: z.string().trim().min(1).optional(),
 
   MELIPAYAMAK_OTP_BODY_ID: z.coerce.number().int().positive().optional(),
+
+  ZARINPAL_MERCHANT_ID: z.uuid(),
+
+  ZARINPAL_SANDBOX: BooleanFromEnvironment.default(true),
+
+  ZARINPAL_CALLBACK_URL: z.url(),
+
+  PAYMENT_RESULT_URL: z.url(),
 });
 
 class Env {
@@ -215,6 +223,14 @@ class Env {
   public readonly MELIPAYAMAK_PASSWORD: string | undefined;
 
   public readonly MELIPAYAMAK_OTP_BODY_ID: number | undefined;
+
+  public readonly ZARINPAL_MERCHANT_ID: string;
+
+  public readonly ZARINPAL_SANDBOX: boolean;
+
+  public readonly ZARINPAL_CALLBACK_URL: string;
+
+  public readonly PAYMENT_RESULT_URL: string;
 
   constructor(processEnv = process.env) {
     const parsed = envSchema.safeParse(processEnv);
@@ -304,6 +320,14 @@ class Env {
     this.MELIPAYAMAK_PASSWORD = data.MELIPAYAMAK_PASSWORD;
 
     this.MELIPAYAMAK_OTP_BODY_ID = data.MELIPAYAMAK_OTP_BODY_ID;
+
+    this.ZARINPAL_MERCHANT_ID = data.ZARINPAL_MERCHANT_ID;
+
+    this.ZARINPAL_SANDBOX = data.ZARINPAL_SANDBOX;
+
+    this.ZARINPAL_CALLBACK_URL = data.ZARINPAL_CALLBACK_URL;
+
+    this.PAYMENT_RESULT_URL = data.PAYMENT_RESULT_URL;
   }
 }
 

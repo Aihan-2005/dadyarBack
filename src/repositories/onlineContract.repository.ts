@@ -1,12 +1,6 @@
-import {
-  QueryFilter,
-  Types,
-  type UpdateQuery,
-} from "mongoose";
+import { QueryFilter, Types, type UpdateQuery } from "mongoose";
 
-import {
-  ONLINE_CONTRACT_STATUSES,
-} from "../constants/onlineContract.constants";
+import { ONLINE_CONTRACT_STATUSES } from "../constants/onlineContract.constants";
 
 import type {
   CreatePersistedOnlineContractInput,
@@ -18,30 +12,16 @@ import type {
   OnlineContractVersionData,
 } from "../interfaces/onlineContract.interface";
 
-import {
-  OnlineContractModel,
-} from "../models/onlineContract.model";
-
+import { OnlineContractModel } from "../models/onlineContract.model";
 
 export class OnlineContractRepository {
-  private readonly model =
-    OnlineContractModel;
+  private readonly model = OnlineContractModel;
 
-
-  private toObjectId(
-    value:
-      string,
-  ): Types.ObjectId {
-    return new Types.ObjectId(
-      value,
-    );
+  private toObjectId(value: string): Types.ObjectId {
+    return new Types.ObjectId(value);
   }
 
-
-  private escapeRegex(
-    value:
-      string,
-  ): string {
+  private escapeRegex(value: string): string {
     return value.replace(
       /[.*+?^${}()|[\]\\]/g,
 
@@ -49,17 +29,12 @@ export class OnlineContractRepository {
     );
   }
 
-
   private buildListFilter(
-    ownerField:
-      | "clientId"
-      | "lawyerId",
+    ownerField: "clientId" | "lawyerId",
 
-    ownerId:
-      string,
+    ownerId: string,
 
-    options:
-      OnlineContractListOptions,
+    options: OnlineContractListOptions,
   ): QueryFilter<OnlineContract> {
     /*
      * Mongoose 9:
@@ -68,146 +43,87 @@ export class OnlineContractRepository {
      * برای dot-pathهای nested یک cast محدود در boundary
      * Repository داریم، نه در کل domain.
      */
-    const filter:
-      Record<
-        string,
-        unknown
-      > = {
-        [ownerField]:
-          this.toObjectId(
-            ownerId,
-          ),
-      };
+    const filter: Record<string, unknown> = {
+      [ownerField]: this.toObjectId(ownerId),
+    };
 
-
-    if (
-      options.status
-    ) {
-      filter.status =
-        options.status;
+    if (options.status) {
+      filter.status = options.status;
     }
 
+    const search = options.search?.trim();
 
-    const search =
-      options.search?.trim();
+    if (search) {
+      const regex = new RegExp(
+        this.escapeRegex(search),
 
-
-    if (
-      search
-    ) {
-      const regex =
-        new RegExp(
-          this.escapeRegex(
-            search,
-          ),
-
-          "i",
-        );
-
+        "i",
+      );
 
       filter.$or = [
         {
-          reference:
-            regex,
+          reference: regex,
         },
 
         {
-          "draft.subject":
-            regex,
+          "draft.subject": regex,
         },
 
         {
-          "draft.client.fullName":
-            regex,
+          "draft.client.fullName": regex,
         },
 
         {
-          "draft.client.phone":
-            regex,
+          "draft.client.phone": regex,
         },
 
         {
-          "draft.lawyer.fullName":
-            regex,
+          "draft.lawyer.fullName": regex,
         },
       ];
     }
 
-
-    return filter as
-      QueryFilter<OnlineContract>;
+    return filter as QueryFilter<OnlineContract>;
   }
-
 
   public async createContract(
-    input:
-      CreatePersistedOnlineContractInput,
+    input: CreatePersistedOnlineContractInput,
   ): Promise<OnlineContractRecord> {
-    const created =
-      await this.model.create({
-        clientId:
-          this.toObjectId(
-            input.clientId,
-          ),
+    const created = await this.model.create({
+      clientId: this.toObjectId(input.clientId),
 
-        lawyerId:
-          this.toObjectId(
-            input.lawyerId,
-          ),
+      lawyerId: this.toObjectId(input.lawyerId),
 
-        reference:
-          input.reference,
+      reference: input.reference,
 
-        status:
-          input.status,
+      status: input.status,
 
-        templateSnapshot:
-          input.templateSnapshot,
+      templateSnapshot: input.templateSnapshot,
 
-        draft:
-          input.draft,
+      draft: input.draft,
 
-        version:
-          input.version,
+      version: input.version,
 
-        versions:
-          input.versions,
+      versions: input.versions,
 
-        auditTrail:
-          input.auditTrail,
+      auditTrail: input.auditTrail,
 
-        completedAt:
-          null,
+      completedAt: null,
 
-        rejectionReason:
-          null,
+      rejectionReason: null,
 
-        clientFeedback:
-          null,
-      });
+      clientFeedback: null,
+    });
 
-
-    return created.toObject() as
-      unknown as OnlineContractRecord;
+    return created.toObject() as unknown as OnlineContractRecord;
   }
-
 
   public listForClient(
-    clientId:
-      string,
+    clientId: string,
 
-    options:
-      OnlineContractListOptions,
-  ): Promise<
-    OnlineContractRecord[]
-  > {
-    const skip =
-      (
-        options.page -
-        1
-      ) *
-      options.limit;
-
+    options: OnlineContractListOptions,
+  ): Promise<OnlineContractRecord[]> {
+    const skip = (options.page - 1) * options.limit;
 
     return this.model
       .find(
@@ -220,28 +136,18 @@ export class OnlineContractRepository {
         ),
       )
       .sort({
-        updatedAt:
-          -1,
+        updatedAt: -1,
       })
-      .skip(
-        skip,
-      )
-      .limit(
-        options.limit,
-      )
-      .lean<
-        OnlineContractRecord[]
-      >()
+      .skip(skip)
+      .limit(options.limit)
+      .lean<OnlineContractRecord[]>()
       .exec();
   }
-
 
   public countForClient(
-    clientId:
-      string,
+    clientId: string,
 
-    options:
-      OnlineContractListOptions,
+    options: OnlineContractListOptions,
   ): Promise<number> {
     return this.model
       .countDocuments(
@@ -256,23 +162,12 @@ export class OnlineContractRepository {
       .exec();
   }
 
-
   public listForLawyer(
-    lawyerId:
-      string,
+    lawyerId: string,
 
-    options:
-      OnlineContractListOptions,
-  ): Promise<
-    OnlineContractRecord[]
-  > {
-    const skip =
-      (
-        options.page -
-        1
-      ) *
-      options.limit;
-
+    options: OnlineContractListOptions,
+  ): Promise<OnlineContractRecord[]> {
+    const skip = (options.page - 1) * options.limit;
 
     return this.model
       .find(
@@ -285,28 +180,18 @@ export class OnlineContractRepository {
         ),
       )
       .sort({
-        updatedAt:
-          -1,
+        updatedAt: -1,
       })
-      .skip(
-        skip,
-      )
-      .limit(
-        options.limit,
-      )
-      .lean<
-        OnlineContractRecord[]
-      >()
+      .skip(skip)
+      .limit(options.limit)
+      .lean<OnlineContractRecord[]>()
       .exec();
   }
 
-
   public countForLawyer(
-    lawyerId:
-      string,
+    lawyerId: string,
 
-    options:
-      OnlineContractListOptions,
+    options: OnlineContractListOptions,
   ): Promise<number> {
     return this.model
       .countDocuments(
@@ -321,441 +206,278 @@ export class OnlineContractRepository {
       .exec();
   }
 
-
   public findByIdForClient(
-    clientId:
-      string,
+    clientId: string,
 
-    contractId:
-      string,
-  ): Promise<
-    OnlineContractRecord | null
-  > {
+    contractId: string,
+  ): Promise<OnlineContractRecord | null> {
     return this.model
       .findOne({
-        _id:
-          this.toObjectId(
-            contractId,
-          ),
+        _id: this.toObjectId(contractId),
 
-        clientId:
-          this.toObjectId(
-            clientId,
-          ),
+        clientId: this.toObjectId(clientId),
       })
-      .lean<
-        OnlineContractRecord
-      >()
+      .lean<OnlineContractRecord>()
       .exec();
   }
-
 
   public findByIdForLawyer(
-    lawyerId:
-      string,
+    lawyerId: string,
 
-    contractId:
-      string,
-  ): Promise<
-    OnlineContractRecord | null
-  > {
+    contractId: string,
+  ): Promise<OnlineContractRecord | null> {
     return this.model
       .findOne({
-        _id:
-          this.toObjectId(
-            contractId,
-          ),
+        _id: this.toObjectId(contractId),
 
-        lawyerId:
-          this.toObjectId(
-            lawyerId,
-          ),
+        lawyerId: this.toObjectId(lawyerId),
       })
-      .lean<
-        OnlineContractRecord
-      >()
+      .lean<OnlineContractRecord>()
       .exec();
   }
-
 
   public reviewForLawyer(
-    lawyerId:
-      string,
+    lawyerId: string,
 
-    contractId:
-      string,
+    contractId: string,
 
-    expectedVersion:
-      number,
+    expectedVersion: number,
 
-    draft:
-      OnlineContractDraftData,
+    draft: OnlineContractDraftData,
 
-    version:
-      OnlineContractVersionData,
+    version: OnlineContractVersionData,
 
-    auditEvents:
-      OnlineContractAuditEventData[],
-  ): Promise<
-    OnlineContractRecord | null
-  > {
-    const update:
-      UpdateQuery<OnlineContract> = {
-        $set: {
-          draft,
+    auditEvents: OnlineContractAuditEventData[],
+  ): Promise<OnlineContractRecord | null> {
+    const update: UpdateQuery<OnlineContract> = {
+      $set: {
+        draft,
 
-          version:
-            version.version,
+        version: version.version,
 
-          status:
-            ONLINE_CONTRACT_STATUSES
-              .WAITING_CLIENT_APPROVAL,
+        status: ONLINE_CONTRACT_STATUSES.WAITING_CLIENT_APPROVAL,
 
-          clientFeedback:
-            null,
+        clientFeedback: null,
 
-          rejectionReason:
-            null,
+        rejectionReason: null,
+      },
+
+      $push: {
+        versions: version,
+
+        auditTrail: {
+          $each: auditEvents,
         },
-
-        $push: {
-          versions:
-            version,
-
-          auditTrail: {
-            $each:
-              auditEvents,
-          },
-        },
-      };
-
+      },
+    };
 
     return this.model
       .findOneAndUpdate(
         {
-          _id:
-            this.toObjectId(
-              contractId,
-            ),
+          _id: this.toObjectId(contractId),
 
-          lawyerId:
-            this.toObjectId(
-              lawyerId,
-            ),
+          lawyerId: this.toObjectId(lawyerId),
 
-          status:
-            ONLINE_CONTRACT_STATUSES
-              .WAITING_LAWYER_REVIEW,
+          status: ONLINE_CONTRACT_STATUSES.WAITING_LAWYER_REVIEW,
 
-          version:
-            expectedVersion,
+          version: expectedVersion,
         },
 
         update,
 
         {
-          new:
-            true,
+          returnDocument: "after",
 
-          runValidators:
-            true,
+          runValidators: true,
         },
       )
-      .lean<
-        OnlineContractRecord
-      >()
+      .lean<OnlineContractRecord>()
       .exec();
   }
-
 
   public approveForClient(
-    clientId:
-      string,
+    clientId: string,
 
-    contractId:
-      string,
+    contractId: string,
 
-    expectedVersion:
-      number,
+    expectedVersion: number,
 
-    auditEvent:
-      OnlineContractAuditEventData,
-  ): Promise<
-    OnlineContractRecord | null
-  > {
-    const update:
-      UpdateQuery<OnlineContract> = {
-        $set: {
-          status:
-            ONLINE_CONTRACT_STATUSES
-              .WAITING_LAWYER_SIGNATURE,
+    auditEvent: OnlineContractAuditEventData,
+  ): Promise<OnlineContractRecord | null> {
+    const update: UpdateQuery<OnlineContract> = {
+      $set: {
+        status: ONLINE_CONTRACT_STATUSES.WAITING_LAWYER_SIGNATURE,
 
-          clientFeedback:
-            null,
-        },
+        clientFeedback: null,
+      },
 
-        $push: {
-          auditTrail:
-            auditEvent,
-        },
-      };
-
+      $push: {
+        auditTrail: auditEvent,
+      },
+    };
 
     return this.model
       .findOneAndUpdate(
         {
-          _id:
-            this.toObjectId(
-              contractId,
-            ),
+          _id: this.toObjectId(contractId),
 
-          clientId:
-            this.toObjectId(
-              clientId,
-            ),
+          clientId: this.toObjectId(clientId),
 
-          status:
-            ONLINE_CONTRACT_STATUSES
-              .WAITING_CLIENT_APPROVAL,
+          status: ONLINE_CONTRACT_STATUSES.WAITING_CLIENT_APPROVAL,
 
-          version:
-            expectedVersion,
+          version: expectedVersion,
         },
 
         update,
 
         {
-          new:
-            true,
+          returnDocument: "after",
 
-          runValidators:
-            true,
+          runValidators: true,
         },
       )
-      .lean<
-        OnlineContractRecord
-      >()
+      .lean<OnlineContractRecord>()
       .exec();
   }
-
 
   public requestChangesForClient(
-    clientId:
-      string,
+    clientId: string,
 
-    contractId:
-      string,
+    contractId: string,
 
-    expectedVersion:
-      number,
+    expectedVersion: number,
 
-    feedback:
-      string,
+    feedback: string,
 
-    auditEvent:
-      OnlineContractAuditEventData,
-  ): Promise<
-    OnlineContractRecord | null
-  > {
-    const update:
-      UpdateQuery<OnlineContract> = {
-        $set: {
-          status:
-            ONLINE_CONTRACT_STATUSES
-              .WAITING_LAWYER_REVIEW,
+    auditEvent: OnlineContractAuditEventData,
+  ): Promise<OnlineContractRecord | null> {
+    const update: UpdateQuery<OnlineContract> = {
+      $set: {
+        status: ONLINE_CONTRACT_STATUSES.WAITING_LAWYER_REVIEW,
 
-          clientFeedback:
-            feedback,
-        },
+        clientFeedback: feedback,
+      },
 
-        $push: {
-          auditTrail:
-            auditEvent,
-        },
-      };
-
+      $push: {
+        auditTrail: auditEvent,
+      },
+    };
 
     return this.model
       .findOneAndUpdate(
         {
-          _id:
-            this.toObjectId(
-              contractId,
-            ),
+          _id: this.toObjectId(contractId),
 
-          clientId:
-            this.toObjectId(
-              clientId,
-            ),
+          clientId: this.toObjectId(clientId),
 
-          status:
-            ONLINE_CONTRACT_STATUSES
-              .WAITING_CLIENT_APPROVAL,
+          status: ONLINE_CONTRACT_STATUSES.WAITING_CLIENT_APPROVAL,
 
-          version:
-            expectedVersion,
+          version: expectedVersion,
         },
 
         update,
 
         {
-          new:
-            true,
+          returnDocument: "after",
 
-          runValidators:
-            true,
+          runValidators: true,
         },
       )
-      .lean<
-        OnlineContractRecord
-      >()
+      .lean<OnlineContractRecord>()
       .exec();
   }
-
 
   public signForLawyer(
-    lawyerId:
-      string,
+    lawyerId: string,
 
-    contractId:
-      string,
+    contractId: string,
 
-    expectedVersion:
-      number,
+    expectedVersion: number,
 
-    completedAt:
-      Date,
+    completedAt: Date,
 
-    auditEvent:
-      OnlineContractAuditEventData,
-  ): Promise<
-    OnlineContractRecord | null
-  > {
-    const update:
-      UpdateQuery<OnlineContract> = {
-        $set: {
-          status:
-            ONLINE_CONTRACT_STATUSES
-              .COMPLETED,
+    auditEvent: OnlineContractAuditEventData,
+  ): Promise<OnlineContractRecord | null> {
+    const update: UpdateQuery<OnlineContract> = {
+      $set: {
+        status: ONLINE_CONTRACT_STATUSES.COMPLETED,
 
-          completedAt,
-        },
+        completedAt,
+      },
 
-        $push: {
-          auditTrail:
-            auditEvent,
-        },
-      };
-
+      $push: {
+        auditTrail: auditEvent,
+      },
+    };
 
     return this.model
       .findOneAndUpdate(
         {
-          _id:
-            this.toObjectId(
-              contractId,
-            ),
+          _id: this.toObjectId(contractId),
 
-          lawyerId:
-            this.toObjectId(
-              lawyerId,
-            ),
+          lawyerId: this.toObjectId(lawyerId),
 
-          status:
-            ONLINE_CONTRACT_STATUSES
-              .WAITING_LAWYER_SIGNATURE,
+          status: ONLINE_CONTRACT_STATUSES.WAITING_LAWYER_SIGNATURE,
 
-          version:
-            expectedVersion,
+          version: expectedVersion,
         },
 
         update,
 
         {
-          new:
-            true,
+          returnDocument: "after",
 
-          runValidators:
-            true,
+          runValidators: true,
         },
       )
-      .lean<
-        OnlineContractRecord
-      >()
+      .lean<OnlineContractRecord>()
       .exec();
   }
 
-
   public rejectForLawyer(
-    lawyerId:
-      string,
+    lawyerId: string,
 
-    contractId:
-      string,
+    contractId: string,
 
-    expectedVersion:
-      number,
+    expectedVersion: number,
 
-    reason:
-      string,
+    reason: string,
 
-    auditEvent:
-      OnlineContractAuditEventData,
-  ): Promise<
-    OnlineContractRecord | null
-  > {
-    const update:
-      UpdateQuery<OnlineContract> = {
-        $set: {
-          status:
-            ONLINE_CONTRACT_STATUSES
-              .REJECTED,
+    auditEvent: OnlineContractAuditEventData,
+  ): Promise<OnlineContractRecord | null> {
+    const update: UpdateQuery<OnlineContract> = {
+      $set: {
+        status: ONLINE_CONTRACT_STATUSES.REJECTED,
 
-          rejectionReason:
-            reason,
-        },
+        rejectionReason: reason,
+      },
 
-        $push: {
-          auditTrail:
-            auditEvent,
-        },
-      };
-
+      $push: {
+        auditTrail: auditEvent,
+      },
+    };
 
     return this.model
       .findOneAndUpdate(
         {
-          _id:
-            this.toObjectId(
-              contractId,
-            ),
+          _id: this.toObjectId(contractId),
 
-          lawyerId:
-            this.toObjectId(
-              lawyerId,
-            ),
+          lawyerId: this.toObjectId(lawyerId),
 
-          status:
-            ONLINE_CONTRACT_STATUSES
-              .WAITING_LAWYER_REVIEW,
+          status: ONLINE_CONTRACT_STATUSES.WAITING_LAWYER_REVIEW,
 
-          version:
-            expectedVersion,
+          version: expectedVersion,
         },
 
         update,
 
         {
-          new:
-            true,
+          returnDocument: "after",
 
-          runValidators:
-            true,
+          runValidators: true,
         },
       )
-      .lean<
-        OnlineContractRecord
-      >()
+      .lean<OnlineContractRecord>()
       .exec();
   }
 }

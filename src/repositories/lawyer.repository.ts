@@ -123,7 +123,7 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
         update,
 
         {
-          new: true,
+          returnDocument: "after",
 
           runValidators: true,
 
@@ -178,7 +178,7 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
         update,
 
         {
-          new: true,
+          returnDocument: "after",
 
           runValidators: true,
         },
@@ -502,7 +502,7 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
         update,
 
         {
-          new: true,
+          returnDocument: "after",
 
           runValidators: true,
 
@@ -766,7 +766,7 @@ export class LawyerRepository extends BaseRepository<Lawyer> {
         },
 
         {
-          new: true,
+          returnDocument: "after",
 
           session,
 

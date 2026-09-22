@@ -77,7 +77,7 @@ export class SubscriptionPlanRepository extends BaseRepository<SubscriptionPlan>
         },
 
         {
-          new: true,
+          returnDocument: "after",
 
           runValidators: true,
         },

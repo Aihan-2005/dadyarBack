@@ -1,7 +1,4 @@
-import type {
-  ClientSession,
-  UpdateQuery,
-} from "mongoose";
+import type { ClientSession, UpdateQuery } from "mongoose";
 
 import type {
   ClientLawyerInquiry,
@@ -10,52 +7,30 @@ import type {
   CreateClientLawyerInquiryInput,
 } from "../interfaces/clientLawyerInquiry.interface";
 
-import {
-  ClientLawyerInquiryModel,
-} from "../models/clientLawyerInquiry.model";
+import { ClientLawyerInquiryModel } from "../models/clientLawyerInquiry.model";
 
-import {
-  BaseRepository,
-} from "./base.repository";
+import { BaseRepository } from "./base.repository";
 
-
-export class ClientLawyerInquiryRepository
-  extends BaseRepository<ClientLawyerInquiry> {
-
+export class ClientLawyerInquiryRepository extends BaseRepository<ClientLawyerInquiry> {
   constructor() {
-    super(
-      ClientLawyerInquiryModel,
-    );
+    super(ClientLawyerInquiryModel);
   }
 
-
   private buildListQuery(
-    ownerField:
-      | "clientId"
-      | "lawyerId",
+    ownerField: "clientId" | "lawyerId",
 
-    ownerId:
-      string,
+    ownerId: string,
 
-    options:
-      ClientLawyerInquiryListOptions,
+    options: ClientLawyerInquiryListOptions,
   ) {
-    const search =
-      this.escapeRegex(
-        options.search ??
-          "",
-      );
+    const search = this.escapeRegex(options.search ?? "");
 
     return {
-      [ownerField]:
-        this.toObjectId(
-          ownerId,
-        ),
+      [ownerField]: this.toObjectId(ownerId),
 
       ...(options.status
         ? {
-            status:
-              options.status,
+            status: options.status,
           }
         : {}),
 
@@ -64,31 +39,25 @@ export class ClientLawyerInquiryRepository
             $or: [
               {
                 subject: {
-                  $regex:
-                    search,
+                  $regex: search,
 
-                  $options:
-                    "i",
+                  $options: "i",
                 },
               },
 
               {
                 description: {
-                  $regex:
-                    search,
+                  $regex: search,
 
-                  $options:
-                    "i",
+                  $options: "i",
                 },
               },
 
               {
                 lawyerResponse: {
-                  $regex:
-                    search,
+                  $regex: search,
 
-                  $options:
-                    "i",
+                  $options: "i",
                 },
               },
             ],
@@ -97,161 +66,97 @@ export class ClientLawyerInquiryRepository
     };
   }
 
-
   public createForClient(
-    clientId:
-      string,
+    clientId: string,
 
-    input:
-      CreateClientLawyerInquiryInput,
+    input: CreateClientLawyerInquiryInput,
   ) {
     return this.model.create({
-      clientId:
-        this.toObjectId(
-          clientId,
-        ),
+      clientId: this.toObjectId(clientId),
 
-      lawyerId:
-        this.toObjectId(
-          input.lawyerId,
-        ),
+      lawyerId: this.toObjectId(input.lawyerId),
 
-      subject:
-        input.subject,
+      subject: input.subject,
 
-      description:
-        input.description,
+      description: input.description,
 
-      status:
-        "SUBMITTED",
+      status: "SUBMITTED",
 
-      lawyerResponse:
-        "",
+      lawyerResponse: "",
 
-      respondedAt:
-        null,
+      respondedAt: null,
 
-      cancelledAt:
-        null,
+      cancelledAt: null,
 
-      closedAt:
-        null,
+      closedAt: null,
     });
   }
 
-
   public findByIdForClient(
-    clientId:
-      string,
+    clientId: string,
 
-    inquiryId:
-      string,
+    inquiryId: string,
   ) {
     return this.model
       .findOne({
-        _id:
-          this.toObjectId(
-            inquiryId,
-          ),
+        _id: this.toObjectId(inquiryId),
 
-        clientId:
-          this.toObjectId(
-            clientId,
-          ),
+        clientId: this.toObjectId(clientId),
       })
       .lean<ClientLawyerInquiryRecord>()
       .exec();
   }
-
 
   public findByIdForLawyer(
-    lawyerId:
-      string,
+    lawyerId: string,
 
-    inquiryId:
-      string,
+    inquiryId: string,
 
-    session?:
-      ClientSession,
+    session?: ClientSession,
   ) {
-    const query =
-      this.model
-        .findOne({
-          _id:
-            this.toObjectId(
-              inquiryId,
-            ),
+    const query = this.model.findOne({
+      _id: this.toObjectId(inquiryId),
 
-          lawyerId:
-            this.toObjectId(
-              lawyerId,
-            ),
-        });
+      lawyerId: this.toObjectId(lawyerId),
+    });
 
-    if (
-      session
-    ) {
-      query.session(
-        session,
-      );
+    if (session) {
+      query.session(session);
     }
 
-    return query
-      .lean<ClientLawyerInquiryRecord>()
-      .exec();
+    return query.lean<ClientLawyerInquiryRecord>().exec();
   }
-
 
   public listForClient(
-    clientId:
-      string,
+    clientId: string,
 
-    options:
-      ClientLawyerInquiryListOptions,
+    options: ClientLawyerInquiryListOptions,
   ) {
-    const query =
-      this.buildListQuery(
-        "clientId",
+    const query = this.buildListQuery(
+      "clientId",
 
-        clientId,
+      clientId,
 
-        options,
-      );
+      options,
+    );
 
-    const skip =
-      (
-        options.page -
-        1
-      ) *
-      options.limit;
+    const skip = (options.page - 1) * options.limit;
 
     return this.model
-      .find(
-        query,
-      )
+      .find(query)
       .sort({
-        createdAt:
-          -1,
+        createdAt: -1,
       })
-      .skip(
-        skip,
-      )
-      .limit(
-        options.limit,
-      )
-      .lean<
-        ClientLawyerInquiryRecord[]
-      >()
+      .skip(skip)
+      .limit(options.limit)
+      .lean<ClientLawyerInquiryRecord[]>()
       .exec();
   }
 
-
   public countForClient(
-    clientId:
-      string,
+    clientId: string,
 
-    options:
-      ClientLawyerInquiryListOptions,
+    options: ClientLawyerInquiryListOptions,
   ) {
     return this.model
       .countDocuments(
@@ -266,57 +171,36 @@ export class ClientLawyerInquiryRepository
       .exec();
   }
 
-
   public listForLawyer(
-    lawyerId:
-      string,
+    lawyerId: string,
 
-    options:
-      ClientLawyerInquiryListOptions,
+    options: ClientLawyerInquiryListOptions,
   ) {
-    const query =
-      this.buildListQuery(
-        "lawyerId",
+    const query = this.buildListQuery(
+      "lawyerId",
 
-        lawyerId,
+      lawyerId,
 
-        options,
-      );
+      options,
+    );
 
-    const skip =
-      (
-        options.page -
-        1
-      ) *
-      options.limit;
+    const skip = (options.page - 1) * options.limit;
 
     return this.model
-      .find(
-        query,
-      )
+      .find(query)
       .sort({
-        createdAt:
-          -1,
+        createdAt: -1,
       })
-      .skip(
-        skip,
-      )
-      .limit(
-        options.limit,
-      )
-      .lean<
-        ClientLawyerInquiryRecord[]
-      >()
+      .skip(skip)
+      .limit(options.limit)
+      .lean<ClientLawyerInquiryRecord[]>()
       .exec();
   }
 
-
   public countForLawyer(
-    lawyerId:
-      string,
+    lawyerId: string,
 
-    options:
-      ClientLawyerInquiryListOptions,
+    options: ClientLawyerInquiryListOptions,
   ) {
     return this.model
       .countDocuments(
@@ -331,101 +215,70 @@ export class ClientLawyerInquiryRepository
       .exec();
   }
 
-
   public cancelForClient(
-    clientId:
-      string,
+    clientId: string,
 
-    inquiryId:
-      string,
+    inquiryId: string,
   ) {
     return this.model
       .findOneAndUpdate(
         {
-          _id:
-            this.toObjectId(
-              inquiryId,
-            ),
+          _id: this.toObjectId(inquiryId),
 
-          clientId:
-            this.toObjectId(
-              clientId,
-            ),
+          clientId: this.toObjectId(clientId),
 
           status: {
-            $in: [
-              "SUBMITTED",
-              "IN_REVIEW",
-            ],
+            $in: ["SUBMITTED", "IN_REVIEW"],
           },
         },
 
         {
           $set: {
-            status:
-              "CANCELLED",
+            status: "CANCELLED",
 
-            cancelledAt:
-              new Date(),
+            cancelledAt: new Date(),
           },
         },
 
         {
-          new:
-            true,
+          returnDocument: "after",
 
-          runValidators:
-            true,
+          runValidators: true,
         },
       )
       .lean<ClientLawyerInquiryRecord>()
       .exec();
   }
 
-
   public updateForLawyer(
-    lawyerId:
-      string,
+    lawyerId: string,
 
-    inquiryId:
-      string,
+    inquiryId: string,
 
-    allowedCurrentStatuses:
-      string[],
+    allowedCurrentStatuses: string[],
 
-    update:
-      UpdateQuery<ClientLawyerInquiry>,
+    update: UpdateQuery<ClientLawyerInquiry>,
 
-    session?:
-      ClientSession,
+    session?: ClientSession,
   ) {
     return this.model
       .findOneAndUpdate(
         {
-          _id:
-            this.toObjectId(
-              inquiryId,
-            ),
+          _id: this.toObjectId(inquiryId),
 
-          lawyerId:
-            this.toObjectId(
-              lawyerId,
-            ),
+          lawyerId: this.toObjectId(lawyerId),
 
           status: {
-            $in:
-              allowedCurrentStatuses,
+            $in: allowedCurrentStatuses,
           },
         },
 
         update,
 
         {
-          new:
-            true,
+          returnDocument: "after",
 
-          runValidators:
-            true,
+          runValidators: true,
 
           session,
         },
@@ -434,4 +287,3 @@ export class ClientLawyerInquiryRepository
       .exec();
   }
 }
-

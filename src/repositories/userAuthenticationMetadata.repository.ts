@@ -1,78 +1,50 @@
-import {
-  Types,
+import { Types, type ClientSession } from "mongoose";
 
-  type ClientSession,
-} from "mongoose";
+import type { UserRecord } from "../interfaces/user.interface";
 
-import type {
-  UserRecord,
-} from "../interfaces/user.interface";
-
-import {
-  UserModel,
-} from "../models/user.model";
-
+import { UserModel } from "../models/user.model";
 
 export class UserAuthenticationMetadataRepository {
   public recordOtpLogin(
-    userId:
-      string,
+    userId: string,
 
     input: {
-      lastLoginAt:
-        Date;
+      lastLoginAt: Date;
 
-      phoneVerifiedAt?:
-        Date;
+      phoneVerifiedAt?: Date;
     },
 
-    session?:
-      ClientSession,
+    session?: ClientSession,
   ) {
     const setFields: {
-      lastLoginAt:
-        Date;
+      lastLoginAt: Date;
 
-      phoneVerifiedAt?:
-        Date;
+      phoneVerifiedAt?: Date;
     } = {
-      lastLoginAt:
-        input.lastLoginAt,
+      lastLoginAt: input.lastLoginAt,
     };
 
-
-    if (
-      input.phoneVerifiedAt
-    ) {
-      setFields.phoneVerifiedAt =
-        input.phoneVerifiedAt;
+    if (input.phoneVerifiedAt) {
+      setFields.phoneVerifiedAt = input.phoneVerifiedAt;
     }
 
+    return UserModel.findOneAndUpdate(
+      {
+        _id: new Types.ObjectId(userId),
+      },
 
-    return UserModel
-      .findOneAndUpdate(
-        {
-          _id:
-            new Types.ObjectId(
-              userId,
-            ),
-        },
+      {
+        $set: setFields,
+      },
 
-        {
-          $set:
-            setFields,
-        },
+      {
+        returnDocument: "after",
 
-        {
-          new:
-            true,
+        runValidators: true,
 
-          runValidators:
-            true,
-
-          session,
-        },
-      )
+        session,
+      },
+    )
       .lean<UserRecord>()
       .exec();
   }

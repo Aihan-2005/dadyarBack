@@ -1,0 +1,65 @@
+import { Router } from "express";
+
+import { PaymentController } from "../controllers/payment.controller";
+
+import type { Route } from "../interfaces/route.interface";
+
+import requireAuth, {
+  requireActiveLawyer,
+  requireRole,
+} from "../middlewares/auth.middleware";
+
+export class PaymentRoute implements Route {
+  public path = "/payments";
+
+  public router = Router();
+
+  constructor(
+    private readonly controller: PaymentController = new PaymentController(),
+  ) {
+    this.initializeRoutes();
+  }
+
+  private initializeRoutes(): void {
+    // Public ZarinPal return route.
+    this.router.get(
+      "/zarinpal/callback",
+
+      this.controller.handleZarinPalCallback,
+    );
+
+    // Lawyer payment history.
+    this.router.get(
+      "/",
+
+      requireAuth,
+
+      requireRole("LAWYER"),
+
+      this.controller.listMyPayments,
+    );
+
+    this.router.post(
+      "/subscriptions",
+
+      requireAuth,
+
+      requireRole("LAWYER"),
+
+      requireActiveLawyer,
+
+      this.controller.createSubscriptionPayment,
+    );
+
+    // Individual lawyer-owned payment.
+    this.router.get(
+      "/:id",
+
+      requireAuth,
+
+      requireRole("LAWYER"),
+
+      this.controller.getMyPayment,
+    );
+  }
+}

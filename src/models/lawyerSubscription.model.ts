@@ -1,87 +1,7 @@
 import { model, Schema } from "mongoose";
 
 import { LAWYER_SUBSCRIPTION_ACTIVATION_SOURCES } from "../constants/lawyerSubscription.constants";
-
-import {
-  SUBSCRIPTION_FEATURES,
-  SUBSCRIPTION_TIERS,
-} from "../constants/subscription.constants";
-
-const LawyerSubscriptionPlanSnapshotSchema = new Schema(
-  {
-    title: {
-      type: String,
-
-      required: true,
-
-      trim: true,
-    },
-
-    description: {
-      type: String,
-
-      required: true,
-
-      trim: true,
-    },
-
-    tier: {
-      type: String,
-
-      enum: SUBSCRIPTION_TIERS,
-
-      required: true,
-    },
-
-    tags: {
-      type: [String],
-
-      default: [],
-    },
-
-    durationMonths: {
-      type: Number,
-
-      required: true,
-
-      min: 1,
-    },
-
-    price: {
-      type: Number,
-
-      required: true,
-
-      min: 0,
-    },
-
-    discountPercent: {
-      type: Number,
-
-      required: true,
-
-      min: 0,
-
-      max: 100,
-    },
-
-    features: {
-      type: [
-        {
-          type: String,
-
-          enum: SUBSCRIPTION_FEATURES,
-        },
-      ],
-
-      required: true,
-    },
-  },
-
-  {
-    _id: false,
-  },
-);
+import { SubscriptionPlanSnapshotSchema } from "./subscriptionPlanSnapshot.schema";
 
 export const LawyerSubscriptionSchema = new Schema(
   {
@@ -102,7 +22,7 @@ export const LawyerSubscriptionSchema = new Schema(
     },
 
     planSnapshot: {
-      type: LawyerSubscriptionPlanSnapshotSchema,
+      type: SubscriptionPlanSnapshotSchema,
 
       required: true,
     },

@@ -1,443 +1,284 @@
-import type {
-  ClientSession,
-  QueryFilter,
-  UpdateQuery,
-} from "mongoose";
+import type { ClientSession, QueryFilter, UpdateQuery } from "mongoose";
 
-import {
-  LawyerAvailabilityModel,
-} from "../models/lawyerAvailability.model";
+import { LawyerAvailabilityModel } from "../models/lawyerAvailability.model";
 
 import type {
   LawyerAvailability,
   LawyerAvailabilityRecord,
 } from "../interfaces/lawyerAvailability.interface";
 
-import type {
-  ConsultationType,
-} from "../constants/consultationBooking.constants";
+import type { ConsultationType } from "../constants/consultationBooking.constants";
 
-import {
-  BaseRepository,
-} from "./base.repository";
+import { BaseRepository } from "./base.repository";
 
-
-export class LawyerAvailabilityRepository
-  extends BaseRepository<LawyerAvailability> {
-
+export class LawyerAvailabilityRepository extends BaseRepository<LawyerAvailability> {
   constructor() {
-    super(
-      LawyerAvailabilityModel,
-    );
+    super(LawyerAvailabilityModel);
   }
-
 
   public async createForLawyer(
-    lawyerId:
-      string,
+    lawyerId: string,
 
     input: {
-      startsAt:
-        Date;
+      startsAt: Date;
 
-      endsAt:
-        Date;
+      endsAt: Date;
 
-      consultationTypes:
-        ConsultationType[];
+      consultationTypes: ConsultationType[];
 
-      note?:
-        string;
+      note?: string;
 
-      isActive:
-        boolean;
+      isActive: boolean;
     },
   ): Promise<LawyerAvailabilityRecord> {
-    const created =
-      await this.model.create({
-        lawyerId:
-          this.toObjectId(
-            lawyerId,
-          ),
+    const created = await this.model.create({
+      lawyerId: this.toObjectId(lawyerId),
 
-        startsAt:
-          input.startsAt,
+      startsAt: input.startsAt,
 
-        endsAt:
-          input.endsAt,
+      endsAt: input.endsAt,
 
-        consultationTypes:
-          input.consultationTypes,
+      consultationTypes: input.consultationTypes,
 
-        note:
-          input.note ??
-          "",
+      note: input.note ?? "",
 
-        isActive:
-          input.isActive,
+      isActive: input.isActive,
 
-        isReserved:
-          false,
-      });
+      isReserved: false,
+    });
 
-
-    return created.toObject() as unknown as
-      LawyerAvailabilityRecord;
+    return created.toObject() as unknown as LawyerAvailabilityRecord;
   }
 
-
   public findByIdForLawyer(
-    lawyerId:
-      string,
+    lawyerId: string,
 
-    availabilityId:
-      string,
+    availabilityId: string,
   ) {
     return this.model
       .findOne({
-        _id:
-          this.toObjectId(
-            availabilityId,
-          ),
+        _id: this.toObjectId(availabilityId),
 
-        lawyerId:
-          this.toObjectId(
-            lawyerId,
-          ),
+        lawyerId: this.toObjectId(lawyerId),
       })
       .lean<LawyerAvailabilityRecord>()
       .exec();
   }
-
 
   public findAvailableById(
-    availabilityId:
-      string,
+    availabilityId: string,
 
-    session?:
-      ClientSession,
+    session?: ClientSession,
   ) {
-    const query =
-      this.model
-        .findOne({
-          _id:
-            this.toObjectId(
-              availabilityId,
-            ),
+    const query = this.model.findOne({
+      _id: this.toObjectId(availabilityId),
 
-          isActive:
-            true,
+      isActive: true,
 
-          isReserved:
-            false,
-        });
+      isReserved: false,
+    });
 
-    if (
-      session
-    ) {
-      query.session(
-        session,
-      );
+    if (session) {
+      query.session(session);
     }
 
-    return query
-      .lean<LawyerAvailabilityRecord>()
-      .exec();
+    return query.lean<LawyerAvailabilityRecord>().exec();
   }
-
 
   public listForLawyer(
-    lawyerId:
-      string,
+    lawyerId: string,
 
     options: {
-      from:
-        Date;
+      from: Date;
 
-      to:
-        Date;
+      to: Date;
 
-      includeInactive:
-        boolean;
+      includeInactive: boolean;
     },
   ) {
-    const query:
-      QueryFilter<LawyerAvailability> = {
-        lawyerId:
-          this.toObjectId(
-            lawyerId,
-          ),
+    const query: QueryFilter<LawyerAvailability> = {
+      lawyerId: this.toObjectId(lawyerId),
 
-        startsAt: {
-          $gte:
-            options.from,
+      startsAt: {
+        $gte: options.from,
 
-          $lt:
-            options.to,
-        },
+        $lt: options.to,
+      },
 
-        ...(
-          options.includeInactive
-            ? {}
-            : {
-                isActive:
-                  true,
-              }
-        ),
-      };
-
+      ...(options.includeInactive
+        ? {}
+        : {
+            isActive: true,
+          }),
+    };
 
     return this.model
-      .find(
-        query,
-      )
+      .find(query)
       .sort({
-        startsAt:
-          1,
+        startsAt: 1,
       })
-      .lean<
-        LawyerAvailabilityRecord[]
-      >()
+      .lean<LawyerAvailabilityRecord[]>()
       .exec();
   }
 
-
   public listAvailableForClient(
-    lawyerId:
-      string,
+    lawyerId: string,
 
     options: {
-      from:
-        Date;
+      from: Date;
 
-      to:
-        Date;
+      to: Date;
 
-      type?:
-        ConsultationType;
+      type?: ConsultationType;
     },
   ) {
     return this.model
       .find({
-        lawyerId:
-          this.toObjectId(
-            lawyerId,
-          ),
+        lawyerId: this.toObjectId(lawyerId),
 
-        isActive:
-          true,
+        isActive: true,
 
-        isReserved:
-          false,
+        isReserved: false,
 
         startsAt: {
-          $gte:
-            options.from,
+          $gte: options.from,
 
-          $lt:
-            options.to,
+          $lt: options.to,
         },
 
-        ...(
-          options.type
-            ? {
-                consultationTypes:
-                  options.type,
-              }
-            : {}
-        ),
+        ...(options.type
+          ? {
+              consultationTypes: options.type,
+            }
+          : {}),
       })
       .sort({
-        startsAt:
-          1,
+        startsAt: 1,
       })
-      .lean<
-        LawyerAvailabilityRecord[]
-      >()
+      .lean<LawyerAvailabilityRecord[]>()
       .exec();
   }
 
-
   public findOverlap(
-    lawyerId:
-      string,
+    lawyerId: string,
 
-    startsAt:
-      Date,
+    startsAt: Date,
 
-    endsAt:
-      Date,
+    endsAt: Date,
 
-    excludeId?:
-      string,
+    excludeId?: string,
   ) {
     return this.model
       .findOne({
-        lawyerId:
-          this.toObjectId(
-            lawyerId,
-          ),
+        lawyerId: this.toObjectId(lawyerId),
 
-        isActive:
-          true,
+        isActive: true,
 
         startsAt: {
-          $lt:
-            endsAt,
+          $lt: endsAt,
         },
 
         endsAt: {
-          $gt:
-            startsAt,
+          $gt: startsAt,
         },
 
-        ...(
-          excludeId
-            ? {
-                _id: {
-                  $ne:
-                    this.toObjectId(
-                      excludeId,
-                    ),
-                },
-              }
-            : {}
-        ),
+        ...(excludeId
+          ? {
+              _id: {
+                $ne: this.toObjectId(excludeId),
+              },
+            }
+          : {}),
       })
       .lean<LawyerAvailabilityRecord>()
       .exec();
   }
 
-
   public updateUnreservedForLawyer(
-    lawyerId:
-      string,
+    lawyerId: string,
 
-    availabilityId:
-      string,
+    availabilityId: string,
 
-    update:
-      UpdateQuery<LawyerAvailability>,
+    update: UpdateQuery<LawyerAvailability>,
   ) {
     return this.model
       .findOneAndUpdate(
         {
-          _id:
-            this.toObjectId(
-              availabilityId,
-            ),
+          _id: this.toObjectId(availabilityId),
 
-          lawyerId:
-            this.toObjectId(
-              lawyerId,
-            ),
+          lawyerId: this.toObjectId(lawyerId),
 
-          isReserved:
-            false,
+          isReserved: false,
         },
 
         update,
 
         {
-          new:
-            true,
+          returnDocument: "after",
 
-          runValidators:
-            true,
+          runValidators: true,
         },
       )
       .lean<LawyerAvailabilityRecord>()
       .exec();
   }
 
-
   public deleteUnreservedForLawyer(
-    lawyerId:
-      string,
+    lawyerId: string,
 
-    availabilityId:
-      string,
+    availabilityId: string,
   ) {
     return this.model
       .findOneAndDelete({
-        _id:
-          this.toObjectId(
-            availabilityId,
-          ),
+        _id: this.toObjectId(availabilityId),
 
-        lawyerId:
-          this.toObjectId(
-            lawyerId,
-          ),
+        lawyerId: this.toObjectId(lawyerId),
 
-        isReserved:
-          false,
+        isReserved: false,
       })
       .lean<LawyerAvailabilityRecord>()
       .exec();
   }
 
-
-
-  
   public claimSlot(
-    lawyerId:
-      string,
+    lawyerId: string,
 
-    availabilityId:
-      string,
+    availabilityId: string,
 
-    consultationType:
-      ConsultationType,
+    consultationType: ConsultationType,
 
-    session?:
-      ClientSession,
+    session?: ClientSession,
   ) {
-    const now =
-      new Date();
-
+    const now = new Date();
 
     return this.model
       .findOneAndUpdate(
         {
-          _id:
-            this.toObjectId(
-              availabilityId,
-            ),
+          _id: this.toObjectId(availabilityId),
 
-          lawyerId:
-            this.toObjectId(
-              lawyerId,
-            ),
+          lawyerId: this.toObjectId(lawyerId),
 
-          isActive:
-            true,
+          isActive: true,
 
-          isReserved:
-            false,
+          isReserved: false,
 
           startsAt: {
-            $gt:
-              now,
+            $gt: now,
           },
 
-          consultationTypes:
-            consultationType,
+          consultationTypes: consultationType,
         },
 
         {
           $set: {
-            isReserved:
-              true,
+            isReserved: true,
           },
         },
 
         {
-          new:
-            true,
+          returnDocument: "after",
 
-          runValidators:
-            true,
+          runValidators: true,
 
           session,
         },
@@ -446,39 +287,29 @@ export class LawyerAvailabilityRepository
       .exec();
   }
 
-
   public releaseSlot(
-    availabilityId:
-      string,
+    availabilityId: string,
 
-    session?:
-      ClientSession,
+    session?: ClientSession,
   ) {
     return this.model
       .findOneAndUpdate(
         {
-          _id:
-            this.toObjectId(
-              availabilityId,
-            ),
+          _id: this.toObjectId(availabilityId),
 
-          isReserved:
-            true,
+          isReserved: true,
         },
 
         {
           $set: {
-            isReserved:
-              false,
+            isReserved: false,
           },
         },
 
         {
-          new:
-            true,
+          returnDocument: "after",
 
-          runValidators:
-            true,
+          runValidators: true,
 
           session,
         },
