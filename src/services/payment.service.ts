@@ -256,7 +256,6 @@ export class PaymentService {
         );
       }
 
-      // return this.toCallbackResult(result);
       return result;
     } finally {
       await session.endSession();

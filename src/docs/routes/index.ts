@@ -10,3 +10,4 @@ import "./admin.openapi";
 import "./faq.openapi";
 import "./subscriptionPlan.openapi";
 import "./lawyerSubscription.openapi";
+import "./payment.openapi";

@@ -57,6 +57,17 @@ import {
   LawyerSubscriptionSuccessSchema,
 } from "../schemas/lawyerSubscription.openapi.schemas";
 
+import {
+  AdminPaymentListQuerySchema,
+  PaymentIdParamSchema,
+} from "../../validators/payment.validator";
+
+import {
+  AdminPaymentListSuccessSchema,
+  AdminPaymentSuccessSchema,
+  PaymentReconciliationSuccessSchema,
+} from "../schemas/payment.openapi.schemas";
+
 // ========================================================
 // Shared Security
 // ========================================================
@@ -150,6 +161,28 @@ const attachmentTooLargeResponse = {
 
 const serverErrorResponse = {
   description: "Unexpected server error.",
+
+  content: {
+    "application/json": {
+      schema: ApiErrorSchema,
+    },
+  },
+};
+
+const paymentConflictResponse = {
+  description:
+    "The payment state does not allow the requested administrative operation.",
+
+  content: {
+    "application/json": {
+      schema: ApiErrorSchema,
+    },
+  },
+};
+
+const paymentProviderErrorResponse = {
+  description:
+    "The payment provider could not complete the reconciliation or verification request.",
 
   content: {
     "application/json": {
@@ -2297,6 +2330,249 @@ Therefore create and cancel operations affecting the same lawyer are serialized.
         },
       },
     },
+
+    500: serverErrorResponse,
+  },
+});
+
+// ========================================================
+// GET /admin/payments
+// ========================================================
+
+openApiRegistry.registerPath({
+  method: "get",
+
+  path: "/admin/payments",
+
+  operationId: "listAdminPayments",
+
+  tags: ["Admin"],
+
+  summary: "List payments for administration",
+
+  description: `
+Returns a paginated operational view of subscription payments.
+
+Payments may be filtered by:
+
+- lawyer
+- financial status
+- fulfillment status
+- payment provider
+
+Financial status represents what happened to the payment itself.
+
+Fulfillment status separately represents whether the purchased subscription was delivered.
+
+This distinction allows administrators to identify cases such as:
+
+\`PAID + REQUIRES_ACTION\`
+
+where money was successfully received but subscription activation still requires attention.
+`,
+
+  security: adminSecurity,
+
+  request: {
+    query: AdminPaymentListQuerySchema,
+  },
+
+  responses: {
+    200: {
+      description: "Payments returned successfully.",
+
+      content: {
+        "application/json": {
+          schema: AdminPaymentListSuccessSchema,
+        },
+      },
+    },
+
+    400: badRequestResponse,
+    401: unauthorizedResponse,
+    403: forbiddenResponse,
+    500: serverErrorResponse,
+  },
+});
+
+// ========================================================
+// GET /admin/payments/{id}
+// ========================================================
+
+openApiRegistry.registerPath({
+  method: "get",
+
+  path: "/admin/payments/{id}",
+
+  operationId: "getAdminPayment",
+
+  tags: ["Admin"],
+
+  summary: "Get payment administration details",
+
+  security: adminSecurity,
+
+  request: {
+    params: PaymentIdParamSchema,
+  },
+
+  responses: {
+    200: {
+      description: "Payment returned successfully.",
+
+      content: {
+        "application/json": {
+          schema: AdminPaymentSuccessSchema,
+        },
+      },
+    },
+
+    400: badRequestResponse,
+    401: unauthorizedResponse,
+    403: forbiddenResponse,
+    404: notFoundResponse,
+    500: serverErrorResponse,
+  },
+});
+
+// ========================================================
+// POST /admin/payments/{id}/retry-fulfillment
+// ========================================================
+
+openApiRegistry.registerPath({
+  method: "post",
+
+  path: "/admin/payments/{id}/retry-fulfillment",
+
+  operationId: "retryAdminPaymentFulfillment",
+
+  tags: ["Admin"],
+
+  summary: "Retry subscription fulfillment for a paid payment",
+
+  description: `
+Retries only the application's subscription-delivery step.
+
+This operation is intended for payments whose state is:
+
+\`status = PAID\`
+
+and:
+
+\`fulfillmentStatus = REQUIRES_ACTION\`
+
+This endpoint does **not**:
+
+- create another payment
+- charge the customer again
+- verify the payment again
+
+The financial payment is already considered successful.
+
+The operation only attempts to create and attach the missing LawyerSubscription.
+
+If the payment is already:
+
+\`PAID + FULFILLED\`
+
+the endpoint behaves idempotently and returns the existing payment.
+`,
+
+  security: adminSecurity,
+
+  request: {
+    params: PaymentIdParamSchema,
+  },
+
+  responses: {
+    200: {
+      description: "Payment fulfillment completed or was already complete.",
+
+      content: {
+        "application/json": {
+          schema: AdminPaymentSuccessSchema,
+        },
+      },
+    },
+
+    400: badRequestResponse,
+    401: unauthorizedResponse,
+    403: forbiddenResponse,
+    404: notFoundResponse,
+
+    409: paymentConflictResponse,
+
+    500: serverErrorResponse,
+  },
+});
+
+// ========================================================
+// POST /admin/payments/{id}/reconcile
+// ========================================================
+
+openApiRegistry.registerPath({
+  method: "post",
+
+  path: "/admin/payments/{id}/reconcile",
+
+  operationId: "reconcileAdminPayment",
+
+  tags: ["Admin"],
+
+  summary: "Reconcile a pending payment with the provider",
+
+  description: `
+Compares a locally unresolved payment with the payment provider's current transaction state.
+
+This operation is primarily intended for local payments still marked:
+
+\`PENDING\`
+
+after the normal browser callback flow did not fully complete.
+
+The backend queries ZarinPal using the stored gateway authority.
+
+Depending on the provider state, reconciliation may:
+
+- leave the payment pending
+- mark it failed
+- mark it reversed
+- verify a paid transaction
+- recover the local PAID state
+- complete subscription fulfillment
+
+The stored local payment amount is compared with the provider amount when the provider returns one.
+
+A mismatch is treated as a conflict and is not automatically accepted.
+
+Reconciliation does not create a new payment and does not charge the customer again.
+`,
+
+  security: adminSecurity,
+
+  request: {
+    params: PaymentIdParamSchema,
+  },
+
+  responses: {
+    200: {
+      description: "Reconciliation completed.",
+
+      content: {
+        "application/json": {
+          schema: PaymentReconciliationSuccessSchema,
+        },
+      },
+    },
+
+    400: badRequestResponse,
+    401: unauthorizedResponse,
+    403: forbiddenResponse,
+    404: notFoundResponse,
+
+    409: paymentConflictResponse,
+
+    502: paymentProviderErrorResponse,
 
     500: serverErrorResponse,
   },

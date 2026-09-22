@@ -32,7 +32,7 @@ export function toLawyerPaymentDTO(payment: any) {
 
     createdAt: payment.createdAt,
 
-    reversedAt: payment.reversedAt,
+    reversedAt: payment.reversedAt ?? null,
   };
 }
 
