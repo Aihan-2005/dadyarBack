@@ -143,6 +143,11 @@ export const PaymentSchema = new Schema(
       type: String,
       trim: true,
     },
+
+    reversedAt: {
+      type: Date,
+      default: null,
+    },
   },
 
   {

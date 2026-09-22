@@ -1,4 +1,8 @@
 import type { PAYMENT_PROVIDERS } from "../constants/payment.constants";
+import type {
+  InquirePaymentInput,
+  InquirePaymentResult,
+} from "./payment.interface";
 
 export type PaymentProviderName = (typeof PAYMENT_PROVIDERS)[number];
 
@@ -58,4 +62,6 @@ export interface PaymentProvider {
   ): Promise<CreatePaymentRequestResult>;
 
   verifyPayment(input: VerifyPaymentInput): Promise<VerifyPaymentResult>;
+
+  inquirePayment(input: InquirePaymentInput): Promise<InquirePaymentResult>;
 }

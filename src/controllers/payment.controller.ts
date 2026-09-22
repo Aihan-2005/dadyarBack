@@ -191,4 +191,26 @@ export class PaymentController {
       return next(error);
     }
   };
+
+  public reconcilePaymentForAdmin = async (
+    req: Request,
+
+    res: Response,
+
+    next: NextFunction,
+  ) => {
+    try {
+      const { id } = PaymentIdParamSchema.parse(req.params);
+
+      const result = await this.service.reconcilePaymentForAdmin(id);
+
+      return res.status(200).json({
+        success: true,
+
+        data: result,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  };
 }

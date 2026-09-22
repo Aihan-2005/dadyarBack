@@ -5,6 +5,7 @@ import type { z } from "zod";
 import type {
   PAYMENT_CURRENCIES,
   PAYMENT_FULFILLMENT_STATUSES,
+  PAYMENT_PROVIDER_TRANSACTION_STATES,
   PAYMENT_PROVIDERS,
   PAYMENT_STATUSES,
 } from "../constants/payment.constants";
@@ -17,6 +18,8 @@ import {
   PaymentHistoryQuerySchema,
   ZarinPalCallbackQuerySchema,
 } from "../validators/payment.validator";
+
+import type { PaymentProviderName } from "./paymentProvider.interface";
 
 export type Payment = InferSchemaType<typeof PaymentSchema>;
 
@@ -72,3 +75,26 @@ export type PaymentHistoryOptions = z.output<typeof PaymentHistoryQuerySchema>;
 export type AdminPaymentListOptions = z.output<
   typeof AdminPaymentListQuerySchema
 >;
+
+export type PaymentProviderTransactionState =
+  (typeof PAYMENT_PROVIDER_TRANSACTION_STATES)[number];
+
+export interface InquirePaymentInput {
+  authority: string;
+}
+
+export interface InquirePaymentResult {
+  provider: PaymentProviderName;
+
+  providerCode: number;
+
+  state: PaymentProviderTransactionState;
+
+  rawStatus: string | null;
+
+  authority: string;
+
+  amount: number | null;
+
+  refId: string | null;
+}

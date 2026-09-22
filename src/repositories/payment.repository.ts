@@ -507,4 +507,37 @@ export class PaymentRepository extends BaseRepository<Payment> {
       .lean()
       .exec();
   }
+
+  public markPendingPaymentReversed(
+    paymentId: string,
+
+    reversedAt = new Date(),
+  ) {
+    return this.model
+      .findOneAndUpdate(
+        {
+          _id: this.toObjectId(paymentId),
+
+          status: "PENDING",
+        },
+
+        {
+          $set: {
+            status: "REVERSED",
+
+            fulfillmentStatus: "NOT_APPLICABLE",
+
+            reversedAt,
+          },
+        },
+
+        {
+          new: true,
+
+          runValidators: true,
+        },
+      )
+      .lean()
+      .exec();
+  }
 }

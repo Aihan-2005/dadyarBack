@@ -7,6 +7,16 @@ export const PAYMENT_STATUSES = [
   "PAID",
   "FAILED",
   "CANCELLED",
+  "REVERSED",
+] as const;
+
+export const PAYMENT_PROVIDER_TRANSACTION_STATES = [
+  "VERIFIED",
+  "PAID_UNVERIFIED",
+  "PENDING",
+  "FAILED",
+  "REVERSED",
+  "UNKNOWN",
 ] as const;
 
 export const PAYMENT_FULFILLMENT_STATUSES = [

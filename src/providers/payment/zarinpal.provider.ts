@@ -17,6 +17,12 @@ import type {
   VerifyPaymentResult,
 } from "../../interfaces/paymentProvider.interface";
 
+import type {
+  InquirePaymentInput,
+  InquirePaymentResult,
+  PaymentProviderTransactionState,
+} from "../../interfaces/payment.interface";
+
 export class ZarinPalProvider implements PaymentProvider {
   private readonly client: ZarinPal;
 
@@ -30,6 +36,32 @@ export class ZarinPalProvider implements PaymentProvider {
 
       sandbox,
     });
+  }
+
+  private mapInquiryState(status: unknown): PaymentProviderTransactionState {
+    if (typeof status !== "string") {
+      return "UNKNOWN";
+    }
+
+    switch (status.toUpperCase()) {
+      case "VERIFIED":
+        return "VERIFIED";
+
+      case "PAID":
+        return "PAID_UNVERIFIED";
+
+      case "IN_BANK":
+        return "PENDING";
+
+      case "FAILED":
+        return "FAILED";
+
+      case "REVERSED":
+        return "REVERSED";
+
+      default:
+        return "UNKNOWN";
+    }
   }
 
   public async createPayment(
@@ -150,6 +182,64 @@ export class ZarinPalProvider implements PaymentProvider {
 
       throw new PaymentProviderException(
         "Unable to verify payment through ZarinPal",
+
+        "ZARINPAL",
+
+        undefined,
+
+        error,
+      );
+    }
+  }
+
+  public async inquirePayment(
+    input: InquirePaymentInput,
+  ): Promise<InquirePaymentResult> {
+    try {
+      const response = await this.client.inquiries.inquire({
+        authority: input.authority,
+      });
+
+      const data = response?.data;
+
+      if (data?.code !== ZARINPAL_SUCCESS_CODE) {
+        throw new PaymentProviderException(
+          data?.message ?? "ZarinPal rejected payment inquiry",
+
+          "ZARINPAL",
+
+          data?.code,
+        );
+      }
+
+      const rawStatus = typeof data.status === "string" ? data.status : null;
+
+      return {
+        provider: "ZARINPAL",
+
+        providerCode: data.code,
+
+        state: this.mapInquiryState(rawStatus),
+
+        rawStatus,
+
+        authority:
+          typeof data.authority === "string" ? data.authority : input.authority,
+
+        amount: typeof data.amount === "number" ? data.amount : null,
+
+        refId:
+          data.ref_id !== undefined && data.ref_id !== null
+            ? String(data.ref_id)
+            : null,
+      };
+    } catch (error) {
+      if (error instanceof PaymentProviderException) {
+        throw error;
+      }
+
+      throw new PaymentProviderException(
+        "Unable to inquire payment through ZarinPal",
 
         "ZARINPAL",
 

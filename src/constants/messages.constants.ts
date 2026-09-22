@@ -497,4 +497,22 @@ export const MESSAGES = {
 
     fa: "در حال حاضر امکان فعال‌سازی اشتراک برای این پرداخت وجود ندارد",
   },
+
+  paymentReconciliationNotAllowed: {
+    en: "This payment cannot be reconciled",
+
+    fa: "این پرداخت امکان تطبیق با درگاه را ندارد",
+  },
+
+  paymentAuthorityMissing: {
+    en: "This payment does not have a gateway authority",
+
+    fa: "برای این پرداخت شناسه درگاه ثبت نشده است",
+  },
+
+  paymentAmountMismatch: {
+    en: "Gateway payment amount does not match the stored payment amount",
+
+    fa: "مبلغ ثبت‌شده در درگاه با مبلغ پرداخت ذخیره‌شده مطابقت ندارد",
+  },
 };

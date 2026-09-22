@@ -31,6 +31,8 @@ export function toLawyerPaymentDTO(payment: any) {
     failedAt: payment.failedAt ?? null,
 
     createdAt: payment.createdAt,
+
+    reversedAt: payment.reversedAt,
   };
 }
 

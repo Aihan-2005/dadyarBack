@@ -192,5 +192,11 @@ export class AdminRoute implements Route {
 
       this.paymentController.retryPaymentFulfillmentForAdmin,
     );
+
+    this.router.post(
+      "/payments/:id/reconcile",
+
+      this.paymentController.reconcilePaymentForAdmin,
+    );
   }
 }

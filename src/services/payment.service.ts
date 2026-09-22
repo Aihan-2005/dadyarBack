@@ -256,7 +256,8 @@ export class PaymentService {
         );
       }
 
-      return this.toCallbackResult(result);
+      // return this.toCallbackResult(result);
+      return result;
     } finally {
       await session.endSession();
     }
@@ -485,11 +486,13 @@ export class PaymentService {
       providerFeeType: verification.feeType,
     };
 
-    return this.finalizeVerifiedSubscriptionPayment(
+    const finalizedPayment = await this.finalizeVerifiedSubscriptionPayment(
       input.Authority,
 
       verificationData,
     );
+
+    return this.toCallbackResult(finalizedPayment);
   }
 
   public async listLawyerPayments(
@@ -733,5 +736,204 @@ export class PaymentService {
     }
 
     return toLawyerPaymentDTO(payment);
+  }
+
+  public async reconcilePaymentForAdmin(paymentId: string) {
+    const payment = await this.repository.findPaymentById(paymentId);
+
+    if (!payment) {
+      throw new HttpException(
+        404,
+
+        MESSAGES.paymentNotFound[LANGUAGE],
+
+        "PAYMENT_NOT_FOUND",
+      );
+    }
+
+    /*
+     * Already financially resolved.
+     * Reconciliation isn't necessary.
+     */
+    if (payment.status === "PAID") {
+      return {
+        reconciled: false,
+
+        providerState: "VERIFIED",
+
+        payment: toAdminPaymentDTO(payment),
+      };
+    }
+
+    if (payment.status !== "PENDING") {
+      throw new HttpException(
+        409,
+
+        MESSAGES.paymentReconciliationNotAllowed[LANGUAGE],
+
+        "PAYMENT_RECONCILIATION_NOT_ALLOWED",
+      );
+    }
+
+    if (!payment.authority) {
+      throw new HttpException(
+        409,
+
+        MESSAGES.paymentAuthorityMissing[LANGUAGE],
+
+        "PAYMENT_AUTHORITY_MISSING",
+      );
+    }
+
+    let inquiry;
+
+    try {
+      inquiry = await this.provider.inquirePayment({
+        authority: payment.authority,
+      });
+    } catch (error) {
+      if (error instanceof PaymentProviderException) {
+        throw new HttpException(
+          502,
+
+          MESSAGES.paymentVerificationFailed[LANGUAGE],
+
+          "PAYMENT_RECONCILIATION_FAILED",
+        );
+      }
+
+      throw error;
+    }
+
+    /*
+     * If ZarinPal gives us the original amount,
+     * it must exactly match our frozen amount.
+     */
+    if (inquiry.amount !== null && inquiry.amount !== payment.amount) {
+      throw new HttpException(
+        409,
+
+        MESSAGES.paymentAmountMismatch[LANGUAGE],
+
+        "PAYMENT_AMOUNT_MISMATCH",
+      );
+    }
+
+    switch (inquiry.state) {
+      case "PENDING":
+      case "UNKNOWN": {
+        return {
+          reconciled: false,
+
+          providerState: inquiry.state,
+
+          rawProviderStatus: inquiry.rawStatus,
+
+          payment: toAdminPaymentDTO(payment),
+        };
+      }
+
+      case "FAILED": {
+        const failed = await this.repository.markPendingPaymentFailed(
+          payment._id.toString(),
+
+          {
+            failureCode: "PROVIDER_TRANSACTION_FAILED",
+
+            failureMessage:
+              "ZarinPal inquiry reports the transaction as failed",
+          },
+        );
+
+        return {
+          reconciled: true,
+
+          providerState: "FAILED",
+
+          payment: toAdminPaymentDTO(failed ?? payment),
+        };
+      }
+
+      case "REVERSED": {
+        const reversed = await this.repository.markPendingPaymentReversed(
+          payment._id.toString(),
+        );
+
+        return {
+          reconciled: true,
+
+          providerState: "REVERSED",
+
+          payment: toAdminPaymentDTO(reversed ?? payment),
+        };
+      }
+
+      case "PAID_UNVERIFIED":
+      case "VERIFIED":
+        break;
+    }
+
+    /*
+     * Inquiry says money has reached a successful
+     * financial state.
+     *
+     * Still call verify().
+     *
+     * PAID_UNVERIFIED → normally code 100
+     * VERIFIED        → normally code 101
+     *
+     * verify() is idempotent and gives us the
+     * verification data needed by our existing
+     * finalization code.
+     */
+    let verification;
+
+    try {
+      verification = await this.provider.verifyPayment({
+        amount: payment.amount,
+
+        authority: payment.authority,
+      });
+    } catch (error) {
+      if (error instanceof PaymentProviderException) {
+        throw new HttpException(
+          502,
+
+          MESSAGES.paymentVerificationFailed[LANGUAGE],
+
+          "PAYMENT_RECONCILIATION_VERIFICATION_FAILED",
+        );
+      }
+
+      throw error;
+    }
+
+    const verificationData: PaymentVerificationData = {
+      providerVerificationCode: verification.providerCode,
+
+      referenceId: verification.refId,
+
+      cardPan: verification.cardPan,
+
+      cardHash: verification.cardHash,
+
+      providerFee: verification.fee,
+
+      providerFeeType: verification.feeType,
+    };
+
+    const finalizedPayment = await this.finalizeVerifiedSubscriptionPayment(
+      payment.authority,
+
+      verificationData,
+    );
+
+    return {
+      reconciled: true,
+
+      providerState: inquiry.state,
+
+      payment: toAdminPaymentDTO(finalizedPayment),
+    };
   }
 }
