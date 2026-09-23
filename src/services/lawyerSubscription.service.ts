@@ -1,249 +1,541 @@
-import mongoose, { Types } from "mongoose";
+import mongoose, {
+  Types,
+} from "mongoose";
 
-import { env } from "../config/env";
+import type {
+  ClientSession,
+} from "mongoose";
 
-import { MESSAGES } from "../constants/messages.constants";
+import {
+  env,
+} from "../config/env";
 
-import { SUBSCRIPTION_MONTH_DURATION_IN_MS } from "../constants/lawyerSubscription.constants";
+import {
+  MESSAGES,
+} from "../constants/messages.constants";
 
-import { toLawyerSubscriptionDTO } from "../dtos/lawyerSubscription.dto";
+import {
+  SUBSCRIPTION_DAY_DURATION_IN_MS,
+  SUBSCRIPTION_MONTH_DURATION_IN_MS,
+} from "../constants/lawyerSubscription.constants";
 
-import { HttpException } from "../exceptions/httpException";
+import {
+  SUBSCRIPTION_FEATURES,
+} from "../constants/subscription.constants";
+
+import {
+  resolveSubscriptionPlanDurationDays,
+} from "../dtos/subscriptionPlan.dto";
+
+import {
+  toLawyerSubscriptionDTO,
+} from "../dtos/lawyerSubscription.dto";
+
+import {
+  HttpException,
+} from "../exceptions/httpException";
 
 import type {
   CreateLawyerSubscriptionInput,
   LawyerSubscriptionHistoryOptions,
 } from "../interfaces/lawyerSubscription.interface";
 
-import { LawyerSubscriptionRepository } from "../repositories/lawyerSubscription.repository";
+import {
+  LawyerSubscriptionRepository,
+} from "../repositories/lawyerSubscription.repository";
 
-import { SubscriptionPlanRepository } from "../repositories/subscriptionPlan.repository";
+import {
+  SubscriptionPlanRepository,
+} from "../repositories/subscriptionPlan.repository";
 
-import { LawyerRepository } from "../repositories/lawyer.repository";
+import {
+  LawyerRepository,
+} from "../repositories/lawyer.repository";
 
-const LANGUAGE = env.LANGUAGE;
+const LANGUAGE =
+  env.LANGUAGE;
 
 export class LawyerSubscriptionService {
   constructor(
-    private readonly repository: LawyerSubscriptionRepository = new LawyerSubscriptionRepository(),
+    private readonly repository:
+      LawyerSubscriptionRepository =
+        new LawyerSubscriptionRepository(),
 
-    private readonly subscriptionPlanRepository: SubscriptionPlanRepository = new SubscriptionPlanRepository(),
+    private readonly subscriptionPlanRepository:
+      SubscriptionPlanRepository =
+        new SubscriptionPlanRepository(),
 
-    private readonly lawyerRepository: LawyerRepository = new LawyerRepository(),
+    private readonly lawyerRepository:
+      LawyerRepository =
+        new LawyerRepository(),
   ) {}
 
-  public async getCurrentSubscription(lawyerId: string) {
-    const subscription = await this.repository.findCurrentByLawyerId(lawyerId);
+  public async getCurrentSubscription(
+    lawyerId:
+      string,
+  ) {
+    const subscription =
+      await this.repository
+        .findCurrentByLawyerId(
+          lawyerId,
+        );
 
-    if (!subscription) {
+    if (
+      !subscription
+    ) {
       return null;
     }
 
-    return toLawyerSubscriptionDTO(subscription);
+    return toLawyerSubscriptionDTO(
+      subscription,
+    );
   }
 
   public async getSubscriptionHistory(
-    lawyerId: string,
-    options: LawyerSubscriptionHistoryOptions,
-  ) {
-    const lawyer = await this.lawyerRepository.findById(lawyerId);
+    lawyerId:
+      string,
 
-    if (!lawyer) {
+    options:
+      LawyerSubscriptionHistoryOptions,
+  ) {
+    const lawyer =
+      await this.lawyerRepository
+        .findById(
+          lawyerId,
+        );
+
+    if (
+      !lawyer
+    ) {
       throw new HttpException(
         404,
-        MESSAGES.noUserWithId[LANGUAGE],
+
+        MESSAGES
+          .noUserWithId[
+            LANGUAGE
+          ],
+
         "LAWYER_NOT_FOUND",
       );
     }
 
-    const result = await this.repository.findHistoryByLawyerId(
-      lawyerId,
-      options,
-    );
+    const result =
+      await this.repository
+        .findHistoryByLawyerId(
+          lawyerId,
+          options,
+        );
 
     return {
-      items: result.items.map((sub) => toLawyerSubscriptionDTO(sub)),
+      items:
+        result.items.map(
+          (
+            subscription,
+          ) =>
+            toLawyerSubscriptionDTO(
+              subscription,
+            ),
+        ),
 
       pagination: {
-        page: options.page,
-        limit: options.limit,
-        total: result.total,
-        totalPages: Math.ceil(result.total / options.limit),
+        page:
+          options.page,
+
+        limit:
+          options.limit,
+
+        total:
+          result.total,
+
+        totalPages:
+          Math.ceil(
+            result.total /
+              options.limit,
+          ),
       },
     };
   }
+ 
+  public async createInitialTrial(
+    lawyerId:
+      string,
 
-  public async createSubscriptionForAdmin(
-    lawyerId: string,
+    trialDays:
+      number,
 
-    input: CreateLawyerSubscriptionInput,
-
-    adminUserId: string,
+    session:
+      ClientSession,
   ) {
-    const session = await mongoose.startSession();
+    if (
+      !Number.isInteger(
+        trialDays,
+      ) ||
+      trialDays <
+        1
+    ) {
+      throw new Error(
+        "Invalid trial duration",
+      );
+    }
 
-    try {
-      const subscription = await session.withTransaction(async () => {
-        const plan = await this.subscriptionPlanRepository.findPublicPlanById(
-          input.planId,
-          session,
-        );
-
-        if (!plan) {
-          throw new HttpException(
-            404,
-
-            MESSAGES.subscriptionPlanNotFound[LANGUAGE],
-
-            "SUBSCRIPTION_PLAN_NOT_FOUND",
-          );
-        }
-
-        const lawyer =
-          await this.lawyerRepository.acquireSubscriptionWriteGuard(
-            lawyerId,
-            session,
-          );
-
-        if (!lawyer) {
-          throw new HttpException(
-            404,
-
-            MESSAGES.noUserWithId[LANGUAGE],
-
-            "LAWYER_NOT_FOUND",
-          );
-        }
-
-        const startsAt = new Date();
-
-        const currentSubscription = await this.repository.findCurrentByLawyerId(
+    const existing =
+      await this.repository
+        .hasAnyByLawyerId(
           lawyerId,
-          startsAt,
           session,
         );
 
-        if (currentSubscription) {
-          throw new HttpException(
-            409,
+    if (
+      existing
+    ) {
+      return null;
+    }
 
-            MESSAGES.lawyerSubscriptionAlreadyActive[LANGUAGE],
+    const startsAt =
+      new Date();
 
-            "LAWYER_SUBSCRIPTION_ALREADY_ACTIVE",
-          );
-        }
+    const endsAt =
+      new Date(
+        startsAt.getTime() +
+          trialDays *
+            SUBSCRIPTION_DAY_DURATION_IN_MS,
+      );
 
-        const endsAt = new Date(
-          startsAt.getTime() +
-            plan.durationMonths * SUBSCRIPTION_MONTH_DURATION_IN_MS,
-        );
+    return this.repository
+      .createSubscription(
+        {
+          lawyerId:
+            new Types.ObjectId(
+              lawyerId,
+            ),
 
-        return this.repository.createSubscription(
-          {
-            lawyerId: lawyer._id,
+          planId:
+            null,
 
-            planId: plan._id,
+          planSnapshot: {
+            title:
+              "دوره رایگان دادیار",
 
-            planSnapshot: {
-              title: plan.title,
+            description:
+              "دوره استفاده رایگان اولیه برای شروع کار با دادیار.",
 
-              description: plan.description,
+            tier:
+              "TRIAL",
 
-              tier: plan.tier,
+            tags: [
+              "رایگان",
+            ],
 
-              tags: [...plan.tags],
+            durationDays:
+              trialDays,
 
-              durationMonths: plan.durationMonths,
+            
+            durationMonths:
+              trialDays /
+              30,
 
-              price: plan.price,
+            price:
+              0,
 
-              discountPercent: plan.discountPercent,
+            discountPercent:
+              0,
 
-              features: [...plan.features],
-            },
-
-            startsAt,
-
-            endsAt,
-
-            activationSource: "ADMIN",
-
-            activatedByUserId: new Types.ObjectId(adminUserId),
+       
+            features: [
+              ...SUBSCRIPTION_FEATURES,
+            ],
           },
 
-          session,
-        );
-      });
+          startsAt,
 
-      if (!subscription) {
+          endsAt,
+
+          activationSource:
+            "TRIAL",
+
+          activatedByUserId:
+            null,
+        },
+
+        session,
+      );
+  }
+
+  public async createSubscriptionForAdmin(
+    lawyerId:
+      string,
+
+    input:
+      CreateLawyerSubscriptionInput,
+
+    adminUserId:
+      string,
+  ) {
+    const session =
+      await mongoose
+        .startSession();
+
+    try {
+      const subscription =
+        await session
+          .withTransaction(
+            async () => {
+              const plan =
+                await this
+                  .subscriptionPlanRepository
+                  .findPublicPlanById(
+                    input.planId,
+                    session,
+                  );
+
+              if (
+                !plan
+              ) {
+                throw new HttpException(
+                  404,
+
+                  MESSAGES
+                    .subscriptionPlanNotFound[
+                      LANGUAGE
+                    ],
+
+                  "SUBSCRIPTION_PLAN_NOT_FOUND",
+                );
+              }
+
+              const lawyer =
+                await this
+                  .lawyerRepository
+                  .acquireSubscriptionWriteGuard(
+                    lawyerId,
+                    session,
+                  );
+
+              if (
+                !lawyer
+              ) {
+                throw new HttpException(
+                  404,
+
+                  MESSAGES
+                    .noUserWithId[
+                      LANGUAGE
+                    ],
+
+                  "LAWYER_NOT_FOUND",
+                );
+              }
+
+              const startsAt =
+                new Date();
+
+              const currentSubscription =
+                await this.repository
+                  .findCurrentByLawyerId(
+                    lawyerId,
+                    startsAt,
+                    session,
+                  );
+
+              if (
+                currentSubscription
+              ) {
+                throw new HttpException(
+                  409,
+
+                  MESSAGES
+                    .lawyerSubscriptionAlreadyActive[
+                      LANGUAGE
+                    ],
+
+                  "LAWYER_SUBSCRIPTION_ALREADY_ACTIVE",
+                );
+              }
+
+              const durationDays =
+                resolveSubscriptionPlanDurationDays(
+                  plan,
+                );
+
+              
+              const durationMonths =
+                typeof plan.durationMonths ===
+                  "number"
+                  ? plan.durationMonths
+                  : durationDays /
+                    30;
+
+              const endsAt =
+                new Date(
+                  startsAt.getTime() +
+                    durationMonths *
+                      SUBSCRIPTION_MONTH_DURATION_IN_MS,
+                );
+
+              return this.repository
+                .createSubscription(
+                  {
+                    lawyerId:
+                      lawyer._id,
+
+                    planId:
+                      plan._id,
+
+                    planSnapshot: {
+                      title:
+                        plan.title,
+
+                      description:
+                        plan.description,
+
+                      tier:
+                        plan.tier,
+
+                      tags: [
+                        ...plan.tags,
+                      ],
+
+                      durationDays,
+
+                      durationMonths,
+
+                      price:
+                        plan.price,
+
+                      discountPercent:
+                        plan.discountPercent,
+
+                      features: [
+                        ...plan.features,
+                      ],
+                    },
+
+                    startsAt,
+
+                    endsAt,
+
+                    activationSource:
+                      "ADMIN",
+
+                    activatedByUserId:
+                      new Types.ObjectId(
+                        adminUserId,
+                      ),
+                  },
+
+                  session,
+                );
+            },
+          );
+
+      if (
+        !subscription
+      ) {
         throw new HttpException(
           500,
 
-          MESSAGES.serverError[LANGUAGE],
+          MESSAGES
+            .serverError[
+              LANGUAGE
+            ],
 
           "LAWYER_SUBSCRIPTION_CREATE_FAILED",
         );
       }
 
-      return toLawyerSubscriptionDTO(subscription);
+      return toLawyerSubscriptionDTO(
+        subscription,
+      );
     } finally {
-      await session.endSession();
+      await session
+        .endSession();
     }
   }
 
-  public async cancelCurrentSubscriptionForAdmin(lawyerId: string) {
-    const session = await mongoose.startSession();
+  public async cancelCurrentSubscriptionForAdmin(
+    lawyerId:
+      string,
+  ) {
+    const session =
+      await mongoose
+        .startSession();
 
     try {
-      const subscription = await session.withTransaction(async () => {
-        const lawyer =
-          await this.lawyerRepository.acquireSubscriptionWriteGuard(
-            lawyerId,
-            session,
+      const subscription =
+        await session
+          .withTransaction(
+            async () => {
+              const lawyer =
+                await this
+                  .lawyerRepository
+                  .acquireSubscriptionWriteGuard(
+                    lawyerId,
+                    session,
+                  );
+
+              if (
+                !lawyer
+              ) {
+                throw new HttpException(
+                  404,
+
+                  MESSAGES
+                    .noUserWithId[
+                      LANGUAGE
+                    ],
+
+                  "LAWYER_NOT_FOUND",
+                );
+              }
+
+              const subscription =
+                await this.repository
+                  .cancelCurrentByLawyerId(
+                    lawyerId,
+                    new Date(),
+                    session,
+                  );
+
+              if (
+                !subscription
+              ) {
+                throw new HttpException(
+                  404,
+
+                  MESSAGES
+                    .lawyerSubscriptionNotFound[
+                      LANGUAGE
+                    ],
+
+                  "LAWYER_SUBSCRIPTION_NOT_FOUND",
+                );
+              }
+
+              return subscription;
+            },
           );
 
-        if (!lawyer) {
-          throw new HttpException(
-            404,
-
-            MESSAGES.noUserWithId[LANGUAGE],
-
-            "LAWYER_NOT_FOUND",
-          );
-        }
-
-        const subscription = await this.repository.cancelCurrentByLawyerId(
-          lawyerId,
-          new Date(),
-          session,
-        );
-
-        if (!subscription) {
-          throw new HttpException(
-            404,
-
-            MESSAGES.lawyerSubscriptionNotFound[LANGUAGE],
-
-            "LAWYER_SUBSCRIPTION_NOT_FOUND",
-          );
-        }
-
-        return subscription;
-      });
-
-      if (!subscription) {
+      if (
+        !subscription
+      ) {
         throw new HttpException(
           500,
 
-          MESSAGES.serverError[LANGUAGE],
+          MESSAGES
+            .serverError[
+              LANGUAGE
+            ],
 
           "LAWYER_SUBSCRIPTION_CANCEL_FAILED",
         );
       }
 
-      return toLawyerSubscriptionDTO(subscription);
+      return toLawyerSubscriptionDTO(
+        subscription,
+      );
     } finally {
-      await session.endSession();
+      await session
+        .endSession();
     }
   }
 }

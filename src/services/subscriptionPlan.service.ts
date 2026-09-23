@@ -1,85 +1,223 @@
-import { env } from "../config/env";
+import {
+  env,
+} from "../config/env";
 
-import { MESSAGES } from "../constants/messages.constants";
+import {
+  MESSAGES,
+} from "../constants/messages.constants";
+
 import {
   SUBSCRIPTION_FEATURE_DEFINITIONS,
   SUBSCRIPTION_FEATURES,
   SUBSCRIPTION_TIERS,
 } from "../constants/subscription.constants";
 
-import { HttpException } from "../exceptions/httpException";
+import {
+  toSubscriptionPlanDTO,
+} from "../dtos/subscriptionPlan.dto";
+
+import {
+  HttpException,
+} from "../exceptions/httpException";
 
 import type {
   CreateSubscriptionPlanInput,
   UpdateSubscriptionPlanInput,
 } from "../interfaces/subscriptionPlan.interface";
 
-import { SubscriptionPlanRepository } from "../repositories/subscriptionPlan.repository";
+import {
+  SubscriptionPlanRepository,
+} from "../repositories/subscriptionPlan.repository";
 
-const LANGUAGE = env.LANGUAGE;
+import {
+  SubscriptionSettingsRepository,
+} from "../repositories/subscriptionSettings.repository";
+
+const LANGUAGE =
+  env.LANGUAGE;
 
 export class SubscriptionPlanService {
   constructor(
-    private readonly repository: SubscriptionPlanRepository = new SubscriptionPlanRepository(),
+    private readonly repository:
+      SubscriptionPlanRepository =
+        new SubscriptionPlanRepository(),
+
+    private readonly settingsRepository:
+      SubscriptionSettingsRepository =
+        new SubscriptionSettingsRepository(),
   ) {}
 
-  public listPublicPlans() {
-    return this.repository.findPublicPlans();
+  public async listPublicPlans() {
+    const plans =
+      await this.repository
+        .findPublicPlans();
+
+    return plans.map(
+      (
+        plan,
+      ) =>
+        toSubscriptionPlanDTO(
+          plan,
+        ),
+    );
   }
 
-  public async getPublicPlan(id: string) {
-    const plan = await this.repository.findPublicPlanById(id);
+  public async getPublicPlan(
+    id:
+      string,
+  ) {
+    const plan =
+      await this.repository
+        .findPublicPlanById(
+          id,
+        );
 
-    if (!plan) {
+    if (
+      !plan
+    ) {
       throw new HttpException(
         404,
 
-        MESSAGES.subscriptionPlanNotFound[LANGUAGE],
+        MESSAGES
+          .subscriptionPlanNotFound[
+            LANGUAGE
+          ],
 
         "SUBSCRIPTION_PLAN_NOT_FOUND",
       );
     }
 
-    return plan;
+    return toSubscriptionPlanDTO(
+      plan,
+    );
   }
 
-  public listPlansForAdmin() {
-    return this.repository.findAllForAdmin();
+  public async listPlansForAdmin() {
+    const plans =
+      await this.repository
+        .findAllForAdmin();
+
+    return plans.map(
+      (
+        plan,
+      ) =>
+        toSubscriptionPlanDTO(
+          plan,
+        ),
+    );
   }
 
-  public createPlan(input: CreateSubscriptionPlanInput) {
-    return this.repository.createPlan(input);
+  public async createPlan(
+    input:
+      CreateSubscriptionPlanInput,
+  ) {
+    const plan =
+      await this.repository
+        .createPlan(
+          input,
+        );
+
+    return toSubscriptionPlanDTO(
+      plan,
+    );
   }
 
   public async updatePlan(
-    id: string,
+    id:
+      string,
 
-    input: UpdateSubscriptionPlanInput,
+    input:
+      UpdateSubscriptionPlanInput,
   ) {
-    const plan = await this.repository.updatePlan(id, input);
+    const plan =
+      await this.repository
+        .updatePlan(
+          id,
+          input,
+        );
 
-    if (!plan) {
+    if (
+      !plan
+    ) {
       throw new HttpException(
         404,
 
-        MESSAGES.subscriptionPlanNotFound[LANGUAGE],
+        MESSAGES
+          .subscriptionPlanNotFound[
+            LANGUAGE
+          ],
 
         "SUBSCRIPTION_PLAN_NOT_FOUND",
       );
     }
 
-    return plan;
+    return toSubscriptionPlanDTO(
+      plan,
+    );
   }
 
   public getPlanOptions() {
     return {
-      tiers: SUBSCRIPTION_TIERS,
+      tiers:
+        SUBSCRIPTION_TIERS,
 
-      features: SUBSCRIPTION_FEATURES.map((code) => ({
-        code,
+      features:
+        SUBSCRIPTION_FEATURES.map(
+          (
+            code,
+          ) => ({
+            code,
 
-        ...SUBSCRIPTION_FEATURE_DEFINITIONS[code],
-      })),
+            ...SUBSCRIPTION_FEATURE_DEFINITIONS[
+              code
+            ],
+          }),
+        ),
+    };
+  }
+
+  public async getSettings() {
+    const settings =
+      await this.settingsRepository
+        .getOrCreate();
+
+    if (
+      !settings
+    ) {
+      throw new Error(
+        "Unable to load subscription settings",
+      );
+    }
+
+    return {
+      trialDays:
+        settings.trialDays,
+    };
+  }
+
+  public async updateSettings(
+    input: {
+      trialDays:
+        number;
+    },
+  ) {
+    const settings =
+      await this.settingsRepository
+        .updateTrialDays(
+          input.trialDays,
+        );
+
+    if (
+      !settings
+    ) {
+      throw new Error(
+        "Unable to update subscription settings",
+      );
+    }
+
+    return {
+      trialDays:
+        settings.trialDays,
     };
   }
 }

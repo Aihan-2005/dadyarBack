@@ -4,6 +4,17 @@ import {
   env,
 } from "../config/env";
 
+
+import {
+  LawyerSubscriptionService,
+} from "./lawyerSubscription.service";
+
+import {
+  SubscriptionPlanService,
+} from "./subscriptionPlan.service";
+
+
+
 import {
   LAWYER_STATUSES,
   resolveLawyerStatus,
@@ -104,7 +115,13 @@ export class AuthService {
 
     private readonly userAuthenticationMetadataRepo =
       new UserAuthenticationMetadataRepository(),
-  ) {}
+
+    private readonly subscriptionPlanService =
+      new SubscriptionPlanService(),
+
+    private readonly lawyerSubscriptionService =
+      new LawyerSubscriptionService(),
+  ) { }
 
 
   private normalizeEmail(
@@ -130,7 +147,7 @@ export class AuthService {
   private assertUserCanAuthenticate(
     user: {
       status:
-        UserStatus;
+      UserStatus;
     },
   ): void {
     if (
@@ -141,7 +158,7 @@ export class AuthService {
         403,
 
         MESSAGES.accountSuspended[
-          LANGUAGE
+        LANGUAGE
         ],
 
         "ACCOUNT_SUSPENDED",
@@ -168,7 +185,7 @@ export class AuthService {
         403,
 
         MESSAGES.accountSuspended[
-          LANGUAGE
+        LANGUAGE
         ],
 
         "ACCOUNT_SUSPENDED",
@@ -184,7 +201,7 @@ export class AuthService {
         403,
 
         MESSAGES.accountRejected[
-          LANGUAGE
+        LANGUAGE
         ],
 
         "ACCOUNT_REJECTED",
@@ -201,10 +218,10 @@ export class AuthService {
       };
 
       role:
-        UserRole;
+      UserRole;
 
       status:
-        UserStatus;
+      UserStatus;
     },
   ): Promise<
     LawyerRecord | null
@@ -236,7 +253,7 @@ export class AuthService {
         401,
 
         MESSAGES.unableToFindUser[
-          LANGUAGE
+        LANGUAGE
         ],
 
         "LAWYER_PROFILE_NOT_FOUND",
@@ -265,7 +282,7 @@ export class AuthService {
 
     if (
       user.role ===
-        "LAWYER" &&
+      "LAWYER" &&
       lawyer
     ) {
       return toPublicLawyerDTO(
@@ -304,19 +321,19 @@ export class AuthService {
       await Promise.all([
         email
           ? this.userRepo.findByEmail(
-              email,
-            )
+            email,
+          )
           : Promise.resolve(
-              null,
-            ),
+            null,
+          ),
 
         phone
           ? this.userRepo.findByPhone(
-              phone,
-            )
+            phone,
+          )
           : Promise.resolve(
-              null,
-            ),
+            null,
+          ),
       ]);
 
 
@@ -327,7 +344,7 @@ export class AuthService {
         409,
 
         MESSAGES.emailExsist[
-          LANGUAGE
+        LANGUAGE
         ],
 
         "EMAIL_ALREADY_EXISTS",
@@ -342,7 +359,7 @@ export class AuthService {
         409,
 
         MESSAGES.phoneExsist[
-          LANGUAGE
+        LANGUAGE
         ],
 
         "PHONE_ALREADY_EXISTS",
@@ -369,7 +386,7 @@ export class AuthService {
         404,
 
         MESSAGES.noUserWithId[
-          LANGUAGE
+        LANGUAGE
         ],
 
         "USER_NOT_FOUND",
@@ -399,7 +416,7 @@ export class AuthService {
 
 
 
-  
+
   public async requestOtpLogin(
     input:
       RequestOtpLoginInput,
@@ -430,13 +447,13 @@ export class AuthService {
     const account =
       email
         ? await this.userRepo
-            .findByEmail(
-              email,
-            )
+          .findByEmail(
+            email,
+          )
         : await this.userRepo
-            .findByPhone(
-              phone!,
-            );
+          .findByPhone(
+            phone!,
+          );
 
 
     let canReceiveOtp =
@@ -446,7 +463,7 @@ export class AuthService {
     if (
       account &&
       account.status !==
-        "SUSPENDED"
+      "SUSPENDED"
     ) {
       if (
         account.role ===
@@ -470,9 +487,9 @@ export class AuthService {
 
           canReceiveOtp =
             status !==
-              LAWYER_STATUSES.SUSPENDED &&
+            LAWYER_STATUSES.SUSPENDED &&
             status !==
-              LAWYER_STATUSES.REJECTED;
+            LAWYER_STATUSES.REJECTED;
         }
       } else {
         canReceiveOtp =
@@ -501,7 +518,7 @@ export class AuthService {
 
 
 
-  
+
   public async loginWithOtp(
     input:
       OtpLoginInput,
@@ -546,13 +563,13 @@ export class AuthService {
     const authUser =
       email
         ? await this.userRepo
-            .findByEmail(
-              email,
-            )
+          .findByEmail(
+            email,
+          )
         : await this.userRepo
-            .findByPhone(
-              phone!,
-            );
+          .findByPhone(
+            phone!,
+          );
 
 
     if (
@@ -562,7 +579,7 @@ export class AuthService {
         401,
 
         MESSAGES.invalidCredentials[
-          LANGUAGE
+        LANGUAGE
         ],
 
         "INVALID_CREDENTIALS",
@@ -584,13 +601,13 @@ export class AuthService {
       new Date();
 
 
- 
-      
+
+
     const phoneVerifiedAt =
       channel ===
         "phone"
         ? authUser.phoneVerifiedAt ??
-          lastLoginAt
+        lastLoginAt
         : undefined;
 
 
@@ -612,8 +629,8 @@ export class AuthService {
 
                     ...(phoneVerifiedAt
                       ? {
-                          phoneVerifiedAt,
-                        }
+                        phoneVerifiedAt,
+                      }
                       : {}),
                   },
 
@@ -628,7 +645,7 @@ export class AuthService {
                 404,
 
                 MESSAGES.noUserWithId[
-                  LANGUAGE
+                LANGUAGE
                 ],
 
                 "USER_NOT_FOUND",
@@ -636,13 +653,13 @@ export class AuthService {
             }
 
 
-        
-            
+
+
             if (
               channel ===
-                "phone" &&
+              "phone" &&
               authUser.role ===
-                "CLIENT" &&
+              "CLIENT" &&
               phone
             ) {
               await this.lawyerClientRepo
@@ -683,7 +700,7 @@ export class AuthService {
           500,
 
           MESSAGES.serverError[
-            LANGUAGE
+          LANGUAGE
           ],
 
           "OTP_LOGIN_FAILED",
@@ -694,15 +711,15 @@ export class AuthService {
       const user =
         authUser.role ===
           "LAWYER" &&
-        lawyer
+          lawyer
           ? toPublicLawyerDTO(
-              lawyer,
+            lawyer,
 
-              result.updatedUser,
-            )
+            result.updatedUser,
+          )
           : toPublicUserDTO(
-              result.updatedUser,
-            );
+            result.updatedUser,
+          );
 
 
       return {
@@ -716,8 +733,8 @@ export class AuthService {
   }
 
 
- 
-  
+
+
   public async signup(
     input:
       SignupInput,
@@ -732,6 +749,10 @@ export class AuthService {
         .hashPassword(
           input.password,
         );
+
+    const subscriptionSettings =
+      await this.subscriptionPlanService
+        .getSettings();
 
 
     const session =
@@ -783,6 +804,15 @@ export class AuthService {
                   session,
                 );
 
+            await this.lawyerSubscriptionService
+              .createInitialTrial(
+                user._id.toString(),
+
+                subscriptionSettings.trialDays,
+
+                session,
+              );
+
 
             const tokenPair =
               await this.tokenService
@@ -816,7 +846,7 @@ export class AuthService {
           500,
 
           MESSAGES.serverError[
-            LANGUAGE
+          LANGUAGE
           ],
 
           "SIGNUP_FAILED",
@@ -832,7 +862,7 @@ export class AuthService {
 
 
 
-  
+
   public async login(
     input:
       LoginInput,
@@ -852,13 +882,13 @@ export class AuthService {
     const authUser =
       email
         ? await this.userRepo
-            .findAuthByEmail(
-              email,
-            )
+          .findAuthByEmail(
+            email,
+          )
         : await this.userRepo
-            .findAuthByPhone(
-              phone!,
-            );
+          .findAuthByPhone(
+            phone!,
+          );
 
 
     if (
@@ -868,7 +898,7 @@ export class AuthService {
         401,
 
         MESSAGES.invalidCredentials[
-          LANGUAGE
+        LANGUAGE
         ],
 
         "INVALID_CREDENTIALS",
@@ -892,7 +922,7 @@ export class AuthService {
         401,
 
         MESSAGES.invalidCredentials[
-          LANGUAGE
+        LANGUAGE
         ],
 
         "INVALID_CREDENTIALS",
@@ -932,15 +962,15 @@ export class AuthService {
     const user =
       authUser.role ===
         "LAWYER" &&
-      lawyer
+        lawyer
         ? toPublicLawyerDTO(
-            lawyer,
+          lawyer,
 
-            updatedUser,
-          )
+          updatedUser,
+        )
         : toPublicUserDTO(
-            updatedUser,
-          );
+          updatedUser,
+        );
 
 
     const tokenPair =
@@ -985,7 +1015,7 @@ export class AuthService {
         401,
 
         MESSAGES.unableToFindUser[
-          LANGUAGE
+        LANGUAGE
         ],
 
         "SESSION_USER_NOT_FOUND",
@@ -1036,7 +1066,7 @@ export class AuthService {
         404,
 
         MESSAGES.noUserWithId[
-          LANGUAGE
+        LANGUAGE
         ],
 
         "USER_NOT_FOUND",
@@ -1185,7 +1215,7 @@ export class AuthService {
                 404,
 
                 MESSAGES.noUserWithId[
-                  LANGUAGE
+                LANGUAGE
                 ],
 
                 "USER_NOT_FOUND",
@@ -1220,7 +1250,7 @@ export class AuthService {
           500,
 
           MESSAGES.serverError[
-            LANGUAGE
+          LANGUAGE
           ],
 
           "PASSWORD_CHANGE_FAILED",
@@ -1280,7 +1310,7 @@ export class AuthService {
 
 
 
-  
+
   public async signupClient(
     input:
       ClientSignupInput,
@@ -1309,7 +1339,7 @@ export class AuthService {
           409,
 
           MESSAGES.accountRoleConflict[
-            LANGUAGE
+          LANGUAGE
           ],
 
           "ACCOUNT_ROLE_CONFLICT",
@@ -1321,7 +1351,7 @@ export class AuthService {
         409,
 
         MESSAGES.phoneExsist[
-          LANGUAGE
+        LANGUAGE
         ],
 
         "PHONE_ALREADY_EXISTS",
@@ -1356,7 +1386,7 @@ export class AuthService {
                     role:
                       "CLIENT",
 
-                      
+
                     phoneVerifiedAt:
                       null,
                   },
@@ -1365,8 +1395,8 @@ export class AuthService {
                 );
 
 
-          
-                
+
+
 
             const tokenPair =
               await this.tokenService
@@ -1398,7 +1428,7 @@ export class AuthService {
           500,
 
           MESSAGES.serverError[
-            LANGUAGE
+          LANGUAGE
           ],
 
           "CLIENT_SIGNUP_FAILED",

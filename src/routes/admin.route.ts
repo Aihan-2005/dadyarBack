@@ -139,6 +139,15 @@ export class AdminRoute implements Route {
       "/subscription-plans/options",
       this.subscriptionPlanController.getPlanOptions,
     );
+    this.router.get(
+      "/subscription-plans/settings",
+      this.subscriptionPlanController.getSettings,
+    );
+
+    this.router.patch(
+      "/subscription-plans/settings",
+      this.subscriptionPlanController.updateSettings,
+    );
 
     this.router.get(
       "/subscription-plans",

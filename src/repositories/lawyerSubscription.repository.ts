@@ -28,6 +28,31 @@ export class LawyerSubscriptionRepository extends BaseRepository<LawyerSubscript
 
     return subscription.toObject();
   }
+public hasAnyByLawyerId(
+  lawyerId:
+    string,
+
+  session?:
+    ClientSession,
+) {
+  const query =
+    this.model.exists({
+      lawyerId:
+        this.toObjectId(
+          lawyerId,
+        ),
+    });
+
+  if (
+    session
+  ) {
+    query.session(
+      session,
+    );
+  }
+
+  return query.exec();
+}
 
   public findCurrentByLawyerId(
     lawyerId: string,
