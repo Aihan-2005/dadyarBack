@@ -9,6 +9,12 @@ import {
 } from "../constants/payment.constants";
 
 import {
+  calculateDiscountedTomanAmount,
+  tomanToRial,
+} from "../utils/money";
+
+
+import {
   MESSAGES,
 } from "../constants/messages.constants";
 
@@ -586,453 +592,465 @@ export class PaymentService {
         .endSession();
     }
   }
+public async createSubscriptionPayment(
+  lawyerId:
+    string,
 
+  input:
+    CreateSubscriptionPaymentInput,
+) {
+  const [
+    plan,
+    currentSubscription,
+  ] =
+    await Promise.all([
+      this.subscriptionPlanRepository
+        .findPublicPlanById(
+          input.planId,
+        ),
 
-  public async createSubscriptionPayment(
-    lawyerId:
-      string,
-
-    input:
-      CreateSubscriptionPaymentInput,
-  ) {
- 
-    const [
-      plan,
-      currentSubscription,
-    ] =
-      await Promise.all([
-        this.subscriptionPlanRepository
-          .findPublicPlanById(
-            input.planId,
-          ),
-
-        this.lawyerSubscriptionRepository
-          .findCurrentByLawyerId(
-            lawyerId,
-          ),
-      ]);
-
-
-    if (
-      !plan
-    ) {
-      throw new HttpException(
-        404,
-
-        MESSAGES
-          .subscriptionPlanNotFound[
-            LANGUAGE
-          ],
-
-        "SUBSCRIPTION_PLAN_NOT_FOUND",
-      );
-    }
-
-
-    if (
-      currentSubscription
-    ) {
-      throw new HttpException(
-        409,
-
-        MESSAGES
-          .lawyerSubscriptionAlreadyActive[
-            LANGUAGE
-          ],
-
-        "LAWYER_SUBSCRIPTION_ALREADY_ACTIVE",
-      );
-    }
-
-
- 
-    const existingPendingPayment =
-      await this.repository
-        .findPendingByLawyerId(
+      this.lawyerSubscriptionRepository
+        .findCurrentByLawyerId(
           lawyerId,
-        );
+        ),
+    ]);
 
 
-    if (
-      existingPendingPayment
-    ) {
-      return this.reusePendingCheckout(
-        existingPendingPayment,
+  if (
+    !plan
+  ) {
+    throw new HttpException(
+      404,
 
-        input.planId,
-      );
-    }
+      MESSAGES
+        .subscriptionPlanNotFound[
+          LANGUAGE
+        ],
 
-
- 
-    const amount =
-      Math.round(
-        (
-          plan.price *
-          (
-            100 -
-            plan.discountPercent
-          )
-        ) /
-          100,
-      );
+      "SUBSCRIPTION_PLAN_NOT_FOUND",
+    );
+  }
 
 
-    if (
-      !Number.isSafeInteger(
-        amount,
-      ) ||
-      amount <
-        ZARINPAL_MIN_AMOUNT
-    ) {
-      throw new HttpException(
-        400,
+  if (
+    currentSubscription
+  ) {
+    throw new HttpException(
+      409,
 
-        MESSAGES
-          .paymentAmountTooLow[
-            LANGUAGE
-          ],
+      MESSAGES
+        .lawyerSubscriptionAlreadyActive[
+          LANGUAGE
+        ],
 
-        "PAYMENT_AMOUNT_TOO_LOW",
-      );
-    }
+      "LAWYER_SUBSCRIPTION_ALREADY_ACTIVE",
+    );
+  }
+
 
 
   
-    const durationDays =
-      resolveSubscriptionPlanDurationDays(
-        plan,
+  const existingPendingPayment =
+    await this.repository
+      .findPendingByLawyerId(
+        lawyerId,
       );
 
 
-    const durationMonths =
-      durationDaysToLegacyMonths(
-        durationDays,
-      );
+  if (
+    existingPendingPayment
+  ) {
+    return this.reusePendingCheckout(
+      existingPendingPayment,
+
+      input.planId,
+    );
+  }
 
 
- 
-    let payment;
+
+  
+  const amountToman =
+    calculateDiscountedTomanAmount(
+      plan.price,
+
+      plan.discountPercent,
+    );
 
 
-    try {
-      payment =
-        await this.repository
-          .createPendingPayment({
-            lawyerId,
+    
+  const amount =
+    tomanToRial(
+      amountToman,
+    );
 
-            planId:
-              plan._id,
 
-            planSnapshot: {
-              title:
-                plan.title,
+  if (
+    !Number.isSafeInteger(
+      amount,
+    ) ||
+    amount <
+      ZARINPAL_MIN_AMOUNT
+  ) {
+    throw new HttpException(
+      400,
 
-              description:
-                plan.description,
+      MESSAGES
+        .paymentAmountTooLow[
+          LANGUAGE
+        ],
 
-              tier:
-                plan.tier,
+      "PAYMENT_AMOUNT_TOO_LOW",
+    );
+  }
 
-              tags: [
-                ...plan.tags,
-              ],
 
-              durationDays,
+  const durationDays =
+    resolveSubscriptionPlanDurationDays(
+      plan,
+    );
 
-              
-              durationMonths,
 
-              price:
-                plan.price,
+  const durationMonths =
+    durationDaysToLegacyMonths(
+      durationDays,
+    );
 
-              discountPercent:
-                plan.discountPercent,
 
-              features: [
-                ...plan.features,
-              ],
-            },
+  let payment;
 
-            amount,
 
-            currency:
-              "IRR",
+  try {
 
-            provider:
-              "ZARINPAL",
-          });
-    } catch (
-      error
+    
+    payment =
+      await this.repository
+        .createPendingPayment({
+          lawyerId,
+
+          planId:
+            plan._id,
+
+          planSnapshot: {
+            title:
+              plan.title,
+
+            description:
+              plan.description,
+
+            tier:
+              plan.tier,
+
+            tags: [
+              ...plan.tags,
+            ],
+
+            durationDays,
+
+            durationMonths,
+
+            price:
+              plan.price,
+
+            discountPercent:
+              plan.discountPercent,
+
+            features: [
+              ...plan.features,
+            ],
+          },
+
+          amount,
+
+          currency:
+            "IRR",
+
+          provider:
+            "ZARINPAL",
+        });
+  } catch (
+    error
+  ) {
+
+    
+    if (
+      isMongoDuplicateKeyError(
+        error,
+      )
     ) {
-      if (
-        isMongoDuplicateKeyError(
-          error,
-        )
-      ) {
-      
-        const concurrentPayment =
-          await this.repository
-            .findPendingByLawyerId(
-              lawyerId,
-            );
-
-
-        if (
-          concurrentPayment
-        ) {
-          return this.reusePendingCheckout(
-            concurrentPayment,
-
-            input.planId,
+      const concurrentPayment =
+        await this.repository
+          .findPendingByLawyerId(
+            lawyerId,
           );
-        }
+
+
+      if (
+        concurrentPayment
+      ) {
+        return this.reusePendingCheckout(
+          concurrentPayment,
+
+          input.planId,
+        );
       }
-
-
-      throw error;
     }
 
 
-   
-    try {
-      const providerResult =
-        await this.provider
-          .createPayment({
-            amount:
-              payment.amount,
-
-            callbackUrl:
-              env.ZARINPAL_CALLBACK_URL,
-
-            description:
-              `Subscription purchase: ${plan.title}`,
-          });
+    throw error;
+  }
 
 
-      const updatedPayment =
-        await this.repository
-          .attachProviderRequest(
-            payment._id.toString(),
+  try {
+    const providerResult =
+      await this.provider
+        .createPayment({
+          amount:
+            payment.amount,
 
-            {
-              authority:
-                providerResult.authority,
+          callbackUrl:
+            env.ZARINPAL_CALLBACK_URL,
 
-              providerRequestCode:
-                providerResult.providerCode,
-
-              providerFee:
-                providerResult.fee,
-
-              providerFeeType:
-                providerResult.feeType,
-            },
-          );
+          description:
+            `Subscription purchase: ${plan.title}`,
+        });
 
 
-      if (
-        !updatedPayment
-      ) {
-        throw new Error(
-          "Pending payment disappeared before provider request could be attached",
-        );
-      }
-
-
-      return {
-        paymentId:
-          updatedPayment._id.toString(),
-
-        redirectUrl:
-          providerResult.redirectUrl,
-
-        amount:
-          updatedPayment.amount,
-
-        currency:
-          updatedPayment.currency,
-      };
-    } catch (
-      error
-    ) {
+    const updatedPayment =
       await this.repository
-        .markPendingPaymentFailed(
+        .attachProviderRequest(
           payment._id.toString(),
 
           {
-            failureCode:
-              error instanceof
-                PaymentProviderException
-                ? "PAYMENT_PROVIDER_REQUEST_FAILED"
-                : "PAYMENT_INITIALIZATION_FAILED",
+            authority:
+              providerResult.authority,
 
-            failureMessage:
-              error instanceof
-                Error
-                ? error.message
-                : "Unknown payment initialization error",
+            providerRequestCode:
+              providerResult.providerCode,
+
+            providerFee:
+              providerResult.fee,
+
+            providerFeeType:
+              providerResult.feeType,
           },
         );
 
 
-      if (
-        error instanceof
-        PaymentProviderException
-      ) {
-        throw new HttpException(
-          502,
-
-          MESSAGES
-            .paymentRequestFailed[
-              LANGUAGE
-            ],
-
-          "PAYMENT_PROVIDER_REQUEST_FAILED",
-        );
-      }
-
-
-      throw error;
+    if (
+      !updatedPayment
+    ) {
+      throw new Error(
+        "Pending payment disappeared before provider request could be attached",
+      );
     }
-  }
 
 
-  public async handleZarinPalCallback(
-    input:
-      ZarinPalCallbackInput,
+    return {
+      paymentId:
+        updatedPayment._id.toString(),
+
+      redirectUrl:
+        providerResult.redirectUrl,
+
+      amount:
+        updatedPayment.amount,
+
+      currency:
+        updatedPayment.currency,
+    };
+  } catch (
+    error
   ) {
-    const payment =
-      await this.repository
-        .findByProviderAuthority(
-          "ZARINPAL",
 
-          input.Authority,
-        );
+    
+    await this.repository
+      .markPendingPaymentFailed(
+        payment._id.toString(),
+
+        {
+          failureCode:
+            error instanceof
+              PaymentProviderException
+              ? "PAYMENT_PROVIDER_REQUEST_FAILED"
+              : "PAYMENT_INITIALIZATION_FAILED",
+
+          failureMessage:
+            error instanceof
+              Error
+              ? error.message
+              : "Unknown payment initialization error",
+        },
+      );
 
 
     if (
-      !payment
+      error instanceof
+      PaymentProviderException
     ) {
       throw new HttpException(
-        404,
+        502,
 
         MESSAGES
-          .paymentNotFound[
+          .paymentRequestFailed[
             LANGUAGE
           ],
 
-        "SUBSCRIPTION_PAYMENT_NOT_FOUND",
+        "PAYMENT_PROVIDER_REQUEST_FAILED",
       );
     }
 
 
-     
-    if (
-      payment.status ===
-      "PAID"
-    ) {
-      return this.toCallbackResult(
-        payment,
+    throw error;
+  }
+}
+
+public async handleZarinPalCallback(
+  input:
+    ZarinPalCallbackInput,
+) {
+  const payment =
+    await this.repository
+      .findByProviderAuthority(
+        "ZARINPAL",
+
+        input.Authority,
       );
-    }
 
 
-   
-    if (
-      input.Status !==
-      "OK"
-    ) {
-      return this.toCallbackResult(
-        payment,
-      );
-    }
+  if (
+    !payment
+  ) {
+    throw new HttpException(
+      404,
+
+      MESSAGES
+        .paymentNotFound[
+          LANGUAGE
+        ],
+
+      "SUBSCRIPTION_PAYMENT_NOT_FOUND",
+    );
+  }
 
 
-    
-    if (
-      payment.status !==
-      "PENDING"
-    ) {
-      return this.toCallbackResult(
-        payment,
-      );
-    }
+  
+  if (
+    payment.status ===
+    "PAID"
+  ) {
+    return this.toCallbackResult(
+      payment,
+    );
+  }
 
 
-    let verification;
 
+  
 
-    try {
-      verification =
-        await this.provider
-          .verifyPayment({
-            amount:
-              payment.amount,
-
-            authority:
-              input.Authority,
-          });
-    } catch (
-      error
-    ) {
-      if (
-        error instanceof
-        PaymentProviderException
-      ) {
-        throw new HttpException(
-          502,
-
-          MESSAGES
-            .paymentVerificationFailed[
-              LANGUAGE
-            ],
-
-          "PAYMENT_VERIFICATION_FAILED",
-        );
-      }
-
-
-      throw error;
-    }
-
-
-    const verificationData:
-      PaymentVerificationData =
-      {
-        providerVerificationCode:
-          verification.providerCode,
-
-        referenceId:
-          verification.refId,
-
-        cardPan:
-          verification.cardPan,
-
-        cardHash:
-          verification.cardHash,
-
-        providerFee:
-          verification.fee,
-
-        providerFeeType:
-          verification.feeType,
-      };
-
-
-    const finalizedPayment =
-      await this
-        .finalizeVerifiedSubscriptionPayment(
-          input.Authority,
-
-          verificationData,
+  if (
+    input.Status !==
+    "OK"
+  ) {
+    const cancelledPayment =
+      await this.repository
+        .markPendingPaymentCancelled(
+          payment._id.toString(),
         );
 
 
     return this.toCallbackResult(
-      finalizedPayment,
+      cancelledPayment ??
+      payment,
     );
   }
+
+
+  
+  if (
+    payment.status !==
+    "PENDING"
+  ) {
+    return this.toCallbackResult(
+      payment,
+    );
+  }
+
+
+  let verification;
+
+
+  try {
+    verification =
+      await this.provider
+        .verifyPayment({
+        
+          amount:
+            payment.amount,
+
+          authority:
+            input.Authority,
+        });
+  } catch (
+    error
+  ) {
+    if (
+      error instanceof
+      PaymentProviderException
+    ) {
+      throw new HttpException(
+        502,
+
+        MESSAGES
+          .paymentVerificationFailed[
+            LANGUAGE
+          ],
+
+        "PAYMENT_VERIFICATION_FAILED",
+      );
+    }
+
+
+    throw error;
+  }
+
+
+  const verificationData:
+    PaymentVerificationData =
+    {
+      providerVerificationCode:
+        verification.providerCode,
+
+      referenceId:
+        verification.refId,
+
+      cardPan:
+        verification.cardPan,
+
+      cardHash:
+        verification.cardHash,
+
+      providerFee:
+        verification.fee,
+
+      providerFeeType:
+        verification.feeType,
+    };
+
+
+  const finalizedPayment =
+    await this
+      .finalizeVerifiedSubscriptionPayment(
+        input.Authority,
+
+        verificationData,
+      );
+
+
+  return this.toCallbackResult(
+    finalizedPayment,
+  );
+}
 
 
   public async listLawyerPayments(
